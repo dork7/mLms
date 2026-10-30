@@ -1,0 +1,40 @@
+# `docker compose up --build` runs the whole app: Postgres, then the app (which
+# applies migrations and seeds the first Admin on start). Open http://localhost:3000.
+# `npm run dev` starts only the `db` service and runs Next.js on the host.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lms
+      POSTGRES_PASSWORD: lms
+      POSTGRES_DB: lms
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms -d lms"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://lms:lms@db:5432/lms
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (e.g. openssl rand -hex 32)}
+      ADMIN_NAME: ${ADMIN_NAME:-School Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@school.test}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-School LMS <no-reply@localhost>}
+      SCHOOL_TIME_ZONE: ${SCHOOL_TIME_ZONE:-Asia/Dubai}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  db-data:
