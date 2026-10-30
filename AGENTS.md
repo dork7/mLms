@@ -29,5 +29,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `npm run test:all`: both of the above.
 - `npm run typecheck`: `tsc --noEmit`.
 - `npm run dev`: starts the `db` service with Docker Compose, migrates, seeds the first Admin, and runs `next dev`. Copy `.env.example` to `.env` first.
-- `docker compose up --build`: the full stack (app and Postgres). Requires `BETTER_AUTH_SECRET`.
+- `docker compose up --build`: the full stack (app and Postgres). Set `APP_URL` to the public URL (used in password reset emails).
 - `npm run db:generate`: writes a migration into `drizzle/` after editing `src/db/schema.ts`.

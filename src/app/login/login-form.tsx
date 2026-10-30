@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useActionState } from "react";
 import { t } from "@/i18n";
 import { login, type LoginState } from "../actions";
@@ -13,13 +14,15 @@ export function LoginForm() {
         </p>
       )}
       <label className="field">
-        {t("login.email")}
+        {t("login.identifier")}
         <input
-          name="email"
-          type="email"
+          name="identifier"
+          type="text"
+          inputMode="email"
           autoComplete="username"
-          defaultValue={state.email}
-          key={state.email}
+          autoCapitalize="none"
+          defaultValue={state.identifier}
+          key={state.identifier}
           required
         />
       </label>
@@ -30,6 +33,9 @@ export function LoginForm() {
       <button className="button" type="submit" disabled={pending}>
         {t("login.submit")}
       </button>
+      <p>
+        <Link href="/forgot-password">{t("login.forgot")}</Link>
+      </p>
     </form>
   );
 }

@@ -2,24 +2,41 @@
 //
 //   const dashboard = await asCurrentActor((ctx) => getAdminDashboard(ctx));
 //
-// It authenticates (redirecting to /login if there is no session), builds the
-// Ctx from the session's user, and calls the layer. Nothing else belongs here.
+// It authenticates from the session cookie (redirecting to /login if there is no
+// valid session, or to /change-password while the initial password is unchanged),
+// builds the Ctx from the session's user, and calls the layer. Nothing else belongs here.
 import "server-only";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { as, type Actor, type Ctx, type Role } from "@/core/context";
-import { auth } from "./auth";
+import { sessionActor, type SessionActor } from "@/core/accounts/sessions";
+import { as, type Actor, type Ctx } from "@/core/context";
 import { appDeps } from "./deps";
 
+export const SESSION_COOKIE = "lms_session";
+
+/** The logged-in session, or null. Reading it marks the route dynamic. */
+export async function currentSession(): Promise<SessionActor | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value; // first: marks the route dynamic
+  if (!token) return null;
+  return sessionActor(appDeps(), token);
+}
+
+/** The acting person, or null if not logged in or their password must be changed first. */
 export async function currentActor(): Promise<Actor | null> {
-  const requestHeaders = await headers(); // first: marks the route dynamic
-  const session = await auth().api.getSession({ headers: requestHeaders });
-  if (!session) return null;
-  return { role: session.user.role as Role, userId: session.user.id };
+  const session = await currentSession();
+  return session && !session.mustChangePassword ? session.actor : null;
 }
 
 export async function asCurrentActor<T>(call: (ctx: Ctx) => Promise<T>): Promise<T> {
-  const actor = await currentActor();
-  if (!actor) redirect("/login");
-  return call(as(appDeps(), actor));
+  const session = await currentSession();
+  if (!session) redirect("/login");
+  if (session.mustChangePassword) redirect("/change-password");
+  return call(as(appDeps(), session.actor));
+}
+
+/** For the password change itself, which a first-login session may do. */
+export async function asCurrentSessionActor<T>(call: (ctx: Ctx) => Promise<T>): Promise<T> {
+  const session = await currentSession();
+  if (!session) redirect("/login");
+  return call(as(appDeps(), session.actor));
 }

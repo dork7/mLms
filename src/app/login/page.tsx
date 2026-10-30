@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { t } from "@/i18n";
-import { currentActor } from "@/web/as-current-actor";
+import { currentSession } from "@/web/as-current-actor";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
-  if (await currentActor()) redirect("/");
+  if (await currentSession()) redirect("/");
   return (
     <main className="page">
       <div className="card">

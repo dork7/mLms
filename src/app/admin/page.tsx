@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAdminDashboard } from "@/core/dashboard/admin-dashboard";
 import { AccessDenied } from "@/core/errors";
 import { t } from "@/i18n";
@@ -32,7 +33,9 @@ export default async function AdminDashboardPage() {
       <section className="card">
         <p>{t("adminDashboard.welcome", { name: dashboard.adminName })}</p>
         <p>{t("adminDashboard.today", { date: dashboard.today })}</p>
-        <p>{t("adminDashboard.empty")}</p>
+        <p>
+          <Link href="/admin/teachers">{t("nav.teachers")}</Link>
+        </p>
       </section>
     </main>
   );

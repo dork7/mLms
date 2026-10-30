@@ -1,7 +1,6 @@
 // `npm run test:e2e`: starts a throwaway Postgres, migrates and seeds it, then runs
 // Playwright against `next dev` on a free port. Extra args pass through to Playwright.
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { bootstrapAdmin } from "../src/core/accounts/bootstrap-admin";
@@ -25,8 +24,7 @@ try {
     ...process.env,
     DATABASE_URL: databaseUrl,
     PORT: String(port),
-    BETTER_AUTH_URL: `http://localhost:${port}`,
-    BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
+    APP_URL: `http://localhost:${port}`,
     E2E_ADMIN_EMAIL: admin.email,
     E2E_ADMIN_PASSWORD: admin.password,
   });

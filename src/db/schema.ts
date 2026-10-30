@@ -1,18 +1,24 @@
 // The whole database schema. One deployment = one school (ADR 0001): no tenant key.
 // After editing, run `npm run db:generate` to write a new migration into drizzle/.
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["admin", "teacher", "student"]);
 
-// ---- Identity (tables shaped for Better Auth; keys must match its field names) ----
+// ---- Identity (tables shaped like Better Auth's; src/core/accounts owns login and sessions) ----
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  // Staff log in with email or phone, so either may be missing. Stored normalised
+  // (email lower-cased, phone digits with an optional leading +).
+  email: text("email").unique(),
+  phone: text("phone").unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull(),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
+  /** Set when the Admin disables the login. The person and their records are kept. */
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -47,6 +53,19 @@ export const account = pgTable("account", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---- Login protection ----
+
+/** Failed logins per identifier, for rate-limiting. Cleared by a successful login. */
+export const failedLogin = pgTable(
+  "failed_login",
+  {
+    id: serial("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("failed_login_identifier_at_idx").on(t.identifier, t.at)],
+);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
