@@ -26,12 +26,13 @@ test("an Admin creates a Class and a Class Subject, and the Teacher sees them", 
   await page.goto("/admin/grades");
   await page.getByLabel("Grade name").first().fill("Grade 10");
   await page.getByRole("button", { name: "Add" }).click();
-  await expect(page.getByRole("textbox", { name: "Grade name" }).nth(1)).toHaveValue("Grade 10");
+  // The list is sorted and shared with other specs, so find the row by its value.
+  await expect(page.locator('input[name="name"][value="Grade 10"]')).toBeVisible();
 
   await page.goto("/admin/subjects");
   await page.getByLabel("Subject name").first().fill("Physics");
   await page.getByRole("button", { name: "Add" }).click();
-  await expect(page.getByRole("textbox", { name: "Subject name" }).nth(1)).toHaveValue("Physics");
+  await expect(page.locator('input[name="name"][value="Physics"]')).toBeVisible();
 
   await page.goto("/admin/teachers");
   await page.getByLabel("Name").fill("Rania Physics");

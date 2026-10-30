@@ -36,6 +36,13 @@
       "when": 1793338372542,
       "tag": "0004_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793338649626,
+      "tag": "0005_lessons",
+      "breakpoints": true
     }
   ]
 }

@@ -48,6 +48,23 @@ export async function requireCanSeeClassSubject(ctx: Ctx, classSubjectId: number
   throw new AccessDenied("not this Class Subject's Teacher");
 }
 
+/**
+ * Act on a Class Subject (log its Lessons, later enter its Marks): only its current
+ * Subject Teacher. The Admin and the Class Teacher can see it but not act on it, so
+ * records are attributed to the person who taught.
+ */
+export async function requireCanActOnClassSubject(ctx: Ctx, classSubjectId: number): Promise<void> {
+  requireRole(ctx.actor, "teacher");
+  requireId(classSubjectId);
+  const [found] = await ctx.db
+    .select({ teacherId: classSubject.teacherId })
+    .from(classSubject)
+    .where(eq(classSubject.id, classSubjectId));
+  if (!found) throw new NotFound();
+  if (found.teacherId === ctx.actor.userId) return;
+  throw new AccessDenied("not this Class Subject's Subject Teacher");
+}
+
 /** Ids arrive from URLs and forms; one that isn't a whole number names nothing. */
 function requireId(id: number): void {
   if (!Number.isSafeInteger(id)) throw new NotFound();

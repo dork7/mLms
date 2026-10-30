@@ -4,9 +4,9 @@
 
 **Blocked by:** 04 (Classes, Class Subjects and access policy)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Subject Teacher logs a Lesson with its date, Period (1 to N), topic and homework
-- [ ] Anyone other than the Class Subject's Subject Teacher is refused
-- [ ] The class summary lists a Class's Lessons by day, Subject and Teacher
-- [ ] The Lesson form works at phone width
+- [x] A Subject Teacher logs a Lesson with its date, Period (1 to N), topic and homework
+- [x] Anyone other than the Class Subject's Subject Teacher is refused
+- [x] The class summary lists a Class's Lessons by day, Subject and Teacher
+- [x] The Lesson form works at phone width
