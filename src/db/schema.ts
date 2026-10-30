@@ -1,6 +1,6 @@
 // The whole database schema. One deployment = one school (ADR 0001): no tenant key.
 // After editing, run `npm run db:generate` to write a new migration into drizzle/.
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["admin", "teacher", "student"]);
 
@@ -55,4 +55,45 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---- School structure (ticket 03) ----
+// Dates are calendar dates (YYYY-MM-DD strings) and ranges are inclusive at both ends.
+
+export const academicYear = pgTable("academic_year", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }).notNull(),
+});
+
+export const term = pgTable("term", {
+  id: serial("id").primaryKey(),
+  academicYearId: integer("academic_year_id")
+    .notNull()
+    .references(() => academicYear.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }).notNull(),
+});
+
+export const grade = pgTable("grade", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
+export const subject = pgTable("subject", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
+export const room = pgTable("room", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
+// One row (id = 1): school-wide settings set by the Admin.
+export const schoolSettings = pgTable("school_settings", {
+  id: integer("id").primaryKey().default(1),
+  periodsPerDay: integer("periods_per_day"),
 });

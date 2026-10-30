@@ -22,6 +22,11 @@ export const en = {
   },
   errors: {
     accessDenied: "You don't have access to this page.",
+    termsDoNotCoverYear: "The Terms must cover the whole Academic Year, with no gaps or overlaps.",
+    academicYearsOverlap: "This Academic Year overlaps another one.",
+    nameTaken: "That name is already used.",
+    notFound: "That record no longer exists.",
+    invalidPeriodsPerDay: "The number of Periods per day must be a whole number from 1 to 20.",
   },
 } as const;
 
