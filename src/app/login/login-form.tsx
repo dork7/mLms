@@ -18,7 +18,7 @@ export function LoginForm() {
         <input
           name="identifier"
           type="text"
-          inputMode="email"
+          inputMode="text"
           autoComplete="username"
           autoCapitalize="none"
           defaultValue={state.identifier}

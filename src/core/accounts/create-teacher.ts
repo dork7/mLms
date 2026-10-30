@@ -1,7 +1,7 @@
 // The Admin creates a Teacher account with a name and an email or phone (or both).
 // Returns a generated initial password for the Admin to hand over; the Teacher must
 // change it on first login.
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { eq, or } from "drizzle-orm";
 import { account, user } from "@/db/schema";
@@ -9,6 +9,7 @@ import { requireAdmin } from "../access";
 import type { Ctx } from "../context";
 import { DuplicateLogin, InvalidInput, isUniqueViolation } from "../errors";
 import { normaliseEmail, normalisePhone } from "./identifiers";
+import { generatePassword } from "./passwords";
 
 export type CreateTeacherInput = { name: string; email?: string; phone?: string };
 
@@ -66,10 +67,4 @@ export async function createTeacher(
   });
 
   return { teacherId, initialPassword };
-}
-
-/** 12 readable characters (no 0/O/1/l/I), easy to read out or copy. */
-function generatePassword(): string {
-  const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from(randomBytes(12), (b) => alphabet[b % alphabet.length]).join("");
 }

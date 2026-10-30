@@ -2,6 +2,7 @@
 // After editing, run `npm run db:generate` to write a new migration into drizzle/.
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -169,3 +170,31 @@ export const classSubject = pgTable(
     index("class_subject_teacher_idx").on(t.teacherId),
   ],
 );
+
+// ---- Students (ticket 05) ----
+// A Student is a `user` with role "student" plus this record. They log in with their
+// Student Number (stored trimmed and upper-cased), never with an email.
+
+export const student = pgTable("student", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  studentNumber: text("student_number").notNull().unique(),
+  dateOfBirth: date("date_of_birth", { mode: "string" }).notNull(),
+  nationalId: text("national_id").notNull(),
+  guardianContact: text("guardian_contact").notNull(),
+  /** At most one email on record, possibly a guardian's shared by siblings, so not unique. */
+  email: text("email"),
+  admissionDate: date("admission_date", { mode: "string" }).notNull(),
+});
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+/** The Student's photo, kept apart so listing Students never loads image bytes. */
+export const studentPhoto = pgTable("student_photo", {
+  studentId: text("student_id")
+    .primaryKey()
+    .references(() => student.userId, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+});

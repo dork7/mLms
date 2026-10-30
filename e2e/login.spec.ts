@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function logIn(page: Page, identifier: string, password: string) {
-  await page.getByLabel("Email or phone").fill(identifier);
+  await page.getByLabel("Email, phone or Student Number").fill(identifier);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 }
@@ -11,7 +11,7 @@ test("a seeded Admin logs in through the real UI and sees the Admin dashboard", 
   await expect(page).toHaveURL(/\/login$/);
 
   await logIn(page, process.env.E2E_ADMIN_EMAIL!, "wrong password");
-  await expect(page.getByText("Email, phone or password is incorrect.")).toBeVisible();
+  await expect(page.getByText("Login or password is incorrect.")).toBeVisible();
 
   await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
 

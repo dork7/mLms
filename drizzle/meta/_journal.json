@@ -26,8 +26,15 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1793337825283,
-      "tag": "0003_classes",
+      "when": 1793337900743,
+      "tag": "0003_students",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793338372542,
+      "tag": "0004_classes",
       "breakpoints": true
     }
   ]

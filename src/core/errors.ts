@@ -55,6 +55,15 @@ export class InvalidResetToken extends Error {
   }
 }
 
+/** Another Student already has this Student Number. */
+export class StudentNumberTaken extends Error {
+  readonly messageKey = "errors.studentNumberTaken";
+  constructor() {
+    super("Student Number already in use");
+    this.name = "StudentNumberTaken";
+  }
+}
+
 /** Postgres unique violation (23505), possibly wrapped by Drizzle in `cause`. */
 export function isUniqueViolation(err: unknown): boolean {
   for (let e = err; e; e = (e as { cause?: unknown }).cause) {

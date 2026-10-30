@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 // Names and dates here are unique to this spec: e2e specs share one database.
 async function logIn(page: Page, identifier: string, password: string) {
   await page.goto("/login");
-  await page.getByLabel("Email or phone").fill(identifier);
+  await page.getByLabel("Email, phone or Student Number").fill(identifier);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 }

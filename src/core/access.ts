@@ -52,3 +52,14 @@ export async function requireCanSeeClassSubject(ctx: Ctx, classSubjectId: number
 function requireId(id: number): void {
   if (!Number.isSafeInteger(id)) throw new NotFound();
 }
+
+/**
+ * Who may see a Student's profile and photo: the Admin, and the Student themselves.
+ * Teachers are refused until the roster rule (Teachers see the Students they teach)
+ * is added here.
+ */
+export function requireCanSeeStudent(actor: Actor, studentId: string): void {
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  throw new AccessDenied("may not see this Student");
+}
