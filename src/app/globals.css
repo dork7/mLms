@@ -50,7 +50,8 @@ body {
   text-align: start;
 }
 
-.field input {
+.field input,
+.field select {
   padding-block: 0.6rem;
   padding-inline: 0.75rem;
   border: 1px solid var(--border);

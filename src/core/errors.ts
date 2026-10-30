@@ -97,6 +97,17 @@ export class NotFound extends Error {
   }
 }
 
+// ---- Classes ----
+
+/** The Class already has a Class Subject for this Subject. */
+export class ClassSubjectExists extends Error {
+  readonly messageKey = "errors.classSubjectExists";
+  constructor(reason = "this Class already has that Subject") {
+    super(reason);
+    this.name = "ClassSubjectExists";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

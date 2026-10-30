@@ -4,11 +4,11 @@
 
 **Blocked by:** 02 (Staff accounts), 03 (School setup)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Admin creates a Class (Grade plus a name such as 7-A) with a Class Teacher
-- [ ] The Admin creates a Class Subject (Class × Subject) with a Subject Teacher and can reassign the Teacher
-- [ ] A Teacher's list of Class Subjects contains only their own
-- [ ] A Teacher is refused access to another Teacher's Class Subject
-- [ ] A Class Teacher can see every Class Subject of their Class
-- [ ] One access policy in the application layer answers every access check (it will later be extended for Students and Parents)
+- [x] The Admin creates a Class (Grade plus a name such as 7-A) with a Class Teacher
+- [x] The Admin creates a Class Subject (Class × Subject) with a Subject Teacher and can reassign the Teacher
+- [x] A Teacher's list of Class Subjects contains only their own
+- [x] A Teacher is refused access to another Teacher's Class Subject
+- [x] A Class Teacher can see every Class Subject of their Class
+- [x] One access policy in the application layer answers every access check (it will later be extended for Students and Parents)

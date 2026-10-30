@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["admin", "teacher", "student"]);
@@ -126,3 +127,45 @@ export const schoolSettings = pgTable("school_settings", {
   id: integer("id").primaryKey().default(1),
   periodsPerDay: integer("periods_per_day"),
 });
+
+// ---- Classes (ticket 04) ----
+
+/** One cohort of a Grade in one Academic Year, such as 7-A, with its one Class Teacher. */
+export const schoolClass = pgTable(
+  "class",
+  {
+    id: serial("id").primaryKey(),
+    academicYearId: integer("academic_year_id")
+      .notNull()
+      .references(() => academicYear.id),
+    gradeId: integer("grade_id")
+      .notNull()
+      .references(() => grade.id),
+    name: text("name").notNull(),
+    classTeacherId: text("class_teacher_id")
+      .notNull()
+      .references(() => user.id),
+  },
+  (t) => [unique("class_year_name_unique").on(t.academicYearId, t.name)],
+);
+
+/** A Subject as taught to one Class by one Subject Teacher, such as Math for 7-A. */
+export const classSubject = pgTable(
+  "class_subject",
+  {
+    id: serial("id").primaryKey(),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => schoolClass.id),
+    subjectId: integer("subject_id")
+      .notNull()
+      .references(() => subject.id),
+    teacherId: text("teacher_id")
+      .notNull()
+      .references(() => user.id),
+  },
+  (t) => [
+    unique("class_subject_class_subject_unique").on(t.classId, t.subjectId),
+    index("class_subject_teacher_idx").on(t.teacherId),
+  ],
+);
