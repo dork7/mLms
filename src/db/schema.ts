@@ -227,3 +227,29 @@ export const enrollment = pgTable(
     index("enrollment_class_idx").on(t.classId, t.startDate),
   ],
 );
+
+// ---- Lessons (ticket 07) ----
+
+/**
+ * One delivered teaching session of a Class Subject: at most one per Class Subject,
+ * date and Period. `teacherId` is the Subject Teacher who logged it, kept so the
+ * class summary still names who taught it after the Class Subject is reassigned.
+ */
+export const lesson = pgTable(
+  "lesson",
+  {
+    id: serial("id").primaryKey(),
+    classSubjectId: integer("class_subject_id")
+      .notNull()
+      .references(() => classSubject.id),
+    date: date("date", { mode: "string" }).notNull(),
+    period: integer("period").notNull(),
+    topic: text("topic").notNull(),
+    homework: text("homework").notNull().default(""),
+    teacherId: text("teacher_id")
+      .notNull()
+      .references(() => user.id),
+    loggedAt: timestamp("logged_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [unique("lesson_class_subject_date_period_unique").on(t.classSubjectId, t.date, t.period)],
+);

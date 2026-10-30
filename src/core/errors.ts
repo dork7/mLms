@@ -137,6 +137,17 @@ export class NotEnrolled extends Error {
   }
 }
 
+// ---- Lessons ----
+
+/** A Lesson is already logged for this Class Subject, date and Period. */
+export class LessonExists extends Error {
+  readonly messageKey = "errors.lessonExists";
+  constructor(reason = "a Lesson is already logged for that date and Period") {
+    super(reason);
+    this.name = "LessonExists";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

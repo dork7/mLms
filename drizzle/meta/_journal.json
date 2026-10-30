@@ -40,8 +40,15 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1793338678550,
-      "tag": "0005_enrollment",
+      "when": 1793338649626,
+      "tag": "0005_lessons",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793339390326,
+      "tag": "0006_enrollment",
       "breakpoints": true
     }
   ]

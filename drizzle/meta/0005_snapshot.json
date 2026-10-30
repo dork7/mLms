@@ -1,5 +1,5 @@
 {
-  "id": "69a1279e-98b4-4cca-a814-71c1bff11a18",
+  "id": "3ad9a789-97e6-41a3-8080-11942e5da597",
   "prevId": "1a8ec378-e369-44cb-be69-74b1e4984ebc",
   "version": "7",
   "dialect": "postgresql",
@@ -258,114 +258,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.enrollment": {
-      "name": "enrollment",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "class_id": {
-          "name": "class_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "start_date": {
-          "name": "start_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "end_date": {
-          "name": "end_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "enrollment_one_open_per_student": {
-          "name": "enrollment_one_open_per_student",
-          "columns": [
-            {
-              "expression": "student_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"enrollment\".\"end_date\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "enrollment_class_idx": {
-          "name": "enrollment_class_idx",
-          "columns": [
-            {
-              "expression": "class_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "start_date",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "enrollment_student_id_student_user_id_fk": {
-          "name": "enrollment_student_id_student_user_id_fk",
-          "tableFrom": "enrollment",
-          "tableTo": "student",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "enrollment_class_id_class_id_fk": {
-          "name": "enrollment_class_id_class_id_fk",
-          "tableFrom": "enrollment",
-          "tableTo": "class",
-          "columnsFrom": [
-            "class_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.failed_login": {
       "name": "failed_login",
       "schema": "",
@@ -445,6 +337,105 @@
           "nullsNotDistinct": false,
           "columns": [
             "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lesson": {
+      "name": "lesson",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "class_subject_id": {
+          "name": "class_subject_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period": {
+          "name": "period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "topic": {
+          "name": "topic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "homework": {
+          "name": "homework",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "teacher_id": {
+          "name": "teacher_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logged_at": {
+          "name": "logged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lesson_class_subject_id_class_subject_id_fk": {
+          "name": "lesson_class_subject_id_class_subject_id_fk",
+          "tableFrom": "lesson",
+          "tableTo": "class_subject",
+          "columnsFrom": [
+            "class_subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "lesson_teacher_id_user_id_fk": {
+          "name": "lesson_teacher_id_user_id_fk",
+          "tableFrom": "lesson",
+          "tableTo": "user",
+          "columnsFrom": [
+            "teacher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lesson_class_subject_date_period_unique": {
+          "name": "lesson_class_subject_date_period_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "class_subject_id",
+            "date",
+            "period"
           ]
         }
       },
