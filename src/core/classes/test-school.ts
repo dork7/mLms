@@ -6,8 +6,8 @@ import type { Actor } from "../context";
 import { createAcademicYear } from "../school/academic-year";
 import { createGrade, createSubject } from "../school/catalogue";
 
-export async function school() {
-  const app = await testApp();
+export async function school(opts: { now?: string } = {}) {
+  const app = await testApp(opts);
   const admin = await app.seedAdmin();
   const asAdmin = app.as(admin);
   const year = await createAcademicYear(asAdmin, {

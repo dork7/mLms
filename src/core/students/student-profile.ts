@@ -1,9 +1,10 @@
-// A Student's profile and photo. The Admin sees any Student; a Student sees only
-// themselves (see `requireCanSeeStudent`).
+// A Student's profile (with their Enrollment history) and photo, for the Admin, the
+// Student's Teachers and the Student themselves (see `requireCanSeeStudent`).
 import { eq, sql } from "drizzle-orm";
 import { student, studentPhoto, user } from "@/db/schema";
 import { requireCanSeeStudent } from "../access";
 import type { Ctx } from "../context";
+import { enrollmentHistory, type EnrollmentRow } from "../enrollment/enrollment";
 import { NotFound } from "../errors";
 import type { Photo } from "./photo";
 
@@ -18,10 +19,12 @@ export type StudentProfile = {
   admissionDate: string;
   hasPhoto: boolean;
   disabled: boolean;
+  /** Oldest first; the last one has no end date while the Student is enrolled. */
+  enrollments: EnrollmentRow[];
 };
 
 export async function getStudentProfile(ctx: Ctx, input: { studentId: string }): Promise<StudentProfile> {
-  requireCanSeeStudent(ctx.actor, input.studentId);
+  await requireCanSeeStudent(ctx, input.studentId);
   const [found] = await ctx.db
     .select({
       id: user.id,
@@ -42,11 +45,12 @@ export async function getStudentProfile(ctx: Ctx, input: { studentId: string }):
     .limit(1);
   if (!found) throw new NotFound("no such Student");
   const { disabledAt, ...profile } = found;
-  return { ...profile, disabled: disabledAt !== null };
+  const enrollments = await enrollmentHistory(ctx.db, input.studentId);
+  return { ...profile, disabled: disabledAt !== null, enrollments };
 }
 
 export async function getStudentPhoto(ctx: Ctx, input: { studentId: string }): Promise<Photo | null> {
-  requireCanSeeStudent(ctx.actor, input.studentId);
+  await requireCanSeeStudent(ctx, input.studentId);
   const [found] = await ctx.db
     .select({ contentType: studentPhoto.contentType, data: studentPhoto.data })
     .from(studentPhoto)

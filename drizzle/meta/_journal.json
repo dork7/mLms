@@ -36,6 +36,13 @@
       "when": 1793338372542,
       "tag": "0004_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793338678550,
+      "tag": "0005_enrollment",
+      "breakpoints": true
     }
   ]
 }

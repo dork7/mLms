@@ -137,6 +137,7 @@ describe("Student profile", () => {
       admissionDate: "2026-08-25",
       hasPhoto: true,
       disabled: false,
+      enrollments: [],
     });
     const stored = await getStudentPhoto(me, { studentId });
     expect(stored?.contentType).toBe("image/png");

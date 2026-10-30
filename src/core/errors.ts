@@ -117,6 +117,26 @@ export class ClassSubjectExists extends Error {
   }
 }
 
+// ---- Enrollment ----
+
+/** The Student already has an open Enrollment (move them instead). */
+export class AlreadyEnrolled extends Error {
+  readonly messageKey = "errors.alreadyEnrolled";
+  constructor(reason = "the Student already has an open Enrollment") {
+    super(reason);
+    this.name = "AlreadyEnrolled";
+  }
+}
+
+/** The Student has no open Enrollment to move or end. */
+export class NotEnrolled extends Error {
+  readonly messageKey = "errors.notEnrolled";
+  constructor(reason = "the Student has no open Enrollment") {
+    super(reason);
+    this.name = "NotEnrolled";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

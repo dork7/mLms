@@ -12,7 +12,9 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", ["admin", "teacher", "student"]);
 
@@ -198,3 +200,30 @@ export const studentPhoto = pgTable("student_photo", {
   contentType: text("content_type").notNull(),
   data: bytea("data").notNull(),
 });
+
+// ---- Enrollment (ticket 06) ----
+
+/**
+ * A Student's membership of a Class for a date range (inclusive; no end date = open).
+ * A Student has at most one open Enrollment: enforced by the partial unique index.
+ */
+export const enrollment = pgTable(
+  "enrollment",
+  {
+    id: serial("id").primaryKey(),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => schoolClass.id),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }),
+  },
+  (t) => [
+    uniqueIndex("enrollment_one_open_per_student")
+      .on(t.studentId)
+      .where(sql`${t.endDate} is null`),
+    index("enrollment_class_idx").on(t.classId, t.startDate),
+  ],
+);
