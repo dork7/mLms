@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { testApp } from "../../../test/test-app";
 import type { Actor } from "../context";
-import { AccessDenied, AcademicYearsOverlap, NameTaken, TermsDoNotCoverYear } from "../errors";
-import { createAcademicYear, termOn } from "./academic-year";
+import { AccessDenied, AcademicYearsOverlap, NameTaken, NotFound, TermsDoNotCoverYear } from "../errors";
+import { createAcademicYear, termOn, updateAcademicYear } from "./academic-year";
 
 const year2026 = {
   name: "2026-2027",
@@ -134,6 +134,73 @@ describe("Academic Year and Terms", () => {
     expect(await termOn(app.as(admin), "2027-07-01")).toMatchObject({ academicYear: "2027-2028" });
   });
 
+  it("the Admin edits an Academic Year's name and Terms, and dates then fall in the new Terms", async () => {
+    const app = await testApp();
+    const admin = await app.seedAdmin();
+    const { id } = await createAcademicYear(app.as(admin), year2026);
+
+    await updateAcademicYear(app.as(admin), {
+      id,
+      name: "AY 2026-27",
+      startDate: "2026-09-01",
+      endDate: "2027-06-30",
+      terms: [
+        { name: "Semester 1", startDate: "2026-09-01", endDate: "2027-01-31" },
+        { name: "Semester 2", startDate: "2027-02-01", endDate: "2027-06-30" },
+      ],
+    });
+
+    expect(await termOn(app.as(admin), "2027-01-15")).toMatchObject({
+      name: "Semester 1",
+      academicYear: "AY 2026-27",
+    });
+  });
+
+  it("editing an Academic Year so its Terms leave a gap is refused, and the old Terms stay", async () => {
+    const app = await testApp();
+    const admin = await app.seedAdmin();
+    const { id } = await createAcademicYear(app.as(admin), year2026);
+
+    await expect(
+      updateAcademicYear(app.as(admin), {
+        id,
+        ...year2026,
+        terms: [{ name: "Short", startDate: "2026-09-01", endDate: "2026-12-31" }],
+      }),
+    ).rejects.toThrow(TermsDoNotCoverYear);
+
+    expect(await termOn(app.as(admin), "2027-02-01")).toMatchObject({ name: "Term 2" });
+  });
+
+  it("editing an Academic Year so it overlaps another is refused", async () => {
+    const app = await testApp();
+    const admin = await app.seedAdmin();
+    await createAcademicYear(app.as(admin), year2026);
+    const { id } = await createAcademicYear(app.as(admin), {
+      name: "2027-2028",
+      startDate: "2027-07-01",
+      endDate: "2028-06-30",
+      terms: [{ name: "Only Term", startDate: "2027-07-01", endDate: "2028-06-30" }],
+    });
+
+    await expect(
+      updateAcademicYear(app.as(admin), {
+        id,
+        name: "2027-2028",
+        startDate: "2027-06-01",
+        endDate: "2028-06-30",
+        terms: [{ name: "Only Term", startDate: "2027-06-01", endDate: "2028-06-30" }],
+      }),
+    ).rejects.toThrow(AcademicYearsOverlap);
+  });
+
+  it("editing an Academic Year that doesn't exist is refused", async () => {
+    const app = await testApp();
+    const admin = await app.seedAdmin();
+
+    await expect(updateAcademicYear(app.as(admin), { id: 999, ...year2026 })).rejects.toThrow(NotFound);
+  });
+
   it("a Teacher is refused creating an Academic Year, but can ask which Term a date falls in", async () => {
     const app = await testApp();
     const admin = await app.seedAdmin();
@@ -141,6 +208,7 @@ describe("Academic Year and Terms", () => {
     const teacher: Actor = { role: "teacher", userId: "some-teacher" };
 
     await expect(createAcademicYear(app.as(teacher), year2026)).rejects.toThrow(AccessDenied);
+    await expect(updateAcademicYear(app.as(teacher), { id: 1, ...year2026 })).rejects.toThrow(AccessDenied);
     expect(await termOn(app.as(teacher), "2026-10-01")).toMatchObject({ name: "Term 1" });
   });
 });

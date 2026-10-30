@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAdminDashboard } from "@/core/dashboard/admin-dashboard";
 import { AccessDenied } from "@/core/errors";
 import { t } from "@/i18n";
@@ -34,6 +35,26 @@ export default async function AdminDashboardPage() {
         <p>{t("adminDashboard.today", { date: dashboard.today })}</p>
         <p>{t("adminDashboard.empty")}</p>
       </section>
+      <nav className="card" aria-labelledby="setup-heading">
+        <h2 id="setup-heading">{t("adminDashboard.setupHeading")}</h2>
+        <ul className="list">
+          <li>
+            <Link href="/admin/academic-years">{t("setup.academicYears.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/grades">{t("setup.grades.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/subjects">{t("setup.subjects.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/periods">{t("setup.periods.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/rooms">{t("setup.rooms.title")}</Link>
+          </li>
+        </ul>
+      </nav>
     </main>
   );
 }
