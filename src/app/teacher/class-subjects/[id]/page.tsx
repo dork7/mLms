@@ -28,6 +28,7 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
       </header>
       <section className="card">
         <p>{t("classSubject.details", { grade: cs.grade, year: cs.academicYear, teacher: cs.teacher })}</p>
+        <Link href={`/teacher/students?classSubjectId=${cs.id}`}>{t("myStudents.title")}</Link>
       </section>
     </main>
   );

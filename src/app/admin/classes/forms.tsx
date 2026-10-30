@@ -8,7 +8,7 @@ import { addClass, addClassSubject, reassignTeacher } from "./actions";
 
 export type Option = { id: number | string; name: string };
 
-function Select({
+export function Select({
   label,
   name,
   options,
@@ -38,7 +38,7 @@ function Select({
   );
 }
 
-function Refusal({ error }: { error?: MessageKey }) {
+export function Refusal({ error }: { error?: MessageKey }) {
   if (!error) return null;
   return (
     <p className="error" role="alert">

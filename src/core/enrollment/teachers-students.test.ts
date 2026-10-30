@@ -18,6 +18,15 @@ describe("A Teacher's Students", () => {
     await expect(roster7A({ role: "student", userId: s.aisha })).rejects.toThrow(AccessDenied);
   });
 
+  it("a Class roster without a date is today's roster", async () => {
+    const s = await enrollmentSchool({ now: "2026-09-06T08:00:00+04:00" });
+    await enrollStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7A.id, startDate: "2026-09-07" });
+
+    expect(await classRoster(s.app.as(s.huda), { classId: s.class7A.id })).toEqual([]);
+    s.app.clock.set("2026-09-07T08:00:00+04:00");
+    expect(names(await classRoster(s.app.as(s.huda), { classId: s.class7A.id }))).toEqual(["Aisha Rahman"]);
+  });
+
   it("My Students lists today's Students of the Teacher's Class Subjects, filtered by Class or Class Subject", async () => {
     const s = await enrollmentSchool();
     await enrollStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7A.id, startDate: "2026-09-01" });

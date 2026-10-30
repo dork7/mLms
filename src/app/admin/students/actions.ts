@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { disableLogin, enableLogin } from "@/core/accounts/disable-login";
+import { enrollStudent, moveStudent } from "@/core/enrollment/enrollment";
 import { registerStudent } from "@/core/students/register-student";
 import { resetStudentPassword } from "@/core/students/reset-student-password";
 import type { MessageKey } from "@/i18n";
@@ -62,4 +63,24 @@ export async function setStudentLoginEnabled(form: FormData): Promise<void> {
   await asCurrentActor((ctx) => (enable ? enableLogin : disableLogin)(ctx, { userId }));
   revalidatePath("/admin/students");
   revalidatePath(`/admin/students/${userId}`);
+}
+
+export type EnrollmentFormState = { error?: MessageKey; saved: number };
+
+/** Enrolls the Student (`mode` "enroll") or moves them to another Class (`mode` "move"). */
+export async function saveEnrollment(prev: EnrollmentFormState, form: FormData): Promise<EnrollmentFormState> {
+  const studentId = String(form.get("studentId") ?? "");
+  const classId = Number(form.get("classId"));
+  const date = String(form.get("date") ?? "");
+  try {
+    await asCurrentActor((ctx) =>
+      form.get("mode") === "move"
+        ? moveStudent(ctx, { studentId, classId, date })
+        : enrollStudent(ctx, { studentId, classId, startDate: date }),
+    );
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  revalidatePath(`/admin/students/${studentId}`);
+  return { saved: prev.saved + 1 };
 }

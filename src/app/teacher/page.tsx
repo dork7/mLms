@@ -25,6 +25,7 @@ export default async function TeacherDashboardPage() {
     <main className="page">
       <header className="topbar">
         <h1>{t("teacherDashboard.title")}</h1>
+        <Link href="/teacher/students">{t("myStudents.link")}</Link>
         <form action={logout}>
           <button className="button-link" type="submit">
             {t("nav.logout")}

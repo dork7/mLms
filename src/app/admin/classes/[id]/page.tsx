@@ -4,14 +4,23 @@ import Link from "next/link";
 import { listTeachers } from "@/core/accounts/list-teachers";
 import { listClassSubjects } from "@/core/classes/class-subjects";
 import { getClass } from "@/core/classes/classes";
+import { classRoster } from "@/core/enrollment/enrollment";
 import { listSubjects } from "@/core/school/catalogue";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+import { ClassRoster } from "../../../class-roster";
 import { AddClassSubjectForm, ReassignTeacherForm } from "../forms";
 
-export default async function ClassPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClassPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ date?: string }>;
+}) {
   const classId = Number((await params).id);
+  const { date = "" } = await searchParams;
   let data;
   try {
     data = await asCurrentActor((ctx) =>
@@ -20,6 +29,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
         listClassSubjects(ctx, { classId }),
         listSubjects(ctx),
         listTeachers(ctx),
+        classRoster(ctx, { classId, date: date || undefined }),
       ]),
     );
   } catch (err) {
@@ -29,7 +39,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
       </main>
     );
   }
-  const [schoolClass, classSubjects, subjects, allTeachers] = data;
+  const [schoolClass, classSubjects, subjects, allTeachers, roster] = data;
   const teachers = allTeachers.filter((teacher) => !teacher.disabled);
 
   return (
@@ -78,6 +88,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
           <p>{t("classes.needsSubjects")}</p>
         )}
       </section>
+      <ClassRoster roster={roster} date={date} profileHref={(id) => `/admin/students/${id}`} />
     </main>
   );
 }

@@ -143,10 +143,11 @@ export function enrollmentHistory(db: Ctx["db"], studentId: string): Promise<Enr
     .orderBy(asc(enrollment.startDate), asc(enrollment.id));
 }
 
-/** The Students whose Enrollment in the Class covers the date, by name. */
-export async function classRoster(ctx: Ctx, input: { classId: number; date: string }): Promise<RosterRow[]> {
+/** The Students whose Enrollment in the Class covers the date (default: today), by name. */
+export async function classRoster(ctx: Ctx, input: { classId: number; date?: string }): Promise<RosterRow[]> {
   await requireCanSeeClassRoster(ctx, input.classId);
-  if (!isDate(input.date)) throw new InvalidInput("errors.dateInvalid");
+  const date = input.date ?? ctx.clock.today();
+  if (!isDate(date)) throw new InvalidInput("errors.dateInvalid");
   return ctx.db
     .select({
       studentId: student.userId,
@@ -161,8 +162,8 @@ export async function classRoster(ctx: Ctx, input: { classId: number; date: stri
     .where(
       and(
         eq(enrollment.classId, input.classId),
-        lte(enrollment.startDate, input.date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, input.date)),
+        lte(enrollment.startDate, date),
+        or(isNull(enrollment.endDate), gte(enrollment.endDate, date)),
       ),
     )
     .orderBy(asc(user.name), asc(user.id));

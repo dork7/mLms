@@ -1,16 +1,32 @@
-// A Class for its Class Teacher: every Class Subject of the Class and who teaches it.
+// A Class for its Class Teacher: every Class Subject of the Class and who teaches it,
+// and the Class's roster on a date (today by default).
 import Link from "next/link";
 import { listClassSubjects } from "@/core/classes/class-subjects";
 import { getClass } from "@/core/classes/classes";
+import { classRoster } from "@/core/enrollment/enrollment";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+import { ClassRoster } from "../../../class-roster";
 
-export default async function TeacherClassPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TeacherClassPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ date?: string }>;
+}) {
   const classId = Number((await params).id);
+  const { date = "" } = await searchParams;
   let data;
   try {
-    data = await asCurrentActor((ctx) => Promise.all([getClass(ctx, { classId }), listClassSubjects(ctx, { classId })]));
+    data = await asCurrentActor((ctx) =>
+      Promise.all([
+        getClass(ctx, { classId }),
+        listClassSubjects(ctx, { classId }),
+        classRoster(ctx, { classId, date: date || undefined }),
+      ]),
+    );
   } catch (err) {
     return (
       <main className="page">
@@ -19,7 +35,7 @@ export default async function TeacherClassPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [schoolClass, classSubjects] = data;
+  const [schoolClass, classSubjects, roster] = data;
 
   return (
     <main className="page">
@@ -50,6 +66,7 @@ export default async function TeacherClassPage({ params }: { params: Promise<{ i
           </ul>
         )}
       </section>
+      <ClassRoster roster={roster} date={date} profileHref={(id) => `/teacher/students/${id}`} />
     </main>
   );
 }
