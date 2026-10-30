@@ -33,7 +33,7 @@ export default async function TeachersPage() {
         ) : (
           <ul className="list">
             {teachers.map((teacher) => (
-              <li key={teacher.id}>
+              <li key={teacher.id} className="list-item">
                 <div>
                   <strong>{teacher.name}</strong>
                   <div className="muted">{[teacher.email, teacher.phone].filter(Boolean).join(" · ")}</div>

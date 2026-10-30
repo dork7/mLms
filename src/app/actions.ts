@@ -11,7 +11,7 @@ import { logOut } from "@/core/accounts/sessions";
 import type { MessageKey } from "@/i18n";
 import { asCurrentSessionActor, SESSION_COOKIE } from "@/web/as-current-actor";
 import { appDeps } from "@/web/deps";
-import { messageKeyOf } from "@/web/errors";
+import { refusalKey } from "@/web/refusal";
 
 export type LoginState = { error?: MessageKey; identifier?: string };
 
@@ -21,7 +21,7 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
   try {
     result = await logIn(appDeps(), { identifier, password: String(form.get("password") ?? "") });
   } catch (err) {
-    return { error: messageKeyOf(err), identifier };
+    return { error: refusalKey(err), identifier };
   }
   (await cookies()).set(SESSION_COOKIE, result.token, {
     httpOnly: true,
@@ -52,7 +52,7 @@ export async function changeOwnPassword(_prev: FormState, form: FormData): Promi
       changePassword(ctx, { currentPassword: String(form.get("currentPassword") ?? ""), newPassword }),
     );
   } catch (err) {
-    return { error: messageKeyOf(err) };
+    return { error: refusalKey(err) };
   }
   redirect("/");
 }
@@ -73,7 +73,7 @@ export async function resetForgottenPassword(_prev: FormState, form: FormData): 
   try {
     await resetPassword(appDeps(), { token: String(form.get("token") ?? ""), newPassword });
   } catch (err) {
-    return { error: messageKeyOf(err) };
+    return { error: refusalKey(err) };
   }
   return { done: true };
 }

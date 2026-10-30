@@ -4,10 +4,10 @@
 
 **Blocked by:** 01 (Walking skeleton)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Admin creates an Academic Year with Terms that cover it exactly. A gap or overlap is refused
-- [ ] The Admin creates and edits Grades, Subjects and Rooms
-- [ ] The Admin sets the number of Periods per day (N)
-- [ ] Given any date in the Academic Year, the layer can say which Term it falls in
-- [ ] Non-Admins are refused every setup command
+- [x] The Admin creates an Academic Year with Terms that cover it exactly. A gap or overlap is refused
+- [x] The Admin creates and edits Grades, Subjects and Rooms
+- [x] The Admin sets the number of Periods per day (N)
+- [x] Given any date in the Academic Year, the layer can say which Term it falls in
+- [x] Non-Admins are refused every setup command

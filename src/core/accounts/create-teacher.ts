@@ -7,7 +7,7 @@ import { eq, or } from "drizzle-orm";
 import { account, user } from "@/db/schema";
 import { requireAdmin } from "../access";
 import type { Ctx } from "../context";
-import { DuplicateLogin, InvalidInput } from "../errors";
+import { DuplicateLogin, InvalidInput, isUniqueViolation } from "../errors";
 import { normaliseEmail, normalisePhone } from "./identifiers";
 
 export type CreateTeacherInput = { name: string; email?: string; phone?: string };
@@ -72,9 +72,4 @@ export async function createTeacher(
 function generatePassword(): string {
   const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from(randomBytes(12), (b) => alphabet[b % alphabet.length]).join("");
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  const e = err as { code?: string; cause?: { code?: string } };
-  return e?.code === "23505" || e?.cause?.code === "23505";
 }

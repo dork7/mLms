@@ -31,3 +31,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `npm run dev`: starts the `db` service with Docker Compose, migrates, seeds the first Admin, and runs `next dev`. Copy `.env.example` to `.env` first.
 - `docker compose up --build`: the full stack (app and Postgres). Set `APP_URL` to the public URL (used in password reset emails).
 - `npm run db:generate`: writes a migration into `drizzle/` after editing `src/db/schema.ts`.
+- `npm run test:backup`: backup/restore test for `ops/backup/` (needs Docker). The Compose `backup` service dumps the database daily and keeps 30 days. The backup and restore procedure is in `docs/backups.md`.

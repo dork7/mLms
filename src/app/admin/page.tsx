@@ -37,6 +37,26 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/teachers">{t("nav.teachers")}</Link>
         </p>
       </section>
+      <nav className="card" aria-labelledby="setup-heading">
+        <h2 id="setup-heading">{t("adminDashboard.setupHeading")}</h2>
+        <ul className="list">
+          <li>
+            <Link href="/admin/academic-years">{t("setup.academicYears.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/grades">{t("setup.grades.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/subjects">{t("setup.subjects.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/periods">{t("setup.periods.title")}</Link>
+          </li>
+          <li>
+            <Link href="/admin/rooms">{t("setup.rooms.title")}</Link>
+          </li>
+        </ul>
+      </nav>
     </main>
   );
 }

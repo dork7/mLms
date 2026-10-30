@@ -4,8 +4,8 @@
 
 **Blocked by:** 01 (Walking skeleton)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Docker Compose service takes a daily Postgres backup
-- [ ] Backups older than 30 days are deleted
-- [ ] The restore procedure is written down and has been tested once
+- [x] A Docker Compose service takes a daily Postgres backup
+- [x] Backups older than 30 days are deleted
+- [x] The restore procedure is written down and has been tested once

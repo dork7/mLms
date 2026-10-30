@@ -4,7 +4,7 @@ import { createTeacher } from "@/core/accounts/create-teacher";
 import { disableLogin, enableLogin } from "@/core/accounts/disable-login";
 import type { MessageKey } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
-import { messageKeyOf } from "@/web/errors";
+import { refusalKey } from "@/web/refusal";
 
 type Entered = { name: string; email: string; phone: string };
 
@@ -25,7 +25,7 @@ export async function addTeacher(_prev: CreateTeacherState, form: FormData): Pro
     revalidatePath("/admin/teachers");
     return { created: { name: entered.name.trim(), initialPassword } };
   } catch (err) {
-    return { error: messageKeyOf(err), entered };
+    return { error: refusalKey(err), entered };
   }
 }
 
