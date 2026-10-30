@@ -11,3 +11,14 @@ export function requireRole(actor: Actor, ...roles: Role[]): void {
 export function requireAdmin(actor: Actor): void {
   requireRole(actor, "admin");
 }
+
+/**
+ * Who may see a Student's profile and photo: the Admin, and the Student themselves.
+ * Teachers are refused until the roster rule (Teachers see the Students they teach)
+ * is added here.
+ */
+export function requireCanSeeStudent(actor: Actor, studentId: string): void {
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  throw new AccessDenied("may not see this Student");
+}
