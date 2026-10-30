@@ -2,12 +2,15 @@
 // After editing, run `npm run db:generate` to write a new migration into drizzle/.
 import {
   boolean,
+  check,
   customType,
   date,
   index,
   integer,
+  numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -252,4 +255,54 @@ export const lesson = pgTable(
     loggedAt: timestamp("logged_at", { withTimezone: true }).notNull(),
   },
   (t) => [unique("lesson_class_subject_date_period_unique").on(t.classSubjectId, t.date, t.period)],
+);
+
+// ---- Assessments and Marks ----
+
+export const assessmentTypeEnum = pgEnum("assessment_type", ["quiz", "assignment", "midterm", "final"]);
+
+/**
+ * Anything graded with Marks for one Class Subject. Its Term is worked out from its
+ * date and never stored (Term ids change when a year's Terms are edited).
+ */
+export const assessment = pgTable(
+  "assessment",
+  {
+    id: serial("id").primaryKey(),
+    classSubjectId: integer("class_subject_id")
+      .notNull()
+      .references(() => classSubject.id),
+    type: assessmentTypeEnum("type").notNull(),
+    date: date("date", { mode: "string" }).notNull(),
+    maxMarks: numeric("max_marks", { precision: 7, scale: 2, mode: "number" }).notNull(),
+    weight: numeric("weight", { precision: 7, scale: 2, mode: "number" }).notNull(),
+  },
+  (t) => [
+    index("assessment_class_subject_idx").on(t.classSubjectId, t.date),
+    check("assessment_max_marks_positive", sql`${t.maxMarks} > 0`),
+    check("assessment_weight_positive", sql`${t.weight} > 0`),
+  ],
+);
+
+/** Absent counts as zero; Exempt is left out. Extensible (approved leave turns Absent into Exempt). */
+export const markStatusEnum = pgEnum("mark_status", ["absent", "exempt"]);
+
+/** A Student's Mark on one Assessment: a raw score or a status, never both. */
+export const mark = pgTable(
+  "mark",
+  {
+    assessmentId: integer("assessment_id")
+      .notNull()
+      .references(() => assessment.id),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    score: numeric("score", { precision: 7, scale: 2, mode: "number" }),
+    status: markStatusEnum("status"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.assessmentId, t.studentId] }),
+    index("mark_student_idx").on(t.studentId),
+    check("mark_score_or_status", sql`(${t.score} is null) <> (${t.status} is null)`),
+  ],
 );

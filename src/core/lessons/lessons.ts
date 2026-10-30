@@ -5,6 +5,7 @@ import { asc, desc, eq, type SQL } from "drizzle-orm";
 import { academicYear, classSubject, lesson, schoolClass, subject, user } from "@/db/schema";
 import { requireCanActOnClassSubject, requireCanSeeClass, requireCanSeeClassSubject } from "../access";
 import type { Ctx } from "../context";
+import { isCalendarDate } from "../dates";
 import { InvalidInput, isUniqueViolation, LessonExists } from "../errors";
 import { getPeriodsPerDay } from "../school/periods";
 
@@ -71,14 +72,6 @@ export async function lessonFormDefaults(
 ): Promise<{ today: string; periodsPerDay: number }> {
   await requireCanActOnClassSubject(ctx, input.classSubjectId);
   return { today: ctx.clock.today(), periodsPerDay: (await getPeriodsPerDay(ctx)) ?? 0 };
-}
-
-/** A real YYYY-MM-DD calendar date (so not 2026-02-30). */
-function isCalendarDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [y, m, d] = value.split("-").map(Number);
-  const parsed = new Date(Date.UTC(y, m - 1, d));
-  return parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d;
 }
 
 export type LessonRow = {

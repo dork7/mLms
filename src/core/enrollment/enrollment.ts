@@ -77,7 +77,7 @@ export async function moveStudent(
   });
 }
 
-type Tx = Parameters<Parameters<Ctx["db"]["transaction"]>[0]>[0];
+export type Tx = Parameters<Parameters<Ctx["db"]["transaction"]>[0]>[0];
 
 /** A Class with its Grade and Academic Year dates, or NotFound. */
 async function classYear(db: Ctx["db"] | Tx, classId: number) {
@@ -148,7 +148,15 @@ export async function classRoster(ctx: Ctx, input: { classId: number; date?: str
   await requireCanSeeClassRoster(ctx, input.classId);
   const date = input.date ?? ctx.clock.today();
   if (!isDate(date)) throw new InvalidInput("errors.dateInvalid");
-  return ctx.db
+  return rosterOn(ctx.db, input.classId, date);
+}
+
+/**
+ * The roster of a Class on a date, by name. No access check: callers (the roster
+ * page, the marks grid) check their own guard first.
+ */
+export function rosterOn(db: Ctx["db"] | Tx, classId: number, date: string): Promise<RosterRow[]> {
+  return db
     .select({
       studentId: student.userId,
       name: user.name,
@@ -161,7 +169,7 @@ export async function classRoster(ctx: Ctx, input: { classId: number; date?: str
     .innerJoin(user, eq(user.id, student.userId))
     .where(
       and(
-        eq(enrollment.classId, input.classId),
+        eq(enrollment.classId, classId),
         lte(enrollment.startDate, date),
         or(isNull(enrollment.endDate), gte(enrollment.endDate, date)),
       ),

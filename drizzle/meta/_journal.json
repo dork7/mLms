@@ -50,6 +50,13 @@
       "when": 1793339390326,
       "tag": "0006_enrollment",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793339677518,
+      "tag": "0007_assessments_and_marks",
+      "breakpoints": true
     }
   ]
 }

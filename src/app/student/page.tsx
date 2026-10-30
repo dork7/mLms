@@ -1,15 +1,22 @@
+import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { getStudentProfile } from "@/core/students/student-profile";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { logout } from "../actions";
+import { AssessmentHistory } from "../assessment-history";
 import { StudentProfileCard } from "../student-profile-card";
 
-// Where a Student lands: their own profile, until the Student dashboard ticket.
+// Where a Student lands: their own profile and Assessment history, until the Student dashboard ticket.
 export default async function MyProfilePage() {
-  let profile;
+  let data;
   try {
-    profile = await asCurrentActor((ctx) => getStudentProfile(ctx, { studentId: ctx.actor.userId }));
+    data = await asCurrentActor((ctx) =>
+      Promise.all([
+        getStudentProfile(ctx, { studentId: ctx.actor.userId }),
+        studentAssessmentHistory(ctx, { studentId: ctx.actor.userId }),
+      ]),
+    );
   } catch (err) {
     return (
       <main className="page">
@@ -17,6 +24,8 @@ export default async function MyProfilePage() {
       </main>
     );
   }
+
+  const [profile, history] = data;
 
   return (
     <main className="page">
@@ -29,6 +38,7 @@ export default async function MyProfilePage() {
         </form>
       </header>
       <StudentProfileCard profile={profile} />
+      <AssessmentHistory rows={history} />
     </main>
   );
 }

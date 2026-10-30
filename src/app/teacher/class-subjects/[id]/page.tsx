@@ -1,7 +1,8 @@
 // One Class Subject, for its Subject Teacher or its Class's Class Teacher: its
-// Lessons, and (for the Subject Teacher only, as the layer decides) the Lesson form.
-// Later tickets add its Assessments here.
+// Lessons and Assessments, and (for the Subject Teacher only, as the layer decides)
+// the Lesson and new-Assessment forms.
 import Link from "next/link";
+import { assessmentFormDefaults, listAssessments } from "@/core/assessments/assessments";
 import { getClassSubject } from "@/core/classes/class-subjects";
 import { AccessDenied } from "@/core/errors";
 import { lessonFormDefaults, listClassSubjectLessons } from "@/core/lessons/lessons";
@@ -9,6 +10,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { LessonList } from "../../../lesson-list";
+import { statsText } from "../../../mark-text";
+import { CreateAssessmentForm } from "../../assessments/forms";
 import { LessonForm } from "./lesson-form";
 
 export default async function ClassSubjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,11 +22,9 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
       Promise.all([
         getClassSubject(ctx, { classSubjectId }),
         listClassSubjectLessons(ctx, { classSubjectId }),
-        // Only the Subject Teacher may log; anyone else who can see the page gets no form.
-        lessonFormDefaults(ctx, { classSubjectId }).catch((err) => {
-          if (err instanceof AccessDenied) return null;
-          throw err;
-        }),
+        lessonFormDefaults(ctx, { classSubjectId }).catch(nullIfDenied),
+        listAssessments(ctx, { classSubjectId }),
+        assessmentFormDefaults(ctx, { classSubjectId }).catch(nullIfDenied),
       ]),
     );
   } catch (err) {
@@ -34,7 +35,7 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [cs, lessons, form] = data;
+  const [cs, lessons, form, assessments, assessmentForm] = data;
 
   return (
     <main className="page">
@@ -56,10 +57,41 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
           )}
         </section>
       )}
+      {assessmentForm && (
+        <section className="card" aria-labelledby="new-assessment">
+          <h2 id="new-assessment">{t("assessments.createTitle")}</h2>
+          <CreateAssessmentForm classSubjectId={classSubjectId} today={assessmentForm.today} types={assessmentForm.types} />
+        </section>
+      )}
+      <section className="card" aria-labelledby="assessments">
+        <h2 id="assessments">{t("assessments.title")}</h2>
+        {assessments.length === 0 ? (
+          <p>{t("assessments.none")}</p>
+        ) : (
+          <ul className="list">
+            {assessments.map((a) => (
+              <li key={a.id} className="list-item">
+                <Link href={`/teacher/assessments/${a.id}`}>
+                  {t("assessments.linkName", { type: t(`assessments.types.${a.type}`), date: a.date })}
+                </Link>
+                <div className="muted">
+                  {a.term ?? t("assessments.noTerm")}. {statsText(a.stats)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <section className="card" aria-labelledby="lessons">
         <h2 id="lessons">{t("lessons.recentTitle")}</h2>
         <LessonList lessons={lessons} />
       </section>
     </main>
   );
+}
+
+// Only the Subject Teacher may log or create; anyone else who can see the page gets no form.
+function nullIfDenied(err: unknown): null {
+  if (err instanceof AccessDenied) return null;
+  throw err;
 }
