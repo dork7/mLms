@@ -48,6 +48,9 @@ export default async function AdminDashboardPage() {
         <p>
           <Link href="/admin/report-cards">{t("nav.reportCards")}</Link>
         </p>
+        <p>
+          <Link href="/admin/year-end">{t("nav.yearEnd")}</Link>
+        </p>
       </section>
       <nav className="card" aria-labelledby="setup-heading">
         <h2 id="setup-heading">{t("adminDashboard.setupHeading")}</h2>

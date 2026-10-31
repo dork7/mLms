@@ -1,5 +1,5 @@
 {
-  "id": "10c3334d-b693-4704-bdcf-392c8a7f89ec",
+  "id": "f5d59017-34d9-4ef3-8f83-9680c8f1b779",
   "prevId": "3fd703b7-52f0-4fd3-aa3c-4f186996b79b",
   "version": "7",
   "dialect": "postgresql",
@@ -31,6 +31,12 @@
           "type": "date",
           "primaryKey": false,
           "notNull": true
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -941,101 +947,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.overall_remark": {
-      "name": "overall_remark",
-      "schema": "",
-      "columns": {
-        "class_id": {
-          "name": "class_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "term_last_day": {
-          "name": "term_last_day",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "remark": {
-          "name": "remark",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "overall_remark_student_idx": {
-          "name": "overall_remark_student_idx",
-          "columns": [
-            {
-              "expression": "student_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "term_last_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "overall_remark_class_id_class_id_fk": {
-          "name": "overall_remark_class_id_class_id_fk",
-          "tableFrom": "overall_remark",
-          "tableTo": "class",
-          "columnsFrom": [
-            "class_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "overall_remark_student_id_student_user_id_fk": {
-          "name": "overall_remark_student_id_student_user_id_fk",
-          "tableFrom": "overall_remark",
-          "tableTo": "student",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "overall_remark_class_id_student_id_term_last_day_pk": {
-          "name": "overall_remark_class_id_student_id_term_last_day_pk",
-          "columns": [
-            "class_id",
-            "student_id",
-            "term_last_day"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.room": {
       "name": "room",
       "schema": "",
@@ -1177,13 +1088,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
-        },
-        "rank_enabled": {
-          "name": "rank_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -1430,101 +1334,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.subject_remark": {
-      "name": "subject_remark",
-      "schema": "",
-      "columns": {
-        "class_subject_id": {
-          "name": "class_subject_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "term_last_day": {
-          "name": "term_last_day",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "remark": {
-          "name": "remark",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "subject_remark_student_idx": {
-          "name": "subject_remark_student_idx",
-          "columns": [
-            {
-              "expression": "student_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "term_last_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "subject_remark_class_subject_id_class_subject_id_fk": {
-          "name": "subject_remark_class_subject_id_class_subject_id_fk",
-          "tableFrom": "subject_remark",
-          "tableTo": "class_subject",
-          "columnsFrom": [
-            "class_subject_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "subject_remark_student_id_student_user_id_fk": {
-          "name": "subject_remark_student_id_student_user_id_fk",
-          "tableFrom": "subject_remark",
-          "tableTo": "student",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "subject_remark_class_subject_id_student_id_term_last_day_pk": {
-          "name": "subject_remark_class_subject_id_student_id_term_last_day_pk",
-          "columns": [
-            "class_subject_id",
-            "student_id",
-            "term_last_day"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

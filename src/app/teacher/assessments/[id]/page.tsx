@@ -34,6 +34,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
         </Link>
       </header>
       <section className="card">
+        {a.yearClosed && <p className="muted">{t("yearEnd.closedNotice")}</p>}
         <p>
           {t("assessments.details", {
             subject: a.subject,

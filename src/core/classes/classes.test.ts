@@ -16,6 +16,7 @@ describe("Classes", () => {
 
     expect(await listClasses(asAdmin)).toEqual([
       {
+        yearClosed: false,
         id,
         name: "7-A",
         academicYearId: year.id,

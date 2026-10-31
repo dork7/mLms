@@ -1,11 +1,12 @@
 // Class Subjects: a Subject as taught to one Class by one Subject Teacher, such as
 // Math for 7-A. A Class has each Subject at most once. Who may see which Class
 // Subject is decided in ../access.ts.
-import { asc, eq, type SQL } from "drizzle-orm";
+import { asc, eq, type SQL, sql } from "drizzle-orm";
 import { academicYear, classSubject, grade, schoolClass, subject, user } from "@/db/schema";
 import { requireAdmin, requireCanSeeClass, requireCanSeeClassSubject, requireRole } from "../access";
 import type { Ctx } from "../context";
 import { ClassSubjectExists, isUniqueViolation, NotFound } from "../errors";
+import { requireOpenYear } from "../school/closed-year";
 import { requireTeacher } from "./classes";
 
 export type ClassSubjectRow = {
@@ -20,6 +21,8 @@ export type ClassSubjectRow = {
   subject: string;
   teacherId: string;
   teacher: string;
+  /** Whether the Academic Year is Closed, so nothing in this Class Subject can change. */
+  yearClosed: boolean;
 };
 
 export type CreateClassSubjectInput = { classId: number; subjectId: number; teacherId: string };
@@ -28,8 +31,11 @@ export async function createClassSubject(ctx: Ctx, input: CreateClassSubjectInpu
   requireAdmin(ctx.actor);
   await requireTeacher(ctx, input.teacherId);
   try {
-    const [row] = await ctx.db.insert(classSubject).values(input).returning({ id: classSubject.id });
-    return row;
+    return await ctx.db.transaction(async (tx) => {
+      await requireOpenYear(tx, { classId: input.classId });
+      const [row] = await tx.insert(classSubject).values(input).returning({ id: classSubject.id });
+      return row;
+    });
   } catch (err) {
     if (isUniqueViolation(err)) throw new ClassSubjectExists();
     throw err;
@@ -43,12 +49,13 @@ export async function reassignSubjectTeacher(
 ): Promise<void> {
   requireAdmin(ctx.actor);
   await requireTeacher(ctx, input.teacherId);
-  const updated = await ctx.db
-    .update(classSubject)
-    .set({ teacherId: input.teacherId })
-    .where(eq(classSubject.id, input.classSubjectId))
-    .returning({ id: classSubject.id });
-  if (updated.length === 0) throw new NotFound();
+  await ctx.db.transaction(async (tx) => {
+    await requireOpenYear(tx, { classSubjectId: input.classSubjectId });
+    await tx
+      .update(classSubject)
+      .set({ teacherId: input.teacherId })
+      .where(eq(classSubject.id, input.classSubjectId));
+  });
 }
 
 /** Every Class Subject of one Class, by Subject name: for the Admin and the Class Teacher. */
@@ -93,6 +100,7 @@ function selectClassSubjects(ctx: Ctx, where: SQL): Promise<ClassSubjectRow[]> {
       subject: subject.name,
       teacherId: classSubject.teacherId,
       teacher: user.name,
+      yearClosed: sql<boolean>`${academicYear.closedAt} is not null`,
     })
     .from(classSubject)
     .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))

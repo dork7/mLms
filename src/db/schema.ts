@@ -102,6 +102,8 @@ export const academicYear = pgTable("academic_year", {
   name: text("name").notNull().unique(),
   startDate: date("start_date", { mode: "string" }).notNull(),
   endDate: date("end_date", { mode: "string" }).notNull(),
+  /** When the year was Closed (ticket 16); null while it is open. */
+  closedAt: timestamp("closed_at", { withTimezone: true }),
 });
 
 export const term = pgTable("term", {

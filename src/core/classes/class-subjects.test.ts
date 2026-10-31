@@ -50,6 +50,7 @@ describe("Class Subjects", () => {
     });
     expect(await listClassSubjects(asAdmin, { classId: class7A.id })).toEqual([
       {
+        yearClosed: false,
         id,
         classId: class7A.id,
         class: "7-A",
