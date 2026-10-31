@@ -155,6 +155,22 @@ export async function requireCanSeeStudentMarks(ctx: Ctx, studentId: string): Pr
   throw new AccessDenied("may not see this Student's Marks");
 }
 
+/**
+ * Which of a Student's Term Grades the actor sees, once `requireCanSeeStudentMarks` has
+ * let them in. A Term Grade is one figure combining every Class the Student was in, so
+ * a Teacher of any Class Subject counted in it sees the whole figure (not the other
+ * Class's Marks). The Issuing Class's Class Teacher sees them all, for the Report Card,
+ * even a Subject only the Student's old Class had.
+ */
+export function canSeeTermGrade(
+  actor: Actor,
+  grade: { studentId: string; seesACountedClassSubject: boolean; issuingClassTeacherId: string | null },
+): boolean {
+  if (actor.role === "admin") return true;
+  if (actor.role === "student") return actor.userId === grade.studentId;
+  return grade.seesACountedClassSubject || grade.issuingClassTeacherId === actor.userId;
+}
+
 /** Ids arrive from URLs and forms; one that isn't a whole number names nothing. */
 /** Ids come from URLs and forms, so a non-integer one is simply a record that isn't there. */
 export function requireId(id: number): void {

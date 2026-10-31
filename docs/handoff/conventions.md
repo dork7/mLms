@@ -170,6 +170,26 @@ expect(app.mailer.sent).toEqual([...]);
 - UI: `/teacher/assessments/[id]` (grid, statistics, maximum and weight), the Assessment list and create form on `/teacher/class-subjects/[id]`, `/teacher/students/[id]/marks`, and `AssessmentHistory` (`src/app/assessment-history.tsx`) on `/student` and `/admin/students/[id]`. `markText`/`statsText` are in `src/app/mark-text.ts`.
 - **e2e data must be unique across specs**, including login emails: specs share one database and run in parallel, so a repeated email times out whichever spec runs second. Each spec also needs its own Academic Year.
 
+## Added by ticket 09 (Grading Scales and Term Grades)
+
+- Tables `grading_scale` (one per Grade: `pass_mark`) and `grading_band` (primary key `(grade_id, min_percent)`, `label`), migration `0009_grading_scales` (regenerated on top of ticket 13's `0008_exams` at merge). A band is its lowest percentage and runs up to the next band's start, so gaps and overlaps can't be expressed. The lowest band must start at 0.
+- Layer in `src/core/grading/`:
+  - `grading-scales.ts`: `setGradingScale(ctx, { gradeId, passMark, bands })` (Admin; replaces the old one; `InvalidInput` keys `errors.grading*`), `getGradingScale(ctx, { gradeId })` (staff; null if none), `listGradingScales(ctx)` (Admin; every Grade, `scale` null if none), `scalesFor(db, gradeIds)` (unguarded). Bands read back highest first.
+  - `term-grades.ts`: `studentTermGrades(ctx, { studentId })` → `{ term, issuingClass, grades }[]`, newest Term first. `classSubjectTermGrades(ctx, { classSubjectId, termId? })` → `{ subject, class, terms, term, rows }`: every Student in the Class at any time in the Term (opens on today's Term, else the year's first). `issuingClasses(db, studentIds, lastDay)` → `Map<studentId, IssuingClass>` (unguarded). **Ticket 10: use this for the Issuing Class, don't re-derive it.**
+  - `term-grade-rules.ts`: pure `termGradeFigures` and `readOnScale`.
+- A `TermGrade` is `{ subjectId, subject, percent, label, passed, counted, exempt, missing }`. Worked out when read, never stored.
+- **Decisions the ticket left open:**
+  - An Assessment with no Mark yet is left out of the figure and counted in `missing`, not treated as 0. **Ticket 10's preview should flag from `missing`.**
+  - `percent` is rounded to two decimals, and the label and pass or fail read the rounded figure, so 79.9997% shows as 80% and earns the 80% band.
+  - No counted Assessment means `percent`, `label` and `passed` are null. So do a Grade with no Grading Scale and a Student with no Class on the Term's last day (`label` and `passed` only; `percent` stays). **Ticket 10's overall percentage must skip a null `percent`, not average it as 0.**
+  - A Subject with no Assessment on the Student's enrolled dates has no row in `studentTermGrades`.
+- **Access**: `canSeeTermGrade` in `access.ts`, after `requireCanSeeStudentMarks`. The Admin and the Student see all. A Teacher sees a Subject's Term Grade if they can see the Marks of a Class Subject counted in it, or if they are the Issuing Class's Class Teacher (even for a Subject only the old Class had). The figure combines Classes, so 7-A's Subject Teacher sees the whole figure, including 7-B's Marks in it, though not those Marks themselves.
+- **Not yet tested**: a Grading Scale from a different Grade than the Student's earlier Class. `moveStudent` stays within a Grade and nothing else ends an Enrollment, so no layer command can produce it, nor a Student with no Class on the Term's last day. **Ticket 12 (Promotion, Leaving) makes both reachable: add those two tests there.**
+- **Publish (ticket 11)**: a Grading Scale has no freeze, and `setGradingScale` changes labels straight away. Whether a Published Report Card keeps its old labels is ticket 11's call.
+- UI: `/admin/grading-scales` (one `GradingScaleForm` per Grade, linked from the Admin dashboard's setup list), `/teacher/class-subjects/[id]/term-grades` (GET `termId`), and `TermGrades` (`src/app/term-grades.tsx`) on `/student`, `/admin/students/[id]` and `/teacher/students/[id]/marks`. `termGradeText`/`termGradeNotes` are in `src/app/term-grade-text.ts`.
+- e2e: `grading.spec.ts` owns year 2081-2082, Grade 3 and Biology. `exams.spec.ts` owns 2061-2062 and Grade 12. Grep `e2e/` before picking a year or Grade, since a parallel ticket may have taken it.
+- Playwright: `page.url()` right after clicking a link races the navigation. `await expect(page).toHaveURL(...)` first.
+
 ## Added by ticket 13 (exam timetable)
 
 - Table `exam` (`assessment_id` unique, `room_id`, `start_time`, `duration_minutes`), migration `exams`. **The Class Subject and date live only on the Exam's Assessment**: join through it, and anything that reschedules an Exam changes `assessment.date`. The Term is never stored. `start_time` is the school's wall-clock time (a Postgres `time`), and a sitting never runs past midnight, so clashes only compare Exams on one date.
