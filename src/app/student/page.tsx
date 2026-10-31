@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { studentTermGrades } from "@/core/grading/term-grades";
 import { getStudentProfile } from "@/core/students/student-profile";
@@ -34,6 +35,7 @@ export default async function MyProfilePage() {
     <main className="page">
       <header className="topbar">
         <h1>{t("studentProfile.myTitle")}</h1>
+        <Link href="/student/exams">{t("nav.myExams")}</Link>
         <form action={logout}>
           <button className="button-link" type="submit">
             {t("nav.logout")}

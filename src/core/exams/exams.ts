@@ -2,7 +2,8 @@
 // duration and Room). Adding an Exam creates its Assessment in the same transaction,
 // so Subject Teachers enter Exam Marks in the normal grid. A Term's timetable is worked
 // out from the dates: Exams never store their Term.
-import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
+import type { Db } from "@/db/client";
 import {
   academicYear,
   assessment,
@@ -133,40 +134,10 @@ export async function examTimetable(ctx: Ctx, input: { termId?: number }): Promi
   const found = await timetableTerm(ctx, input.termId);
   if (!found) return null;
 
-  const rows = await ctx.db
-    .select({
-      id: exam.id,
-      assessmentId: exam.assessmentId,
-      date: assessment.date,
-      startTime: exam.startTime,
-      durationMinutes: exam.durationMinutes,
-      gradeId: grade.id,
-      grade: grade.name,
-      subjectId: subject.id,
-      subject: subject.name,
-      type: assessment.type,
-      class: schoolClass.name,
-      room: room.name,
-      teacher: user.name,
-    })
-    .from(exam)
-    .innerJoin(assessment, eq(assessment.id, exam.assessmentId))
-    .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
-    .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
-    .innerJoin(grade, eq(grade.id, schoolClass.gradeId))
-    .innerJoin(subject, eq(subject.id, classSubject.subjectId))
-    .innerJoin(user, eq(user.id, classSubject.teacherId))
-    .innerJoin(room, eq(room.id, exam.roomId))
-    .where(and(gte(assessment.date, found.startDate), lte(assessment.date, found.endDate)))
-    .orderBy(
-      asc(assessment.date),
-      asc(exam.startTime),
-      asc(exam.durationMinutes),
-      asc(grade.name),
-      asc(subject.name),
-      asc(assessment.type),
-      asc(schoolClass.name),
-    );
+  const rows = await examRows(
+    ctx.db,
+    and(gte(assessment.date, found.startDate), lte(assessment.date, found.endDate)),
+  );
 
   const groups = new Map<string, ExamGroup>();
   for (const r of rows) {
@@ -197,6 +168,44 @@ export async function examTimetable(ctx: Ctx, input: { termId?: number }): Promi
   return { term: found, groups: [...groups.values()] };
 }
 
+/** Exams with everything shown about them, in time order. Grade-wide ones come out together. */
+export function examRows(db: Db, where: SQL | undefined) {
+  return db
+    .select({
+      id: exam.id,
+      assessmentId: exam.assessmentId,
+      date: assessment.date,
+      startTime: exam.startTime,
+      durationMinutes: exam.durationMinutes,
+      gradeId: grade.id,
+      grade: grade.name,
+      subjectId: subject.id,
+      subject: subject.name,
+      type: assessment.type,
+      class: schoolClass.name,
+      room: room.name,
+      teacher: user.name,
+    })
+    .from(exam)
+    .innerJoin(assessment, eq(assessment.id, exam.assessmentId))
+    .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
+    .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
+    .innerJoin(grade, eq(grade.id, schoolClass.gradeId))
+    .innerJoin(subject, eq(subject.id, classSubject.subjectId))
+    .innerJoin(user, eq(user.id, classSubject.teacherId))
+    .innerJoin(room, eq(room.id, exam.roomId))
+    .where(where)
+    .orderBy(
+      asc(assessment.date),
+      asc(exam.startTime),
+      asc(exam.durationMinutes),
+      asc(grade.name),
+      asc(subject.name),
+      asc(assessment.type),
+      asc(schoolClass.name),
+    );
+}
+
 async function timetableTerm(ctx: Ctx, termId: number | undefined): Promise<Term | null> {
   if (termId !== undefined) requireId(termId);
   const today = ctx.clock.today();
@@ -224,14 +233,14 @@ async function timetableTerm(ctx: Ctx, termId: number | undefined): Promise<Term
 }
 
 /** Minutes since midnight for HH:MM, or HH:MM:SS as Postgres returns a `time`. */
-function startMinute(value: string): number {
+export function startMinute(value: string): number {
   const match = /^([01]\d|2[0-3]):([0-5]\d)(:00)?$/.exec(value);
   if (!match) throw new InvalidInput("errors.examStartTimeInvalid");
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
 /** HH:MM for minutes since midnight; an Exam can end exactly at 24:00. */
-function clockTime(minutes: number): string {
+export function clockTime(minutes: number): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
