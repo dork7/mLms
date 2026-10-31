@@ -40,7 +40,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
         (c) => c.id !== current.id && c.gradeId === current.gradeId && c.academicYearId === current.academicYearId,
       )
     : classes;
-  const options = choices.map((c) => ({ id: c.id, name: `${c.name} (${c.grade}, ${c.academicYear})` }));
+  const options = choices.filter((c) => !c.yearClosed).map((c) => ({ id: c.id, name: `${c.name} (${c.grade}, ${c.academicYear})` }));
 
   return (
     <main className="page">

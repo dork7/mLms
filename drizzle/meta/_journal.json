@@ -71,6 +71,13 @@
       "when": 1793463237368,
       "tag": "0009_grading_scales",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793463485616,
+      "tag": "0010_year_end",
+      "breakpoints": true
     }
   ]
 }

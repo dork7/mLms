@@ -17,9 +17,13 @@ export default function AcademicYearsPage() {
                   <li key={year.id}>
                     <h2>
                       {year.name}{" "}
-                      <Link href={`/admin/academic-years/${year.id}`}>
-                        {t("setup.academicYears.edit", { name: year.name })}
-                      </Link>
+                      {year.closed ? (
+                        <span className="muted">{t("yearEnd.closed")}</span>
+                      ) : (
+                        <Link href={`/admin/academic-years/${year.id}`}>
+                          {t("setup.academicYears.edit", { name: year.name })}
+                        </Link>
+                      )}
                     </h2>
                     <p>{t("setup.dateRange", { start: year.startDate, end: year.endDate })}</p>
                     <ul>

@@ -13,6 +13,7 @@ import {
   NotFound,
   TermsDoNotCoverYear,
 } from "../errors";
+import { requireOpenYear } from "./closed-year";
 
 export type TermInput = { name: string; startDate: string; endDate: string };
 export type CreateAcademicYearInput = {
@@ -60,6 +61,7 @@ async function saveAcademicYear(
     return await ctx.db.transaction(async (tx) => {
       // Serialise year writes so two concurrent overlapping years can't both pass the check.
       await tx.execute(sql`LOCK TABLE ${academicYear} IN SHARE ROW EXCLUSIVE MODE`);
+      if (id !== null) await requireOpenYear(tx, { academicYearId: id });
       const overlapping = await tx
         .select({ id: academicYear.id })
         .from(academicYear)
@@ -101,6 +103,8 @@ export type AcademicYear = {
   name: string;
   startDate: string;
   endDate: string;
+  /** Closed at year end: read-only, though still viewable. */
+  closed: boolean;
   terms: { id: number; name: string; startDate: string; endDate: string }[];
 };
 
@@ -110,8 +114,9 @@ export async function listAcademicYears(ctx: Ctx): Promise<AcademicYear[]> {
 
   const years = await ctx.db.select().from(academicYear).orderBy(desc(academicYear.startDate));
   const terms = await ctx.db.select().from(term).orderBy(asc(term.startDate));
-  return years.map((y) => ({
+  return years.map(({ closedAt, ...y }) => ({
     ...y,
+    closed: closedAt !== null,
     terms: terms
       .filter((t) => t.academicYearId === y.id)
       .map(({ id, name, startDate, endDate }) => ({ id, name, startDate, endDate })),

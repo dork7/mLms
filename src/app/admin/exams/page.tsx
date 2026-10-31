@@ -97,7 +97,9 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
           </section>
           <section className="card" aria-labelledby="add-exam-heading">
             <h2 id="add-exam-heading">{t("exams.addTitle")}</h2>
-            {classSubjects.length === 0 || setup.rooms.length === 0 ? (
+            {setup.academicYears.find((year) => year.id === timetable.term.academicYearId)?.closed ? (
+              <p>{t("yearEnd.closedNotice")}</p>
+            ) : classSubjects.length === 0 || setup.rooms.length === 0 ? (
               <p>{t("exams.needsSetup")}</p>
             ) : (
               <>

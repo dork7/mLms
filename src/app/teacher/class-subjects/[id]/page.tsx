@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { assessmentFormDefaults, listAssessments } from "@/core/assessments/assessments";
 import { getClassSubject } from "@/core/classes/class-subjects";
-import { AccessDenied } from "@/core/errors";
+import { AcademicYearClosed, AccessDenied } from "@/core/errors";
 import { lessonFormDefaults, listClassSubjectLessons } from "@/core/lessons/lessons";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
@@ -44,6 +44,7 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
         <Link href="/teacher">{t("nav.dashboard")}</Link>
       </header>
       <section className="card">
+        {cs.yearClosed && <p className="muted">{t("yearEnd.closedNotice")}</p>}
         <p>{t("classSubject.details", { grade: cs.grade, year: cs.academicYear, teacher: cs.teacher })}</p>
         <p>
           <Link href={`/teacher/students?classSubjectId=${cs.id}`}>{t("myStudents.title")}</Link>
@@ -97,6 +98,6 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
 
 // Only the Subject Teacher may log or create; anyone else who can see the page gets no form.
 function nullIfDenied(err: unknown): null {
-  if (err instanceof AccessDenied) return null;
+  if (err instanceof AccessDenied || err instanceof AcademicYearClosed) return null;
   throw err;
 }

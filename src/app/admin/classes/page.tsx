@@ -22,7 +22,8 @@ export default async function ClassesPage() {
   }
   const [classes, setup, allTeachers] = data;
   const teachers = allTeachers.filter((teacher) => !teacher.disabled);
-  const ready = setup.academicYears.length > 0 && setup.grades.length > 0 && teachers.length > 0;
+  const openYears = setup.academicYears.filter((year) => !year.closed);
+  const ready = openYears.length > 0 && setup.grades.length > 0 && teachers.length > 0;
 
   return (
     <main className="page">
@@ -49,7 +50,7 @@ export default async function ClassesPage() {
       <section className="card">
         <h2>{t("classes.addTitle")}</h2>
         {ready ? (
-          <AddClassForm academicYears={setup.academicYears} grades={setup.grades} teachers={teachers} />
+          <AddClassForm academicYears={openYears} grades={setup.grades} teachers={teachers} />
         ) : (
           <p>{t("classes.needsSetup")}</p>
         )}

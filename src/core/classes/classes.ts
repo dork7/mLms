@@ -1,10 +1,11 @@
 // Classes: one cohort of a Grade in an Academic Year (such as 7-A), each with one
 // Class Teacher. Class names are trimmed and unique within an Academic Year.
-import { and, asc, desc, eq, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, type SQL, sql } from "drizzle-orm";
 import { academicYear, grade, schoolClass, user } from "@/db/schema";
 import { requireAdmin, requireCanSeeClass, requireRole } from "../access";
 import type { Ctx } from "../context";
 import { InvalidInput, isUniqueViolation, NameTaken, NotFound } from "../errors";
+import { requireOpenYear } from "../school/closed-year";
 
 export type CreateClassInput = {
   academicYearId: number;
@@ -22,6 +23,8 @@ export type ClassRow = {
   grade: string;
   classTeacherId: string;
   classTeacher: string;
+  /** Whether the Academic Year is Closed, so nothing in this Class can change. */
+  yearClosed: boolean;
 };
 
 export async function createClass(ctx: Ctx, input: CreateClassInput): Promise<{ id: number }> {
@@ -30,11 +33,14 @@ export async function createClass(ctx: Ctx, input: CreateClassInput): Promise<{ 
   if (!name) throw new InvalidInput("errors.nameRequired");
   await requireTeacher(ctx, input.classTeacherId);
   try {
-    const [row] = await ctx.db
-      .insert(schoolClass)
-      .values({ ...input, name })
-      .returning({ id: schoolClass.id });
-    return row;
+    return await ctx.db.transaction(async (tx) => {
+      await requireOpenYear(tx, { academicYearId: input.academicYearId });
+      const [row] = await tx
+        .insert(schoolClass)
+        .values({ ...input, name })
+        .returning({ id: schoolClass.id });
+      return row;
+    });
   } catch (err) {
     if (isUniqueViolation(err)) throw new NameTaken();
     throw err;
@@ -81,6 +87,7 @@ function selectClasses(ctx: Ctx, where?: SQL): Promise<ClassRow[]> {
       grade: grade.name,
       classTeacherId: schoolClass.classTeacherId,
       classTeacher: user.name,
+      yearClosed: sql<boolean>`${academicYear.closedAt} is not null`,
     })
     .from(schoolClass)
     .innerJoin(academicYear, eq(academicYear.id, schoolClass.academicYearId))

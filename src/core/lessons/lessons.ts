@@ -6,7 +6,8 @@ import { academicYear, classSubject, lesson, schoolClass, subject, user } from "
 import { requireCanActOnClassSubject, requireCanSeeClass, requireCanSeeClassSubject } from "../access";
 import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
-import { InvalidInput, isUniqueViolation, LessonExists } from "../errors";
+import { AcademicYearClosed, InvalidInput, isUniqueViolation, LessonExists } from "../errors";
+import { isYearClosed, requireOpenYear } from "../school/closed-year";
 import { getPeriodsPerDay } from "../school/periods";
 
 export type LogLessonInput = {
@@ -42,19 +43,22 @@ export async function logLesson(ctx: Ctx, input: LogLessonInput): Promise<{ id: 
   }
 
   try {
-    const [row] = await ctx.db
-      .insert(lesson)
-      .values({
-        classSubjectId: input.classSubjectId,
-        date: input.date,
-        period: input.period,
-        topic,
-        homework: (input.homework ?? "").trim(),
-        teacherId: ctx.actor.userId,
-        loggedAt: ctx.clock.now(),
-      })
-      .returning({ id: lesson.id });
-    return row;
+    return await ctx.db.transaction(async (tx) => {
+      await requireOpenYear(tx, { classSubjectId: input.classSubjectId });
+      const [row] = await tx
+        .insert(lesson)
+        .values({
+          classSubjectId: input.classSubjectId,
+          date: input.date,
+          period: input.period,
+          topic,
+          homework: (input.homework ?? "").trim(),
+          teacherId: ctx.actor.userId,
+          loggedAt: ctx.clock.now(),
+        })
+        .returning({ id: lesson.id });
+      return row;
+    });
   } catch (err) {
     if (isUniqueViolation(err)) throw new LessonExists();
     throw err;
@@ -71,6 +75,7 @@ export async function lessonFormDefaults(
   input: { classSubjectId: number },
 ): Promise<{ today: string; periodsPerDay: number }> {
   await requireCanActOnClassSubject(ctx, input.classSubjectId);
+  if (await isYearClosed(ctx.db, { classSubjectId: input.classSubjectId })) throw new AcademicYearClosed();
   return { today: ctx.clock.today(), periodsPerDay: (await getPeriodsPerDay(ctx)) ?? 0 };
 }
 
