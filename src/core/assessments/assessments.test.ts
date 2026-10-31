@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { enrollStudent } from "../enrollment/enrollment";
+import { enrollStudent, moveStudent } from "../enrollment/enrollment";
 import { AccessDenied, InvalidInput, NotFound } from "../errors";
 import { registerStudent } from "../students/register-student";
 import { createAssessment, listAssessments, updateAssessment } from "./assessments";
@@ -121,6 +121,30 @@ describe("statistics and later changes", () => {
       [8, 50],
       ["absent", 0],
     ]);
+  });
+
+  test("a backdated move takes a Student's Mark out of the statistics and the maximum check, as it does the grid", async () => {
+    const s = await assessmentSchool();
+    const a = await createAssessment(s.asSara, quiz(s.math7A.id, { date: "2026-10-15", maxMarks: 10 }));
+    await saveMarks(s.asSara, {
+      assessmentId: a.id,
+      marks: [
+        { studentId: s.aisha, mark: 4 },
+        { studentId: s.bilal, mark: 9 },
+      ],
+    });
+
+    // Bilal turns out to have left 7-A before the Assessment's date.
+    await moveStudent(s.asAdmin, { studentId: s.bilal, classId: s.class7B.id, date: "2026-10-01" });
+
+    const expected = { counted: 1, average: 4, highest: 4, lowest: 4 };
+    expect((await marksGrid(s.asSara, { assessmentId: a.id })).stats).toEqual(expected);
+    expect((await listAssessments(s.asSara, { classSubjectId: s.math7A.id }))[0].stats).toEqual(expected);
+    // Only Aisha's 4 limits the maximum now.
+    await updateAssessment(s.asSara, { assessmentId: a.id, maxMarks: 5, weight: 1 });
+    await expect(updateAssessment(s.asSara, { assessmentId: a.id, maxMarks: 3, weight: 1 })).rejects.toThrow(
+      expect.objectContaining({ messageKey: "errors.assessmentMaxBelowMark" }),
+    );
   });
 
   test("the maximum can't drop below a Mark already entered, and only the Subject Teacher changes an Assessment", async () => {

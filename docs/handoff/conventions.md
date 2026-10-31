@@ -154,3 +154,18 @@ expect(app.mailer.sent).toEqual([...]);
 - `StudentProfile` now has `enrollments: EnrollmentRow[]` (oldest first; `class`, `grade`, `academicYear`, dates). `StudentProfileCard` renders it as a list named "Enrollment history".
 - UI: the Admin enrolls or moves from `/admin/students/[id]` (`enrollment-form.tsx`, action `saveEnrollment` with a hidden `mode`); move choices are limited to the same Grade and year. `ClassRoster` (`src/app/class-roster.tsx`, a GET `?date=` form, region "Students") is on `/admin/classes/[id]` and `/teacher/classes/[id]`. Teachers: `/teacher/students` (My Students, GET filters `classId`/`classSubjectId`, linked from `/teacher` and each Class Subject page) and `/teacher/students/[id]` (profile). `Select` and `Refusal` in `admin/classes/forms.tsx` are now exported for reuse.
 - e2e: `enrollment.spec.ts` uses the future year 2041-2042 and checks rosters by date. Anything that depends on "today" (My Students, a Teacher opening a profile) is tested at the layer only.
+
+## Added by ticket 08 (assessments and marks)
+
+- Tables `assessment` and `mark` (primary key `(assessment_id, student_id)`; a raw `score` or a `status` of absent/exempt, never both), migration `0007_assessments_and_marks`. The Term is never stored: it comes from the date.
+- Layer in `src/core/assessments/`:
+  - `assessments.ts`: `createAssessment`, `updateAssessment` (maximum and weight; `errors.assessmentMaxBelowMark`), `assessmentFormDefaults`, `listAssessments` (with `stats`), `getAssessment`, `selectAssessments`.
+  - `marks.ts`: `marksGrid(ctx, { assessmentId })` → `{ assessment, rows, stats, canEnterMarks }`, `saveMarks(ctx, { assessmentId, marks })` (one transaction, locks the Assessment row; a null Mark clears it), `studentAssessmentHistory(ctx, { studentId })`.
+  - `mark-values.ts`: pure rules. `MarkValue` = number | "absent" | "exempt" | null, `requireValidMark`, `percentOf` (Absent = 0, Exempt or null = null), `markStats`, `toValue`.
+  - Test fixture: `test-assessments.ts` `assessmentSchool()` (today 2026-10-20, Term 1 and Term 2, Aisha and Bilal in 7-A) and `quiz(classSubjectId, over?)`.
+- **Marks access comes from the Class Subject, not the Student's Class today.** Guards in `access.ts`: `requireCanSeeAssessment`, `requireCanActOnAssessment` (current Subject Teacher only), `requireCanSeeStudentMarks`, and the SQL condition `canSeeClassSubjectMarks(actor)`.
+- **A Mark can outlive its roster place**: a backdated `moveStudent` leaves the Mark stored for a Student no longer on the Assessment's roster. Anything that counts Marks must join through the roster condition (see `markStudentOnRoster` in `assessments.ts`). The spec's Term Grade rule already says this ("enrolled on the Assessment's date").
+- **Publish must add the freeze** (ticket 11): `saveMarks` and `updateAssessment` have no Published check yet.
+- `isCalendarDate` moved to `src/core/dates.ts`. `rosterOn(db, classId, date)` in `enrollment.ts` is the unguarded roster query, usable inside a transaction (`Tx` is exported there).
+- UI: `/teacher/assessments/[id]` (grid, statistics, maximum and weight), the Assessment list and create form on `/teacher/class-subjects/[id]`, `/teacher/students/[id]/marks`, and `AssessmentHistory` (`src/app/assessment-history.tsx`) on `/student` and `/admin/students/[id]`. `markText`/`statsText` are in `src/app/mark-text.ts`.
+- **e2e data must be unique across specs**, including login emails: specs share one database and run in parallel, so a repeated email times out whichever spec runs second. Each spec also needs its own Academic Year.

@@ -2,8 +2,8 @@
 // midterm or final), with a date, maximum marks and weight. Its Term is worked out
 // from its date and never stored. Who may create, change and see them is decided in
 // ../access.ts, always from the Class Subject.
-import { and, desc, eq, gte, inArray, lte, max, type SQL } from "drizzle-orm";
-import { academicYear, assessment, classSubject, mark, schoolClass, subject, term } from "@/db/schema";
+import { and, desc, eq, gte, inArray, isNull, lte, max, or, type SQL } from "drizzle-orm";
+import { academicYear, assessment, classSubject, enrollment, mark, schoolClass, subject, term } from "@/db/schema";
 import {
   requireCanActOnAssessment,
   requireCanActOnClassSubject,
@@ -14,6 +14,18 @@ import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import { InvalidInput, NotFound } from "../errors";
 import { hasAtMostTwoDecimals, markStats, type MarkStats, type MarkValue, toValue } from "./mark-values";
+
+/**
+ * Joins a Mark to the Enrollment that puts its Student on the Assessment's roster. A
+ * backdated move can leave a Mark for a Student no longer on it: the grid doesn't list
+ * that Mark, so statistics and the maximum check must not count it either.
+ */
+const markStudentOnRoster = and(
+  eq(enrollment.studentId, mark.studentId),
+  eq(enrollment.classId, classSubject.classId),
+  lte(enrollment.startDate, assessment.date),
+  or(isNull(enrollment.endDate), gte(enrollment.endDate, assessment.date)),
+);
 
 export const ASSESSMENT_TYPES = ["quiz", "assignment", "midterm", "final"] as const;
 export type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
@@ -87,6 +99,9 @@ export async function updateAssessment(
     const [top] = await tx
       .select({ highest: max(mark.score) })
       .from(mark)
+      .innerJoin(assessment, eq(assessment.id, mark.assessmentId))
+      .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
+      .innerJoin(enrollment, markStudentOnRoster)
       .where(eq(mark.assessmentId, input.assessmentId));
     if (top.highest !== null && Number(top.highest) > input.maxMarks) {
       throw new InvalidInput("errors.assessmentMaxBelowMark");
@@ -137,6 +152,9 @@ export async function listAssessments(
   const marks = await ctx.db
     .select({ assessmentId: mark.assessmentId, score: mark.score, status: mark.status })
     .from(mark)
+    .innerJoin(assessment, eq(assessment.id, mark.assessmentId))
+    .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
+    .innerJoin(enrollment, markStudentOnRoster)
     .where(
       inArray(
         mark.assessmentId,

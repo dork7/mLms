@@ -68,7 +68,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
 
   await page.goto("/admin/teachers");
   await page.getByLabel("Name").fill("Rania Marks");
-  await page.getByLabel("Email").fill("rania@school.test");
+  await page.getByLabel("Email").fill("rania.marks@school.test");
   await page.getByRole("button", { name: "Add Teacher" }).click();
   const raniaPassword = (await page.getByRole("status").locator("code").textContent())!;
 
@@ -89,7 +89,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
 
   // Rania creates an Assessment from her phone and enters the grid.
   await page.context().clearCookies();
-  await logIn(page, "rania@school.test", raniaPassword);
+  await logIn(page, "rania.marks@school.test", raniaPassword);
   await changeInitialPassword(page, raniaPassword, "rania's own password");
   await expect(page).toHaveURL(/\/teacher$/);
   await page.getByRole("region", { name: "My Class Subjects" }).getByRole("link", { name: "Chemistry for 11-M" }).click();
@@ -117,12 +117,15 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
   await expect(grid.getByRole("status").filter({ hasText: "Marks saved." })).toBeVisible();
   await expect(page.getByText("Average 9, highest 18, lowest 0 (2 counted)")).toBeVisible();
 
-  // Raising the maximum keeps the raw Mark.
+  // Raising the maximum keeps the raw Mark, and doesn't lose what she has typed but not saved.
   const edit = page.getByRole("region", { name: "Maximum marks and weight" });
   await edit.getByLabel("Maximum marks").fill("24");
+  await grid.getByRole("combobox", { name: "Status for Imran Marks" }).selectOption({ label: "Exempt" });
   await edit.getByRole("button", { name: "Save" }).click();
   await expect(edit.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
   await expect(grid.getByLabel("Mark for Huwaida Marks")).toHaveValue("18");
+  await expect(grid.getByRole("combobox", { name: "Status for Imran Marks" })).toHaveValue("exempt");
+  await grid.getByRole("combobox", { name: "Status for Imran Marks" }).selectOption({ label: "Absent" });
   await expectNoSidewaysScroll(page);
 
   // The Class Subject page lists the Assessment with its statistics.

@@ -52,7 +52,6 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
           <p>{t("marks.empty")}</p>
         ) : grid.canEnterMarks ? (
           <MarksGridForm
-            key={`${a.maxMarks}`}
             assessmentId={a.id}
             maxMarks={a.maxMarks}
             rows={grid.rows.map(({ studentId, name, studentNumber, mark }) => ({ studentId, name, studentNumber, mark }))}
