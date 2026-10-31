@@ -172,7 +172,8 @@ export function canSeeTermGrade(
 }
 
 /** Ids arrive from URLs and forms; one that isn't a whole number names nothing. */
-function requireId(id: number): void {
+/** Ids come from URLs and forms, so a non-integer one is simply a record that isn't there. */
+export function requireId(id: number): void {
   if (!Number.isSafeInteger(id)) throw new NotFound();
 }
 

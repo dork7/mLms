@@ -1,5 +1,5 @@
 {
-  "id": "c4bee4e4-9181-4fa0-9096-c7b44acc2896",
+  "id": "3beac548-b92a-40c2-a23f-838799ae844c",
   "prevId": "88ff3eed-bd27-41b9-8390-4ee1f0a48158",
   "version": "7",
   "dialect": "postgresql",
@@ -461,6 +461,105 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.exam": {
+      "name": "exam",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "assessment_id": {
+          "name": "assessment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "time(0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "exam_room_idx": {
+          "name": "exam_room_idx",
+          "columns": [
+            {
+              "expression": "room_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exam_assessment_id_assessment_id_fk": {
+          "name": "exam_assessment_id_assessment_id_fk",
+          "tableFrom": "exam",
+          "tableTo": "assessment",
+          "columnsFrom": [
+            "assessment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "exam_room_id_room_id_fk": {
+          "name": "exam_room_id_room_id_fk",
+          "tableFrom": "exam",
+          "tableTo": "room",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "exam_assessment_id_unique": {
+          "name": "exam_assessment_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "assessment_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "exam_duration_positive": {
+          "name": "exam_duration_positive",
+          "value": "\"exam\".\"duration_minutes\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.failed_login": {
       "name": "failed_login",
       "schema": "",
@@ -545,108 +644,6 @@
       },
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.grading_band": {
-      "name": "grading_band",
-      "schema": "",
-      "columns": {
-        "grade_id": {
-          "name": "grade_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "min_percent": {
-          "name": "min_percent",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "grading_band_grade_id_grading_scale_grade_id_fk": {
-          "name": "grading_band_grade_id_grading_scale_grade_id_fk",
-          "tableFrom": "grading_band",
-          "tableTo": "grading_scale",
-          "columnsFrom": [
-            "grade_id"
-          ],
-          "columnsTo": [
-            "grade_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "grading_band_grade_id_min_percent_pk": {
-          "name": "grading_band_grade_id_min_percent_pk",
-          "columns": [
-            "grade_id",
-            "min_percent"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "grading_band_min_percent_range": {
-          "name": "grading_band_min_percent_range",
-          "value": "\"grading_band\".\"min_percent\" between 0 and 100"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.grading_scale": {
-      "name": "grading_scale",
-      "schema": "",
-      "columns": {
-        "grade_id": {
-          "name": "grade_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "pass_mark": {
-          "name": "pass_mark",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "grading_scale_grade_id_grade_id_fk": {
-          "name": "grading_scale_grade_id_grade_id_fk",
-          "tableFrom": "grading_scale",
-          "tableTo": "grade",
-          "columnsFrom": [
-            "grade_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "grading_scale_pass_mark_range": {
-          "name": "grading_scale_pass_mark_range",
-          "value": "\"grading_scale\".\"pass_mark\" between 0 and 100"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.lesson": {

@@ -13,6 +13,7 @@ import {
   primaryKey,
   serial,
   text,
+  time,
   timestamp,
   unique,
   uniqueIndex,
@@ -337,5 +338,32 @@ export const gradingBand = pgTable(
   (t) => [
     primaryKey({ columns: [t.gradeId, t.minPercent] }),
     check("grading_band_min_percent_range", sql`${t.minPercent} between 0 and 100`),
+  ],
+);
+
+// ---- Exams (ticket 13) ----
+
+/**
+ * An Assessment that also has a scheduled sitting. Its Class Subject and date live on
+ * its Assessment, so they can't drift apart. The start is the school's wall-clock time,
+ * and a sitting never runs past midnight, so clashes only compare Exams on one date.
+ */
+export const exam = pgTable(
+  "exam",
+  {
+    id: serial("id").primaryKey(),
+    assessmentId: integer("assessment_id")
+      .notNull()
+      .unique()
+      .references(() => assessment.id),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => room.id),
+    startTime: time("start_time", { precision: 0 }).notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+  },
+  (t) => [
+    index("exam_room_idx").on(t.roomId),
+    check("exam_duration_positive", sql`${t.durationMinutes} > 0`),
   ],
 );

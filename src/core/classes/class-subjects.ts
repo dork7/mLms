@@ -57,6 +57,15 @@ export async function listClassSubjects(ctx: Ctx, input: { classId: number }): P
   return selectClassSubjects(ctx, eq(classSubject.classId, input.classId));
 }
 
+/** Every Class Subject in one Academic Year, by Class then Subject: for the Admin. */
+export async function listYearClassSubjects(
+  ctx: Ctx,
+  input: { academicYearId: number },
+): Promise<ClassSubjectRow[]> {
+  requireAdmin(ctx.actor);
+  return selectClassSubjects(ctx, eq(schoolClass.academicYearId, input.academicYearId));
+}
+
 /** The Class Subjects the acting Teacher teaches, by Class then Subject. */
 export async function listMyClassSubjects(ctx: Ctx): Promise<ClassSubjectRow[]> {
   requireRole(ctx.actor, "teacher");
