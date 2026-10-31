@@ -41,7 +41,7 @@ export default async function OverallRemarksPage({
       <section className="card" aria-labelledby="term">
         <h2 id="term">{t("remarks.termHeading", { term: sheet.term.name, year: sheet.term.academicYear })}</h2>
         <TermPicker key={sheet.term.id} terms={sheet.terms} termId={sheet.term.id} />
-        <p className="muted">{t("remarks.cleared")}</p>
+        <p className="muted">{sheet.yearClosed ? t("yearEnd.closedNotice") : t("remarks.cleared")}</p>
         {sheet.rows.length === 0 && <p>{t("remarks.overallEmpty")}</p>}
       </section>
       {sheet.rows.map((row) => (
@@ -60,13 +60,17 @@ export default async function OverallRemarksPage({
           <p>
             <strong>{overallText(row.overallPercent)}</strong>
           </p>
-          <RemarkForm
-            key={sheet.term.id}
-            action={saveOverallRemarkAction}
-            label={t("remarks.overallLabel", { name: row.name })}
-            fields={{ classId, termId: sheet.term.id, studentId: row.studentId }}
-            remark={row.overallRemark}
-          />
+          {sheet.yearClosed ? (
+            <p className="remark">{row.overallRemark ?? t("reportCards.remarkNone")}</p>
+          ) : (
+            <RemarkForm
+              key={sheet.term.id}
+              action={saveOverallRemarkAction}
+              label={t("remarks.overallLabel", { name: row.name })}
+              fields={{ classId, termId: sheet.term.id, studentId: row.studentId }}
+              remark={row.overallRemark}
+            />
+          )}
         </section>
       ))}
     </main>

@@ -1,8 +1,8 @@
 // Report Cards: a Student's Term Grades for one Term with their remarks, drawn up for
 // the Issuing Class (their Class on the Term's last day). Nothing here is stored except
 // the remarks; the figures are worked out when read.
-import { and, eq, inArray, or } from "drizzle-orm";
-import { classSubject, overallRemark, schoolClass, subject, subjectRemark, user } from "@/db/schema";
+import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { classSubject, enrollment, overallRemark, schoolClass, subject, subjectRemark, user } from "@/db/schema";
 import { requireAdmin, requireId } from "../access";
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
@@ -12,6 +12,7 @@ import {
   emptyTermGrade,
   type IssuingClass,
   issuingClasses,
+  studentsInClassDuring,
   type TermGrade,
   termGradesIn,
   type TermRef,
@@ -160,7 +161,15 @@ export type ClassReportCards = {
   term: TermRef;
   rankEnabled: boolean;
   cards: ReportCard[];
+  /**
+   * Students with no Class on the Term's last day, so no Issuing Class and no Report Card:
+   * no Class Teacher owns it and no Class ranks them. They're listed on the last Class they
+   * were in during the Term, so they don't silently vanish, and nothing is owed for them.
+   */
+  noReportCard: NoReportCard[];
 };
+
+export type NoReportCard = { studentId: string; name: string; studentNumber: string; lastDay: string };
 
 /**
  * The Admin's preview of a Class's Report Cards for a Term, with what's still missing
@@ -177,7 +186,39 @@ export async function classReportCards(ctx: Ctx, input: { classId: number; termI
     rank: ranks.get(card.studentId) ?? null,
     flags: flagsOf(card),
   }));
-  return { class: className, terms, term, rankEnabled, cards };
+  const noReportCard = await leftBeforeTermEnded(ctx, input.classId, term);
+  return { class: className, terms, term, rankEnabled, cards, noReportCard };
+}
+
+/** Students last in this Class during the Term and in no Class on its last day, by name. */
+async function leftBeforeTermEnded(ctx: Ctx, classId: number, term: TermRef): Promise<NoReportCard[]> {
+  const students = await studentsInClassDuring(ctx.db, classId, term);
+  const issuing = await issuingClasses(
+    ctx.db,
+    students.map((s) => s.studentId),
+    term.endDate,
+  );
+  const gone = students.filter((s) => !issuing.has(s.studentId));
+  if (gone.length === 0) return [];
+  const spells = await ctx.db
+    .select({ studentId: enrollment.studentId, classId: enrollment.classId, endDate: enrollment.endDate })
+    .from(enrollment)
+    .where(
+      and(
+        inArray(
+          enrollment.studentId,
+          gone.map((s) => s.studentId),
+        ),
+        lte(enrollment.startDate, term.endDate),
+        gte(enrollment.endDate, term.startDate),
+      ),
+    )
+    .orderBy(asc(enrollment.startDate));
+  const latest = new Map(spells.map((spell) => [spell.studentId, spell]));
+  return gone.flatMap((s) => {
+    const spell = latest.get(s.studentId);
+    return spell?.classId === classId && spell.endDate ? [{ ...s, lastDay: spell.endDate }] : [];
+  });
 }
 
 /** A Class with its year's Terms and the chosen one. No access check. */

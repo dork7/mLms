@@ -101,6 +101,22 @@ export default async function ReportCardPreviewPage({
           )}
         </section>
       ))}
+      {page.noReportCard.length > 0 && (
+        <section className="card" aria-labelledby="no-report-card">
+          <h2 id="no-report-card">{t("reportCards.noReportCardHeading")}</h2>
+          <p className="muted">{t("reportCards.noReportCardHint")}</p>
+          <ul className="list">
+            {page.noReportCard.map((student) => (
+              <li key={student.studentId}>
+                <Link href={`/admin/students/${student.studentId}`}>
+                  {t("termGrades.studentLine", { name: student.name, studentNumber: student.studentNumber })}
+                </Link>
+                <div className="muted">{t("reportCards.lastDay", { date: student.lastDay })}</div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

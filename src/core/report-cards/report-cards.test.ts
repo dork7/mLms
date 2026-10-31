@@ -5,7 +5,10 @@ import { assessmentSchool, quiz } from "../assessments/test-assessments";
 import { createClassSubject, reassignSubjectTeacher } from "../classes/class-subjects";
 import { enrollStudent, moveStudent } from "../enrollment/enrollment";
 import { AccessDenied, NotFound } from "../errors";
+import { studentTermGrades } from "../grading/term-grades";
 import { updateAcademicYear } from "../school/academic-year";
+import { yearEndSchool } from "../year-end/test-year-end";
+import { promoteClass } from "../year-end/year-end";
 import { createSubject } from "../school/catalogue";
 import { getPeriodsPerDay, setPeriodsPerDay } from "../school/periods";
 import { registerStudent } from "../students/register-student";
@@ -681,6 +684,120 @@ describe("the Class Teacher's remark sheet", () => {
     await expect(overallRemarkSheet(s.asSara, input)).rejects.toThrow(AccessDenied);
     await expect(overallRemarkSheet(s.asOmar, input)).rejects.toThrow(AccessDenied);
     await expect(overallRemarkSheet(s.asAdmin, input)).rejects.toThrow(AccessDenied);
+  });
+});
+
+describe("a Student with no Issuing Class", () => {
+  test("a Leaving Student gone before the Term's last day has no Report Card, and the preview says so", async () => {
+    const s = await yearEndSchool();
+    await marked(s, s.math7A.id, s.aisha, 8);
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+
+    const preview = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+
+    expect(preview.cards.map((c) => c.name)).toEqual(["Bilal Khan"]);
+    expect(preview.noReportCard).toEqual([
+      { studentId: s.aisha, name: "Aisha Rahman", studentNumber: "S-1", lastDay: "2026-10-01" },
+    ]);
+  });
+
+  test("they aren't ranked, and the Students who stayed rank without them", async () => {
+    const s = await yearEndSchool();
+    const { id } = await createAssessment(s.asSara, quiz(s.math7A.id));
+    await saveMarks(s.asSara, {
+      assessmentId: id,
+      marks: [
+        { studentId: s.aisha, mark: 10 },
+        { studentId: s.bilal, mark: 5 },
+      ],
+    });
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+    await setRankEnabled(s.asAdmin, true);
+
+    const { cards } = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+
+    expect(cards.map((c) => [c.name, c.rank])).toEqual([["Bilal Khan", 1]]);
+  });
+
+  test("no one can write their remarks", async () => {
+    const s = await yearEndSchool();
+    await marked(s, s.math7A.id, s.aisha, 8);
+    const { term } = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+
+    await expect(
+      saveSubjectRemark(s.asSara, { classSubjectId: s.math7A.id, termId: term.id, studentId: s.aisha, remark: "No." }),
+    ).rejects.toThrow(AccessDenied);
+    await expect(
+      saveOverallRemark(s.asHuda, { classId: s.class7A.id, termId: term.id, studentId: s.aisha, remark: "No." }),
+    ).rejects.toThrow(AccessDenied);
+    expect((await subjectRemarkSheet(s.asSara, { classSubjectId: s.math7A.id })).rows.map((r) => r.name)).toEqual([
+      "Bilal Khan",
+    ]);
+  });
+
+  test("their Term Grades stay visible on their own record", async () => {
+    const s = await yearEndSchool();
+    await marked(s, s.math7A.id, s.aisha, 8);
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+
+    const [term] = await studentTermGrades(s.asAdmin, { studentId: s.aisha });
+
+    expect(term.issuingClass).toBeNull();
+    expect(term.grades[0].percent).toBe(80);
+  });
+
+  test("they're listed once, on the last Class they were in during the Term", async () => {
+    const s = await yearEndSchool();
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-09-20" });
+    await promoteClass(s.asAdmin, {
+      classId: s.class7B.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+
+    const a = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+    const b = await classReportCards(s.asAdmin, { classId: s.class7B.id });
+
+    expect(a.noReportCard).toEqual([]);
+    expect(b.noReportCard.map((n) => n.name)).toEqual(["Aisha Rahman"]);
+  });
+
+  test("a Term they weren't in at all doesn't mention them", async () => {
+    const s = await yearEndSchool();
+    const { terms } = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      leaving: [{ studentId: s.aisha, lastDay: "2026-10-01" }],
+    });
+
+    const term2 = await classReportCards(s.asAdmin, { classId: s.class7A.id, termId: terms[1].id });
+
+    expect(term2.noReportCard).toEqual([]);
+    expect(term2.cards.map((c) => c.name)).toEqual(["Bilal Khan"]);
+  });
+
+  test("a Student who moved to another Class is that Class's card, not on the no-card list", async () => {
+    const s = await yearEndSchool();
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-12" });
+
+    expect((await classReportCards(s.asAdmin, { classId: s.class7A.id })).noReportCard).toEqual([]);
   });
 });
 

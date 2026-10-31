@@ -42,8 +42,14 @@ export default async function SubjectRemarksPage({
       <section className="card" aria-labelledby="term">
         <h2 id="term">{t("remarks.termHeading", { term: sheet.term.name, year: sheet.term.academicYear })}</h2>
         <TermPicker key={sheet.term.id} terms={sheet.terms} termId={sheet.term.id} />
-        <p className="muted">{t("remarks.subjectHint")}</p>
-        <p className="muted">{t("remarks.cleared")}</p>
+        {sheet.yearClosed ? (
+          <p className="muted">{t("yearEnd.closedNotice")}</p>
+        ) : (
+          <>
+            <p className="muted">{t("remarks.subjectHint")}</p>
+            <p className="muted">{t("remarks.cleared")}</p>
+          </>
+        )}
         {sheet.rows.length === 0 && <p>{t("remarks.subjectEmpty")}</p>}
       </section>
       {sheet.rows.map((row) => (
@@ -55,13 +61,17 @@ export default async function SubjectRemarksPage({
             <strong>{termGradeText(row.grade)}</strong>
           </p>
           {termGradeNotes(row.grade) && <p className="muted">{termGradeNotes(row.grade)}</p>}
-          <RemarkForm
-            key={sheet.term.id}
-            action={saveSubjectRemarkAction}
-            label={t("remarks.label", { name: row.name })}
-            fields={{ classSubjectId, termId: sheet.term.id, studentId: row.studentId }}
-            remark={row.remark}
-          />
+          {sheet.yearClosed ? (
+            <p className="remark">{row.remark ?? t("reportCards.remarkNone")}</p>
+          ) : (
+            <RemarkForm
+              key={sheet.term.id}
+              action={saveSubjectRemarkAction}
+              label={t("remarks.label", { name: row.name })}
+              fields={{ classSubjectId, termId: sheet.term.id, studentId: row.studentId }}
+              remark={row.remark}
+            />
+          )}
         </section>
       ))}
     </main>

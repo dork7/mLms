@@ -14,6 +14,7 @@ import {
   type TermRef,
   yearTerms,
 } from "../grading/term-grades";
+import { isYearClosed, requireOpenYear } from "../school/closed-year";
 import { classAndTerm, draftReportCards, type NamedReportCard, reportCardsIssuedBy } from "./report-cards";
 
 const MAX_REMARK_LENGTH = 1000;
@@ -38,25 +39,28 @@ export async function saveSubjectRemark(
   requireRemarkWriter(ctx.actor, row?.teacherId);
 
   const key = { classSubjectId: input.classSubjectId, studentId: input.studentId, termLastDay: term.endDate };
-  if (text === null) {
-    await ctx.db
-      .delete(subjectRemark)
-      .where(
-        and(
-          eq(subjectRemark.classSubjectId, key.classSubjectId),
-          eq(subjectRemark.studentId, key.studentId),
-          eq(subjectRemark.termLastDay, key.termLastDay),
-        ),
-      );
-    return;
-  }
-  await ctx.db
-    .insert(subjectRemark)
-    .values({ ...key, remark: text })
-    .onConflictDoUpdate({
-      target: [subjectRemark.classSubjectId, subjectRemark.studentId, subjectRemark.termLastDay],
-      set: { remark: text },
-    });
+  await ctx.db.transaction(async (tx) => {
+    await requireOpenYear(tx, { classSubjectId: input.classSubjectId });
+    if (text === null) {
+      await tx
+        .delete(subjectRemark)
+        .where(
+          and(
+            eq(subjectRemark.classSubjectId, key.classSubjectId),
+            eq(subjectRemark.studentId, key.studentId),
+            eq(subjectRemark.termLastDay, key.termLastDay),
+          ),
+        );
+      return;
+    }
+    await tx
+      .insert(subjectRemark)
+      .values({ ...key, remark: text })
+      .onConflictDoUpdate({
+        target: [subjectRemark.classSubjectId, subjectRemark.studentId, subjectRemark.termLastDay],
+        set: { remark: text },
+      });
+  });
 }
 
 export async function saveOverallRemark(
@@ -71,25 +75,28 @@ export async function saveOverallRemark(
   requireRemarkWriter(ctx.actor, issuing?.id === input.classId ? issuing.classTeacherId : undefined);
 
   const key = { classId: input.classId, studentId: input.studentId, termLastDay: term.endDate };
-  if (text === null) {
-    await ctx.db
-      .delete(overallRemark)
-      .where(
-        and(
-          eq(overallRemark.classId, key.classId),
-          eq(overallRemark.studentId, key.studentId),
-          eq(overallRemark.termLastDay, key.termLastDay),
-        ),
-      );
-    return;
-  }
-  await ctx.db
-    .insert(overallRemark)
-    .values({ ...key, remark: text })
-    .onConflictDoUpdate({
-      target: [overallRemark.classId, overallRemark.studentId, overallRemark.termLastDay],
-      set: { remark: text },
-    });
+  await ctx.db.transaction(async (tx) => {
+    await requireOpenYear(tx, { classId: input.classId });
+    if (text === null) {
+      await tx
+        .delete(overallRemark)
+        .where(
+          and(
+            eq(overallRemark.classId, key.classId),
+            eq(overallRemark.studentId, key.studentId),
+            eq(overallRemark.termLastDay, key.termLastDay),
+          ),
+        );
+      return;
+    }
+    await tx
+      .insert(overallRemark)
+      .values({ ...key, remark: text })
+      .onConflictDoUpdate({
+        target: [overallRemark.classId, overallRemark.studentId, overallRemark.termLastDay],
+        set: { remark: text },
+      });
+  });
 }
 
 export type SubjectRemarkRow = {
@@ -106,6 +113,8 @@ export type SubjectRemarkSheet = {
   /** Every Term of the Class's Academic Year, in date order. */
   terms: TermRef[];
   term: TermRef;
+  /** A Closed year's remarks can be read but not changed. */
+  yearClosed: boolean;
   rows: SubjectRemarkRow[];
 };
 
@@ -130,7 +139,8 @@ export async function subjectRemarkSheet(
     const row = cards.get(s.studentId)?.grades.find((g) => g.classSubjectId === input.classSubjectId);
     return row ? [{ ...s, grade: row, remark: row.remark }] : [];
   });
-  return { subject, class: className, terms, term, rows };
+  const yearClosed = await isYearClosed(ctx.db, { classId });
+  return { subject, class: className, terms, term, yearClosed, rows };
 }
 
 export type OverallRemarkSheet = {
@@ -138,6 +148,8 @@ export type OverallRemarkSheet = {
   /** Every Term of the Class's Academic Year, in date order. */
   terms: TermRef[];
   term: TermRef;
+  /** A Closed year's remarks can be read but not changed. */
+  yearClosed: boolean;
   rows: NamedReportCard[];
 };
 
@@ -149,7 +161,13 @@ export type OverallRemarkSheet = {
 export async function overallRemarkSheet(ctx: Ctx, input: { classId: number; termId?: number }): Promise<OverallRemarkSheet> {
   await requireCanActOnClass(ctx, input.classId);
   const { class: className, terms, term } = await classAndTerm(ctx, input);
-  return { class: className, terms, term, rows: await reportCardsIssuedBy(ctx, input.classId, term) };
+  return {
+    class: className,
+    terms,
+    term,
+    yearClosed: await isYearClosed(ctx.db, { classId: input.classId }),
+    rows: await reportCardsIssuedBy(ctx, input.classId, term),
+  };
 }
 
 /** A Class Subject with its Class's year's Terms and the chosen one. No access check. */

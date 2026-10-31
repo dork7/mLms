@@ -260,6 +260,9 @@ export const en = {
     flagNoAssessments: "{subject}: no Assessment in this Term",
     flagMissingRemark: "{subject}: remark from {teacher}",
     flagMissingOverallRemark: "Overall remark from {teacher}",
+    noReportCardHeading: "No Report Card this Term",
+    noReportCardHint: "These Students left this Class and weren't in any Class on the Term's last day, so nothing is owed for them. Their Term Grades stay on their profiles.",
+    lastDay: "Last day: {date}",
   },
   remarks: {
     subjectTitle: "Remarks: {subject} for {class}",
