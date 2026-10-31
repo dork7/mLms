@@ -27,6 +27,9 @@ export default async function TeacherStudentPage({ params }: { params: Promise<{
         <Link href="/teacher/students">{t("myStudents.backToList")}</Link>
       </header>
       <StudentProfileCard profile={profile} />
+      <p>
+        <Link href={`/teacher/students/${profile.id}/marks`}>{t("marks.historyLink")}</Link>
+      </p>
     </main>
   );
 }
