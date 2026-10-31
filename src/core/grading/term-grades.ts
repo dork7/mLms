@@ -116,32 +116,10 @@ export async function classSubjectTermGrades(
     .where(eq(classSubject.id, input.classSubjectId));
   if (!found) throw new NotFound();
 
-  const terms = await ctx.db
-    .select(termColumns)
-    .from(term)
-    .innerJoin(academicYear, eq(academicYear.id, term.academicYearId))
-    .where(eq(term.academicYearId, found.academicYearId))
-    .orderBy(asc(term.startDate));
-  const today = ctx.clock.today();
-  const chosen =
-    input.termId === undefined
-      ? (terms.find((t) => t.startDate <= today && today <= t.endDate) ?? terms[0])
-      : terms.find((t) => t.id === input.termId);
-  if (!chosen) throw new NotFound();
+  const terms = await yearTerms(ctx.db, found.academicYearId);
+  const chosen = chooseTerm(terms, ctx.clock.today(), input.termId);
 
-  const students = await ctx.db
-    .selectDistinct({ studentId: student.userId, name: user.name, studentNumber: student.studentNumber })
-    .from(enrollment)
-    .innerJoin(student, eq(student.userId, enrollment.studentId))
-    .innerJoin(user, eq(user.id, student.userId))
-    .where(
-      and(
-        eq(enrollment.classId, found.classId),
-        lte(enrollment.startDate, chosen.endDate),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, chosen.startDate)),
-      ),
-    )
-    .orderBy(asc(user.name));
+  const students = await studentsInClassDuring(ctx.db, found.classId, chosen);
   const ids = students.map((s) => s.studentId);
 
   const issuing = await issuingClasses(ctx.db, ids, chosen.endDate);
@@ -168,7 +146,7 @@ export async function classSubjectTermGrades(
         issuingClass: issuingClass?.name ?? null,
         grade: entries.length
           ? toTermGrade(entries, scale)
-          : { ...termGradeFigures([]), ...readOnScale(null, null), subjectId: found.subjectId, subject: found.subject },
+          : emptyTermGrade(found.subjectId, found.subject),
       };
     }),
   };
@@ -204,17 +182,95 @@ export async function issuingClasses(db: Db, studentIds: string[], lastDay: stri
   return new Map(rows.map(({ studentId, ...issuing }) => [studentId, issuing]));
 }
 
-const termColumns = {
-  id: term.id,
-  name: term.name,
-  startDate: term.startDate,
-  endDate: term.endDate,
-  academicYear: academicYear.name,
+/** Every Term of an Academic Year, in date order. No access check. */
+export function yearTerms(db: Db, academicYearId: number): Promise<TermRef[]> {
+  return db
+    .select({
+      id: term.id,
+      name: term.name,
+      startDate: term.startDate,
+      endDate: term.endDate,
+      academicYear: academicYear.name,
+    })
+    .from(term)
+    .innerJoin(academicYear, eq(academicYear.id, term.academicYearId))
+    .where(eq(term.academicYearId, academicYearId))
+    .orderBy(asc(term.startDate));
+}
+
+/** The asked-for Term of a year, or with none asked for today's Term, else the year's first. */
+export function chooseTerm(terms: TermRef[], today: string, termId?: number): TermRef {
+  const chosen =
+    termId === undefined
+      ? (terms.find((t) => t.startDate <= today && today <= t.endDate) ?? terms[0])
+      : terms.find((t) => t.id === termId);
+  if (!chosen) throw new NotFound();
+  return chosen;
+}
+
+/** Every Student enrolled in a Class at any time during a Term, by name. No access check. */
+export function studentsInClassDuring(
+  db: Db,
+  classId: number,
+  during: TermRef,
+): Promise<{ studentId: string; name: string; studentNumber: string }[]> {
+  return db
+    .selectDistinct({ studentId: student.userId, name: user.name, studentNumber: student.studentNumber })
+    .from(enrollment)
+    .innerJoin(student, eq(student.userId, enrollment.studentId))
+    .innerJoin(user, eq(user.id, student.userId))
+    .where(
+      and(
+        eq(enrollment.classId, classId),
+        lte(enrollment.startDate, during.endDate),
+        or(isNull(enrollment.endDate), gte(enrollment.endDate, during.startDate)),
+      ),
+    )
+    .orderBy(asc(user.name));
+}
+
+export type TermGradeInTerm = {
+  grade: TermGrade;
+  /** The Class Subject of the Term Grade's latest Assessment. */
+  latestClassSubjectId: number;
 };
+
+/**
+ * Each Student's whole Term Grades for one Term, by Subject, whatever the actor could
+ * see of them: `canSeeTermGrade` is not applied. For callers that already checked.
+ */
+export async function termGradesIn(
+  ctx: Ctx,
+  studentIds: string[],
+  within: TermRef,
+  issuing: Map<string, IssuingClass>,
+): Promise<Map<string, TermGradeInTerm[]>> {
+  if (studentIds.length === 0) return new Map();
+  const scales = await scalesFor(ctx.db, gradeIdsOf(issuing.values()));
+  const rows = await countedAssessments(ctx, and(inArray(enrollment.studentId, studentIds), eq(term.id, within.id)));
+  return new Map(
+    studentIds.map((studentId) => {
+      const issuingClass = issuing.get(studentId);
+      const scale = issuingClass ? (scales.get(issuingClass.gradeId) ?? null) : null;
+      const grades = bySubject(rows.filter((r) => r.studentId === studentId)).map((entries) => ({
+        grade: toTermGrade(entries, scale),
+        latestClassSubjectId: entries.reduce((a, b) => (b.date > a.date ? b : a)).classSubjectId,
+      }));
+      return [studentId, grades];
+    }),
+  );
+}
+
+/** The Term Grade of a Subject with no Assessment on the Student's enrolled dates. */
+export function emptyTermGrade(subjectId: number, subject: string): TermGrade {
+  return { ...termGradeFigures([]), ...readOnScale(null, null), subjectId, subject };
+}
 
 type CountedAssessment = {
   studentId: string;
   term: TermRef;
+  classSubjectId: number;
+  date: string;
   subjectId: number;
   subject: string;
   weight: number;
@@ -234,6 +290,8 @@ async function countedAssessments(ctx: Ctx, where: SQL | undefined): Promise<Cou
   const rows = await ctx.db
     .selectDistinct({
       assessmentId: assessment.id,
+      classSubjectId: assessment.classSubjectId,
+      date: assessment.date,
       studentId: enrollment.studentId,
       termId: term.id,
       termName: term.name,
@@ -274,6 +332,8 @@ async function countedAssessments(ctx: Ctx, where: SQL | undefined): Promise<Cou
   return rows.map((r) => ({
     studentId: r.studentId,
     term: { id: r.termId, name: r.termName, startDate: r.termStart, endDate: r.termEnd, academicYear: r.academicYear },
+    classSubjectId: r.classSubjectId,
+    date: r.date,
     subjectId: r.subjectId,
     subject: r.subject,
     weight: r.weight,

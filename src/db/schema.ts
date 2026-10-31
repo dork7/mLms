@@ -133,6 +133,8 @@ export const room = pgTable("room", {
 export const schoolSettings = pgTable("school_settings", {
   id: integer("id").primaryKey().default(1),
   periodsPerDay: integer("periods_per_day"),
+  /** Whether Report Cards show a rank within the Issuing Class. Off until the Admin turns it on. */
+  rankEnabled: boolean("rank_enabled").notNull().default(false),
 });
 
 // ---- Classes (ticket 04) ----
@@ -365,5 +367,49 @@ export const exam = pgTable(
   (t) => [
     index("exam_room_idx").on(t.roomId),
     check("exam_duration_positive", sql`${t.durationMinutes} > 0`),
+  ],
+);
+
+// ---- Report Cards ----
+// A remark belongs to a Term by the Term's last day, never its id: editing an Academic
+// Year replaces its Terms and their ids. A remark also names the Class or Class Subject
+// it was written for, and a Report Card reads only the one it currently draws on, so a
+// backdated move can't leave another Class's remark on the card.
+
+/** A Subject Teacher's remark on one Student's Term Grade. */
+export const subjectRemark = pgTable(
+  "subject_remark",
+  {
+    classSubjectId: integer("class_subject_id")
+      .notNull()
+      .references(() => classSubject.id),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    termLastDay: date("term_last_day", { mode: "string" }).notNull(),
+    remark: text("remark").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.classSubjectId, t.studentId, t.termLastDay] }),
+    index("subject_remark_student_idx").on(t.studentId, t.termLastDay),
+  ],
+);
+
+/** The Issuing Class's Class Teacher's overall remark on one Student's Report Card. */
+export const overallRemark = pgTable(
+  "overall_remark",
+  {
+    classId: integer("class_id")
+      .notNull()
+      .references(() => schoolClass.id),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    termLastDay: date("term_last_day", { mode: "string" }).notNull(),
+    remark: text("remark").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.classId, t.studentId, t.termLastDay] }),
+    index("overall_remark_student_idx").on(t.studentId, t.termLastDay),
   ],
 );

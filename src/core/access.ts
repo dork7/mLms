@@ -171,6 +171,24 @@ export function canSeeTermGrade(
   return grade.seesACountedClassSubject || grade.issuingClassTeacherId === actor.userId;
 }
 
+/** Act for a whole Class (write its overall remarks): only its Class Teacher, not the Admin. */
+export async function requireCanActOnClass(ctx: Ctx, classId: number): Promise<void> {
+  requireRole(ctx.actor, "teacher");
+  await requireCanSeeClass(ctx, classId);
+}
+
+/**
+ * Write a Report Card remark: only the one Teacher it falls to, never the Admin, so a
+ * remark always comes from who taught. `writerId` is undefined if it falls to nobody:
+ * the Student has no such Report Card, or it doesn't draw on this Class or Class Subject.
+ * That Teacher sees the Term Grade the remark explains, even before any of their own
+ * Assessments count in it, since the remark can't be written without it.
+ */
+export function requireRemarkWriter(actor: Actor, writerId: string | undefined): void {
+  if (actor.role === "teacher" && writerId === actor.userId) return;
+  throw new AccessDenied("this remark isn't yours to write");
+}
+
 /** Ids arrive from URLs and forms; one that isn't a whole number names nothing. */
 /** Ids come from URLs and forms, so a non-integer one is simply a record that isn't there. */
 export function requireId(id: number): void {
