@@ -14,6 +14,7 @@ import { listAcademicYears, updateAcademicYear } from "../school/academic-year";
 import { createRoom } from "../school/catalogue";
 import { requireOpenYear } from "../school/closed-year";
 import { setPeriodsPerDay } from "../school/periods";
+import { publishReportCards, studentReportCards, unpublishReportCards } from "../report-cards/publish";
 import { overallRemarkSheet, saveOverallRemark, saveSubjectRemark, subjectRemarkSheet } from "../report-cards/remarks";
 import { classReportCards } from "../report-cards/report-cards";
 import { getStudentProfile } from "../students/student-profile";
@@ -426,6 +427,27 @@ describe("a Closed Academic Year refuses every write dated in it", () => {
       saveMarks(s.asSara, { assessmentId: s.assessmentId, marks: [{ studentId: s.aisha, mark: 9 }] }),
     ).rejects.toThrow(AcademicYearClosed);
     expect((await marksGrid(s.asSara, { assessmentId: s.assessmentId })).rows[0].mark).toBe(8);
+  });
+
+  test("Publish and unpublish, while Published Report Cards stay readable", async () => {
+    const s = await yearEndSchool();
+    const { id: assessmentId } = await createAssessment(s.asSara, quiz(s.math7A.id));
+    await saveMarks(s.asSara, { assessmentId, marks: [{ studentId: s.aisha, mark: 8 }] });
+    const { terms } = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+    const [term1, term2] = terms;
+    await publishReportCards(s.asAdmin, { classId: s.class7A.id, termId: term1.id });
+    await promoteAndClose(s);
+
+    await expect(publishReportCards(s.asAdmin, { classId: s.class7A.id, termId: term2.id })).rejects.toThrow(
+      AcademicYearClosed,
+    );
+    await expect(unpublishReportCards(s.asAdmin, { classId: s.class7A.id, termId: term1.id })).rejects.toThrow(
+      AcademicYearClosed,
+    );
+    const asAisha = s.app.as({ role: "student", userId: s.aisha });
+    expect(await studentReportCards(asAisha, { studentId: s.aisha })).toHaveLength(1);
+    const preview = await classReportCards(s.asAdmin, { classId: s.class7A.id, termId: term1.id });
+    expect(preview).toMatchObject({ yearClosed: true, publication: { unpublishedAt: null } });
   });
 
   test("Report Card remarks, new, changed or cleared, while they stay readable", async () => {

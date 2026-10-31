@@ -14,6 +14,7 @@ import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import type { Tx } from "../enrollment/enrollment";
 import { AcademicYearClosed, InvalidInput, NotFound } from "../errors";
+import { requireAssessmentNotFrozen } from "../report-cards/publications";
 import { isYearClosed, requireOpenYear } from "../school/closed-year";
 import { hasAtMostTwoDecimals, markStats, type MarkStats, type MarkValue, toValue } from "./mark-values";
 
@@ -97,7 +98,8 @@ function isPositiveHundredths(value: number): boolean {
 /**
  * Changes an Assessment's maximum marks and weight, even after Marks are entered.
  * Raw Marks are kept (percentages are worked out from the maximum when read), so the
- * maximum can't drop below a score already entered.
+ * maximum can't drop below a score already entered. Refused while a Published Report
+ * Card counts this Assessment.
  */
 export async function updateAssessment(
   ctx: Ctx,
@@ -108,6 +110,7 @@ export async function updateAssessment(
   requireWeight(input.weight);
   await ctx.db.transaction(async (tx) => {
     await requireOpenYear(tx, { assessmentId: input.assessmentId });
+    await requireAssessmentNotFrozen(tx, input.assessmentId);
     // Lock the Assessment so a concurrent grid save can't slip in a higher score.
     await tx.select({ id: assessment.id }).from(assessment).where(eq(assessment.id, input.assessmentId)).for("update");
     const [top] = await tx

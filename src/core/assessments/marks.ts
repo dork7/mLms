@@ -8,6 +8,7 @@ import { canSeeClassSubjectMarks, requireCanActOnAssessment, requireCanSeeStuden
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
 import { AccessDenied, InvalidInput, NotFound } from "../errors";
+import { frozenMarksOn, requireMarksNotFrozen } from "../report-cards/publications";
 import { requireOpenYear } from "../school/closed-year";
 import { type AssessmentRow, type AssessmentType, getAssessment } from "./assessments";
 import { markStats, type MarkStats, type MarkValue, percentOf, requireValidMark, toValue } from "./mark-values";
@@ -21,14 +22,18 @@ export type GridRow = {
   mark: MarkValue;
   /** The score as a percentage of the current maximum (Absent = 0); null if Exempt or not entered. */
   percent: number | null;
+  /** A Published Report Card freezes this Mark, so it can't be written. */
+  published: boolean;
 };
 
 export type MarksGrid = {
   assessment: AssessmentRow;
   rows: GridRow[];
   stats: MarkStats;
-  /** Whether the actor may enter Marks (only the Subject Teacher), as the access policy says. */
+  /** Whether the actor may enter any Mark here (only the Subject Teacher), as the access policy says. */
   canEnterMarks: boolean;
+  /** Whether the actor may change the maximum and weight, which reach every Mark on the roster. */
+  canChangeAssessment: boolean;
 };
 
 export async function marksGrid(ctx: Ctx, input: { assessmentId: number }): Promise<MarksGrid> {
@@ -39,6 +44,7 @@ export async function marksGrid(ctx: Ctx, input: { assessmentId: number }): Prom
     .from(mark)
     .where(eq(mark.assessmentId, found.id));
   const byStudent = new Map(marks.map((m) => [m.studentId, toValue(m)]));
+  const frozen = await frozenMarksOn(ctx.db, found);
   const rows = roster.map((r) => {
     const value = byStudent.get(r.studentId) ?? null;
     return {
@@ -47,13 +53,16 @@ export async function marksGrid(ctx: Ctx, input: { assessmentId: number }): Prom
       studentNumber: r.studentNumber,
       mark: value,
       percent: percentOf(value, found.maxMarks),
+      published: frozen.wholeClass || frozen.students.has(r.studentId),
     };
   });
+  const mayAct = !found.yearClosed && !frozen.wholeClass && (await canActOn(ctx, found.id));
   return {
     assessment: found,
     rows,
     stats: markStats(rows.map((r) => r.mark)),
-    canEnterMarks: !found.yearClosed && (await canActOn(ctx, found.id)),
+    canEnterMarks: mayAct && (rows.length === 0 || rows.some((r) => !r.published)),
+    canChangeAssessment: mayAct && !rows.some((r) => r.published),
   };
 }
 
@@ -142,7 +151,8 @@ export type SaveMarksInput = {
 /**
  * Saves a grid of Marks in one transaction: every Student must be on the roster on
  * the Assessment's date and every score in range, or nothing is saved. A null Mark
- * clears it.
+ * clears it. A Mark a Published Report Card freezes is refused the same way, so a grid
+ * leaves those Students out (`GridRow.published`).
  */
 export async function saveMarks(ctx: Ctx, input: SaveMarksInput): Promise<{ saved: number }> {
   await requireCanActOnAssessment(ctx, input.assessmentId);
@@ -158,8 +168,13 @@ export async function saveMarks(ctx: Ctx, input: SaveMarksInput): Promise<{ save
       .where(eq(assessment.id, input.assessmentId))
       .for("update", { of: assessment });
     if (!found) throw new NotFound();
+    await requireMarksNotFrozen(
+      tx,
+      found,
+      entries.map(([studentId]) => studentId),
+    );
 
-    const onRoster = new Set((await rosterOn(tx, found.classId, found.date)).map((r) => r.studentId));
+    const onRoster =new Set((await rosterOn(tx, found.classId, found.date)).map((r) => r.studentId));
     for (const [studentId, value] of entries) {
       if (!onRoster.has(studentId)) throw new InvalidInput("errors.markStudentNotOnRoster");
       requireValidMark(value, found.maxMarks);

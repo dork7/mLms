@@ -1,14 +1,16 @@
 // The Admin's preview of a Class's Report Cards for a Term: each Student whose Issuing
 // Class it is, with their Term Grades, remarks, overall percentage, rank if it's on, and
-// what's still missing.
+// what's still missing. It's also where the Admin Publishes and unpublishes them.
 import Link from "next/link";
 import { classReportCards } from "@/core/report-cards/report-cards";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import { flagText, overallText } from "../../../../report-card-text";
+import { ReportCardBody } from "../../../../report-card-body";
+import { flagText } from "../../../../report-card-text";
 import { TermPicker, termIdFrom } from "../../../../term-picker";
-import { termGradeNotes, termGradeText } from "../../../../term-grade-text";
+import { whenText } from "../../../../when-text";
+import { PublishForm } from "./publish-form";
 
 export default async function ReportCardPreviewPage({
   params,
@@ -51,44 +53,56 @@ export default async function ReportCardPreviewPage({
           </p>
         )}
       </section>
+      <section className="card" aria-labelledby="publish">
+        <h2 id="publish">{t("publish.heading")}</h2>
+        {page.publication ? (
+          <p>{t("publish.published", { name: page.publication.publishedBy, when: whenText(page.publication.publishedAt) })}</p>
+        ) : (
+          <p>{t("publish.notPublished")}</p>
+        )}
+        {page.yearClosed ? (
+          <p className="muted">{t("publish.closed")}</p>
+        ) : page.publication ? (
+          <>
+            <p className="muted">{t("publish.unpublishHint")}</p>
+            <PublishForm key={`published-${page.term.id}`} classId={classId} termId={page.term.id} published />
+          </>
+        ) : (
+          page.cards.length > 0 && (
+            <>
+              <p className="muted">{t("publish.publishHint")}</p>
+              {incomplete > 0 && <p className="muted">{t("publish.publishIncomplete", { incomplete })}</p>}
+              <PublishForm key={`draft-${page.term.id}`} classId={classId} termId={page.term.id} published={false} />
+            </>
+          )
+        )}
+        {page.publicationHistory.length > 0 && (
+          <>
+            <h3 id="publish-record">{t("publish.historyHeading")}</h3>
+            <ul className="list" aria-labelledby="publish-record">
+              {page.publicationHistory.map((record) => (
+                <li key={record.id}>
+                  <div>{t("publish.historyPublished", { name: record.publishedBy, when: whenText(record.publishedAt) })}</div>
+                  {record.unpublishedAt && (
+                    <div>
+                      {t("publish.historyUnpublished", {
+                        name: record.unpublishedBy ?? "",
+                        when: whenText(record.unpublishedAt),
+                      })}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
       {page.cards.map((card) => (
         <section className="card" key={card.studentId} aria-labelledby={`card-${card.studentId}`}>
           <h2 id={`card-${card.studentId}`}>
             {t("termGrades.studentLine", { name: card.name, studentNumber: card.studentNumber })}
           </h2>
-          <p>
-            <strong>{overallText(card.overallPercent)}</strong>
-            {page.rankEnabled && (
-              <>
-                {" · "}
-                <strong>
-                  {card.rank === null ? t("reportCards.noRank") : t("reportCards.rank", { rank: card.rank })}
-                </strong>
-              </>
-            )}
-          </p>
-          <ul className="list">
-            {card.grades.map((grade) => (
-              <li key={grade.subjectId}>
-                <div className="list-item">
-                  <span>{grade.subject}</span>
-                  <strong>{termGradeText(grade)}</strong>
-                </div>
-                {termGradeNotes(grade) && <div className="muted">{termGradeNotes(grade)}</div>}
-                <div className="muted remark">
-                  {grade.remark === null
-                    ? t("reportCards.remarkNone")
-                    : t("reportCards.remarkFrom", { teacher: grade.teacher, remark: grade.remark })}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <h3>{t("reportCards.overallRemarkHeading")}</h3>
-          <p className="remark">
-            {card.overallRemark === null
-              ? t("reportCards.remarkNone")
-              : t("reportCards.remarkFrom", { teacher: card.classTeacher, remark: card.overallRemark })}
-          </p>
+          <ReportCardBody card={card} rankShown={page.rankEnabled} />
           {card.flags.length > 0 && (
             <>
               <h3 id={`missing-${card.studentId}`}>{t("reportCards.missingHeading")}</h3>

@@ -107,6 +107,9 @@ The Class a Student is enrolled in on the last day of a Term. It owns that Term'
 **Publish** (Report Cards):
 The Admin releasing a Class's Report Cards for a Term. Students can then see them, and that Term's Marks for the Class are frozen.
 
+**Publication**:
+The record of one Publish: who did it and when, the Report Cards as Published, and who unpublished it and when, if anyone did. It stays on record after unpublishing. While it stands, it freezes the Marks and remarks its Report Cards depend on.
+
 ## Leave
 
 **Leave Request**:

@@ -188,6 +188,35 @@ export class PromotionNotDone extends Error {
   }
 }
 
+// ---- Publish ----
+
+/** A Published Report Card depends on this, so it can't change until the Admin unpublishes. */
+export class ReportCardsPublished extends Error {
+  readonly messageKey = "errors.reportCardsPublished";
+  constructor(reason = "a Published Report Card depends on this") {
+    super(reason);
+    this.name = "ReportCardsPublished";
+  }
+}
+
+/** The Class's Report Cards for this Term are already Published. */
+export class AlreadyPublished extends Error {
+  readonly messageKey = "errors.alreadyPublished";
+  constructor(reason = "these Report Cards are already Published") {
+    super(reason);
+    this.name = "AlreadyPublished";
+  }
+}
+
+/** The Class's Report Cards for this Term aren't Published, so there's nothing to unpublish. */
+export class NotPublished extends Error {
+  readonly messageKey = "errors.notPublished";
+  constructor(reason = "these Report Cards aren't Published") {
+    super(reason);
+    this.name = "NotPublished";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

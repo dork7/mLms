@@ -49,13 +49,22 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
       <section className="card" aria-labelledby="marks">
         <h2 id="marks">{t("marks.gridTitle")}</h2>
         <p className="muted">{t("marks.gridHint", { class: a.class, date: a.date, max: a.maxMarks })}</p>
+        {grid.rows.some((r) => r.published) && (
+          <p className="muted">{t(grid.canEnterMarks ? "publish.gridRowsNotice" : "publish.gridNotice")}</p>
+        )}
         {grid.rows.length === 0 ? (
           <p>{t("marks.empty")}</p>
         ) : grid.canEnterMarks ? (
           <MarksGridForm
             assessmentId={a.id}
             maxMarks={a.maxMarks}
-            rows={grid.rows.map(({ studentId, name, studentNumber, mark }) => ({ studentId, name, studentNumber, mark }))}
+            rows={grid.rows.map(({ studentId, name, studentNumber, mark, percent, published }) => ({
+              studentId,
+              name,
+              studentNumber,
+              mark,
+              frozenText: published ? markText(mark, a.maxMarks, percent) : null,
+            }))}
           />
         ) : (
           <ul className="list">
@@ -68,7 +77,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
           </ul>
         )}
       </section>
-      {grid.canEnterMarks && (
+      {grid.canChangeAssessment && (
         <section className="card" aria-labelledby="edit-assessment">
           <h2 id="edit-assessment">{t("assessments.editTitle")}</h2>
           <EditAssessmentForm assessmentId={a.id} maxMarks={a.maxMarks} weight={a.weight} />

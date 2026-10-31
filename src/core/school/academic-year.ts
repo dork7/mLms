@@ -13,6 +13,7 @@ import {
   NotFound,
   TermsDoNotCoverYear,
 } from "../errors";
+import { requirePublishedTermsKept } from "../report-cards/publications";
 import { requireOpenYear } from "./closed-year";
 
 export type TermInput = { name: string; startDate: string; endDate: string };
@@ -84,6 +85,9 @@ async function saveAcademicYear(
           .where(eq(academicYear.id, id))
           .returning({ id: academicYear.id });
         if (!year) throw new NotFound();
+        // After the update: Publish holds the year's row and then waits for the freeze
+        // lock, so holding the freeze lock while waiting for the row could deadlock.
+        await requirePublishedTermsKept(tx, id, input.terms);
         await tx.delete(term).where(eq(term.academicYearId, id));
       }
       const yearId = year.id;

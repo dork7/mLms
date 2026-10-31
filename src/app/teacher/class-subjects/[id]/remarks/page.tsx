@@ -61,7 +61,8 @@ export default async function SubjectRemarksPage({
             <strong>{termGradeText(row.grade)}</strong>
           </p>
           {termGradeNotes(row.grade) && <p className="muted">{termGradeNotes(row.grade)}</p>}
-          {sheet.yearClosed ? (
+          {row.published && <p className="muted">{t("publish.remarkNotice")}</p>}
+          {sheet.yearClosed || row.published ? (
             <p className="remark">{row.remark ?? t("reportCards.remarkNone")}</p>
           ) : (
             <RemarkForm
