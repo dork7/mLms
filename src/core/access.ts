@@ -171,6 +171,16 @@ export function canSeeTermGrade(
   return grade.seesACountedClassSubject || grade.issuingClassTeacherId === actor.userId;
 }
 
+/**
+ * See a Student's Published Report Cards: the Admin and the Student themselves. Teachers
+ * work from the remark sheets, which leave rank out.
+ */
+export function requireCanSeeReportCards(actor: Actor, studentId: string): void {
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  throw new AccessDenied("only the Admin and the Student see a Report Card");
+}
+
 /** Act for a whole Class (write its overall remarks): only its Class Teacher, not the Admin. */
 export async function requireCanActOnClass(ctx: Ctx, classId: number): Promise<void> {
   requireRole(ctx.actor, "teacher");

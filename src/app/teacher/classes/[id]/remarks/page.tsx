@@ -60,7 +60,8 @@ export default async function OverallRemarksPage({
           <p>
             <strong>{overallText(row.overallPercent)}</strong>
           </p>
-          {sheet.yearClosed ? (
+          {row.published && <p className="muted">{t("publish.remarkNotice")}</p>}
+          {sheet.yearClosed || row.published ? (
             <p className="remark">{row.overallRemark ?? t("reportCards.remarkNone")}</p>
           ) : (
             <RemarkForm

@@ -131,6 +131,8 @@ export type GridEntry = {
   name: string;
   studentNumber: string;
   mark: number | "absent" | "exempt" | null;
+  /** The Mark as text if a Published Report Card freezes it; the row is then read-only and not sent. */
+  frozenText: string | null;
 };
 
 /**
@@ -161,6 +163,18 @@ export function MarksGridForm({ assessmentId, maxMarks, rows }: { assessmentId: 
       <ol className="marks-grid">
         {rows.map((r) => {
           const v = values[r.studentId];
+          if (r.frozenText !== null) {
+            return (
+              <li key={r.studentId} className="mark-row">
+                <span className="mark-student">
+                  {r.name} <span className="muted">{r.studentNumber}</span>
+                </span>
+                <span>
+                  {r.frozenText} <span className="muted">{t("publish.rowPublished")}</span>
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={r.studentId} className="mark-row">
               <input type="hidden" name="studentId" value={r.studentId} />

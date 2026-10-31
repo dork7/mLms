@@ -1,8 +1,17 @@
 // Report Cards: a Student's Term Grades for one Term with their remarks, drawn up for
-// the Issuing Class (their Class on the Term's last day). Nothing here is stored except
-// the remarks; the figures are worked out when read.
+// the Issuing Class (their Class on the Term's last day). Until Publish nothing here is
+// stored except the remarks, and the figures are worked out when read. See ./publish.ts.
 import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
-import { classSubject, enrollment, overallRemark, schoolClass, subject, subjectRemark, user } from "@/db/schema";
+import {
+  classSubject,
+  enrollment,
+  overallRemark,
+  publishedReportCard,
+  schoolClass,
+  subject,
+  subjectRemark,
+  user,
+} from "@/db/schema";
 import { requireAdmin, requireId } from "../access";
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
@@ -18,6 +27,8 @@ import {
   type TermRef,
   yearTerms,
 } from "../grading/term-grades";
+import { isYearClosed } from "../school/closed-year";
+import { type PublicationRecord, publicationRecords } from "./publications";
 import { rankIsEnabled } from "./rank-setting";
 import { flagsOf, overallPercentOf, type ReportCardFlag, ranksOf } from "./report-card-rules";
 
@@ -154,12 +165,21 @@ export type ReportCard = NamedReportCard & {
   flags: ReportCardFlag[];
 };
 
+/** A Report Card as stored at Publish. Its flags are the Admin's, so they aren't kept. */
+export type PublishedCard = Omit<ReportCard, "flags">;
+
 export type ClassReportCards = {
   class: string;
   /** Every Term of the Class's Academic Year, in date order. */
   terms: TermRef[];
   term: TermRef;
+  /** A Closed year's Report Cards can't be Published or unpublished. */
+  yearClosed: boolean;
   rankEnabled: boolean;
+  /** The Publication standing for this Term, whose stored Report Cards `cards` then shows. */
+  publication: PublicationRecord | null;
+  /** Every Publish of these Report Cards, newest first, including any unpublished. */
+  publicationHistory: PublicationRecord[];
   cards: ReportCard[];
   /**
    * Students with no Class on the Term's last day, so no Issuing Class and no Report Card:
@@ -174,20 +194,43 @@ export type NoReportCard = { studentId: string; name: string; studentNumber: str
 /**
  * The Admin's preview of a Class's Report Cards for a Term, with what's still missing
  * from each. Opens on today's Term, or the year's first if today is outside the year.
+ * While they're Published it shows them as Published, which is what Students see.
  */
 export async function classReportCards(ctx: Ctx, input: { classId: number; termId?: number }): Promise<ClassReportCards> {
   requireAdmin(ctx.actor);
   const { class: className, terms, term } = await classAndTerm(ctx, input);
-  const issued = await reportCardsIssuedBy(ctx, input.classId, term);
+  const publicationHistory = await publicationRecords(ctx.db, input.classId, term.endDate);
+  const publication = publicationHistory.find((p) => p.unpublishedAt === null) ?? null;
+  const shown = publication
+    ? { rankEnabled: publication.rankShown, cards: await storedCards(ctx, publication.id) }
+    : await liveCards(ctx, input.classId, term);
+  return {
+    class: className,
+    terms,
+    term,
+    yearClosed: await isYearClosed(ctx.db, { classId: input.classId }),
+    publication,
+    publicationHistory,
+    rankEnabled: shown.rankEnabled,
+    cards: shown.cards.map((card) => ({ ...card, flags: flagsOf(card) })),
+    noReportCard: await leftBeforeTermEnded(ctx, input.classId, term),
+  };
+}
+
+async function liveCards(ctx: Ctx, classId: number, term: TermRef): Promise<{ rankEnabled: boolean; cards: PublishedCard[] }> {
+  const issued = await reportCardsIssuedBy(ctx, classId, term);
   const rankEnabled = await rankIsEnabled(ctx.db);
   const ranks = rankEnabled ? ranksOf(issued) : new Map<string, number>();
-  const cards = issued.map((card) => ({
-    ...card,
-    rank: ranks.get(card.studentId) ?? null,
-    flags: flagsOf(card),
-  }));
-  const noReportCard = await leftBeforeTermEnded(ctx, input.classId, term);
-  return { class: className, terms, term, rankEnabled, cards, noReportCard };
+  return { rankEnabled, cards: issued.map((card) => ({ ...card, rank: ranks.get(card.studentId) ?? null })) };
+}
+
+/** A Publication's Report Cards, by Student name as the live ones are. */
+async function storedCards(ctx: Ctx, publicationId: number): Promise<PublishedCard[]> {
+  const rows = await ctx.db
+    .select({ card: publishedReportCard.card })
+    .from(publishedReportCard)
+    .where(eq(publishedReportCard.publicationId, publicationId));
+  return rows.map((r) => r.card as PublishedCard).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Students last in this Class during the Term and in no Class on its last day, by name. */

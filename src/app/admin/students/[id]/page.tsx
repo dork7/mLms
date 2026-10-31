@@ -2,11 +2,13 @@ import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { listClasses } from "@/core/classes/classes";
 import { studentTermGrades } from "@/core/grading/term-grades";
+import { studentReportCards } from "@/core/report-cards/publish";
 import { getStudentProfile } from "@/core/students/student-profile";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { AssessmentHistory } from "../../../assessment-history";
+import { PublishedReportCards } from "../../../published-report-cards";
 import { StudentProfileCard } from "../../../student-profile-card";
 import { TermGrades } from "../../../term-grades";
 import { setStudentLoginEnabled } from "../actions";
@@ -22,6 +24,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
         listClasses(ctx),
         studentAssessmentHistory(ctx, { studentId: id }),
         studentTermGrades(ctx, { studentId: id }),
+        studentReportCards(ctx, { studentId: id }),
       ]),
     );
   } catch (err) {
@@ -31,7 +34,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [profile, classes, history, termGrades] = data;
+  const [profile, classes, history, termGrades, reportCards] = data;
   const open = profile.enrollments.find((e) => e.endDate === null);
   const current = open && classes.find((c) => c.id === open.classId);
   // Moving stays within the current Class's Grade and Academic Year (the layer checks it too).
@@ -50,6 +53,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       </header>
       <StudentProfileCard profile={profile} />
       <TermGrades terms={termGrades} />
+      <PublishedReportCards cards={reportCards} />
       <AssessmentHistory rows={history} />
       <section className="card">
         <h2>{current ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>

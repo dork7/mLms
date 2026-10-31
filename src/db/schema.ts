@@ -7,6 +7,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -413,5 +414,56 @@ export const overallRemark = pgTable(
   (t) => [
     primaryKey({ columns: [t.classId, t.studentId, t.termLastDay] }),
     index("overall_remark_student_idx").on(t.studentId, t.termLastDay),
+  ],
+);
+
+// ---- Publish (ticket 11) ----
+// A Publication is one Publish of a Class's Report Cards for a Term, and stays as a record
+// once unpublished. It names its Term by dates, as remarks do, because editing an Academic
+// Year replaces its Terms and their ids. It keeps the Report Cards as Published, so a later
+// Grading Scale, rank or Teacher change can't alter what a Student was given.
+
+export const reportCardPublication = pgTable(
+  "report_card_publication",
+  {
+    id: serial("id").primaryKey(),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => schoolClass.id),
+    termName: text("term_name").notNull(),
+    academicYearName: text("academic_year_name").notNull(),
+    termStartDate: date("term_start_date", { mode: "string" }).notNull(),
+    termLastDay: date("term_last_day", { mode: "string" }).notNull(),
+    rankShown: boolean("rank_shown").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    publishedBy: text("published_by")
+      .notNull()
+      .references(() => user.id),
+    unpublishedAt: timestamp("unpublished_at", { withTimezone: true }),
+    unpublishedBy: text("unpublished_by").references(() => user.id),
+  },
+  (t) => [
+    // At most one standing Publication per Class and Term.
+    uniqueIndex("report_card_publication_one_standing")
+      .on(t.classId, t.termLastDay)
+      .where(sql`${t.unpublishedAt} is null`),
+  ],
+);
+
+/** One Student's Report Card as it was Published. */
+export const publishedReportCard = pgTable(
+  "published_report_card",
+  {
+    publicationId: integer("publication_id")
+      .notNull()
+      .references(() => reportCardPublication.id),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    card: jsonb("card").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.publicationId, t.studentId] }),
+    index("published_report_card_student_idx").on(t.studentId),
   ],
 );

@@ -13,6 +13,7 @@ import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import type { Tx } from "../enrollment/enrollment";
 import { AcademicYearClosed, InvalidInput, NotFound, PromotionNotDone } from "../errors";
+import { requireEnrollmentNotFrozen } from "../report-cards/publications";
 import { requireOpenYear } from "../school/closed-year";
 
 export type PromoteClassInput = {
@@ -68,6 +69,7 @@ export async function promoteClass(ctx: Ctx, input: PromoteClassInput): Promise<
       if (!isCalendarDate(lastDay) || lastDay < e.startDate || lastDay > from.yearEnd) {
         throw new InvalidInput("errors.promotionLastDayInvalid");
       }
+      await requireEnrollmentNotFrozen(tx, [from.id], lastDay);
       await tx.update(enrollment).set({ endDate: lastDay }).where(eq(enrollment.id, e.id));
 
       if (lastDays.has(e.studentId)) continue;
@@ -75,7 +77,10 @@ export async function promoteClass(ctx: Ctx, input: PromoteClassInput): Promise<
       if (!target) throw new InvalidInput("errors.promotionTargetRequired");
       newEnrollments.push({ studentId: e.studentId, classId: target.id, startDate: target.yearStart });
     }
-    if (newEnrollments.length > 0) await tx.insert(enrollment).values(newEnrollments);
+    if (newEnrollments.length > 0) {
+      await requireEnrollmentNotFrozen(tx, newEnrollments.map((e) => e.classId), from.yearEnd);
+      await tx.insert(enrollment).values(newEnrollments);
+    }
   });
 }
 

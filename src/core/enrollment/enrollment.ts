@@ -7,6 +7,7 @@ import { academicYear, enrollment, grade, schoolClass, student, user } from "@/d
 import { requireAdmin, requireCanSeeClassRoster } from "../access";
 import type { Ctx } from "../context";
 import { AlreadyEnrolled, InvalidInput, isUniqueViolation, NotEnrolled, NotFound } from "../errors";
+import { requireEnrollmentNotFrozen } from "../report-cards/publications";
 import { requireOpenYear } from "../school/closed-year";
 
 export type RosterRow = {
@@ -34,6 +35,7 @@ export async function enrollStudent(
   try {
     return await ctx.db.transaction(async (tx) => {
       await requireOpenYear(tx, { academicYearId: target.academicYearId });
+      await requireEnrollmentNotFrozen(tx, [input.classId], dayBefore(input.startDate));
       const [row] = await tx
         .insert(enrollment)
         .values({ studentId: input.studentId, classId: input.classId, startDate: input.startDate })
@@ -73,6 +75,7 @@ export async function moveStudent(
       throw new InvalidInput("errors.moveDateInvalid");
     }
     await requireOpenYear(tx, { academicYearId: to.academicYearId });
+    await requireEnrollmentNotFrozen(tx, [from.id, to.id], dayBefore(input.date));
     await tx.update(enrollment).set({ endDate: dayBefore(input.date) }).where(eq(enrollment.id, open.id));
     const [row] = await tx
       .insert(enrollment)

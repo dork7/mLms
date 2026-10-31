@@ -36,6 +36,7 @@ export default async function MyProfilePage() {
       <header className="topbar">
         <h1>{t("studentProfile.myTitle")}</h1>
         <Link href="/student/exams">{t("nav.myExams")}</Link>
+        <Link href="/student/report-cards">{t("nav.myReportCards")}</Link>
         <form action={logout}>
           <button className="button-link" type="submit">
             {t("nav.logout")}
