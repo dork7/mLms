@@ -305,3 +305,38 @@ code {
 .mark-score:disabled {
   background: var(--bg);
 }
+
+.exam-schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-block-start: 1rem;
+}
+
+/* Printing a page gives just its content: no navigation or actions, no card chrome. */
+@media print {
+  :root {
+    background: none;
+  }
+
+  .no-print {
+    display: none;
+  }
+
+  .page {
+    max-inline-size: none;
+    padding-block: 0;
+    padding-inline: 0;
+  }
+
+  .card {
+    border: none;
+    padding-block: 0;
+    padding-inline: 0;
+  }
+
+  .list li {
+    break-inside: avoid;
+  }
+}
