@@ -14,6 +14,8 @@ import { listAcademicYears, updateAcademicYear } from "../school/academic-year";
 import { createRoom } from "../school/catalogue";
 import { requireOpenYear } from "../school/closed-year";
 import { setPeriodsPerDay } from "../school/periods";
+import { overallRemarkSheet, saveOverallRemark, saveSubjectRemark, subjectRemarkSheet } from "../report-cards/remarks";
+import { classReportCards } from "../report-cards/report-cards";
 import { getStudentProfile } from "../students/student-profile";
 import { yearEndSchool } from "./test-year-end";
 import { closeAcademicYear, promoteClass, promotionForm, yearEndOverview } from "./year-end";
@@ -424,6 +426,32 @@ describe("a Closed Academic Year refuses every write dated in it", () => {
       saveMarks(s.asSara, { assessmentId: s.assessmentId, marks: [{ studentId: s.aisha, mark: 9 }] }),
     ).rejects.toThrow(AcademicYearClosed);
     expect((await marksGrid(s.asSara, { assessmentId: s.assessmentId })).rows[0].mark).toBe(8);
+  });
+
+  test("Report Card remarks, new, changed or cleared, while they stay readable", async () => {
+    const s = await yearEndSchool();
+    const { term } = await classReportCards(s.asAdmin, { classId: s.class7A.id });
+    const subjectInput = { classSubjectId: s.math7A.id, termId: term.id, studentId: s.aisha };
+    const overallInput = { classId: s.class7A.id, termId: term.id, studentId: s.aisha };
+    await saveSubjectRemark(s.asSara, { ...subjectInput, remark: "Written in time." });
+    await saveOverallRemark(s.asHuda, { ...overallInput, remark: "Also in time." });
+    await promoteAndClose(s);
+
+    for (const remark of ["Too late.", ""]) {
+      await expect(saveSubjectRemark(s.asSara, { ...subjectInput, remark })).rejects.toThrow(AcademicYearClosed);
+      await expect(saveOverallRemark(s.asHuda, { ...overallInput, remark })).rejects.toThrow(AcademicYearClosed);
+    }
+    await expect(saveSubjectRemark(s.asSara, { ...subjectInput, studentId: s.bilal, remark: "New." })).rejects.toThrow(
+      AcademicYearClosed,
+    );
+
+    const { cards } = await classReportCards(s.asAdmin, { classId: s.class7A.id, termId: term.id });
+    const aisha = cards.find((c) => c.studentId === s.aisha);
+    expect(aisha?.overallRemark).toBe("Also in time.");
+    expect(aisha?.grades[0].remark).toBe("Written in time.");
+    const sheet = await subjectRemarkSheet(s.asSara, { classSubjectId: s.math7A.id, termId: term.id });
+    expect(sheet.yearClosed).toBe(true);
+    expect((await overallRemarkSheet(s.asHuda, { classId: s.class7A.id, termId: term.id })).yearClosed).toBe(true);
   });
 
   test("Exams", async () => {

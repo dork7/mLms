@@ -60,6 +60,9 @@ export default async function ClassPage({
         <p>
           <Link href={`/admin/classes/${classId}/lessons`}>{t("lessons.summaryLink")}</Link>
         </p>
+        <p>
+          <Link href={`/admin/classes/${classId}/report-cards`}>{t("reportCards.previewLink")}</Link>
+        </p>
         <h2>{t("classes.classSubjects")}</h2>
         {classSubjects.length === 0 ? (
           <p>{t("classes.noClassSubjects")}</p>

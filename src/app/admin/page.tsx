@@ -46,6 +46,9 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/exams">{t("nav.exams")}</Link>
         </p>
         <p>
+          <Link href="/admin/report-cards">{t("nav.reportCards")}</Link>
+        </p>
+        <p>
           <Link href="/admin/year-end">{t("nav.yearEnd")}</Link>
         </p>
       </section>
