@@ -306,3 +306,36 @@ export const mark = pgTable(
     check("mark_score_or_status", sql`(${t.score} is null) <> (${t.status} is null)`),
   ],
 );
+
+// ---- Grading ----
+
+/** One per Grade: the pass mark. Its percentage bands are in `gradingBand`. */
+export const gradingScale = pgTable(
+  "grading_scale",
+  {
+    gradeId: integer("grade_id")
+      .primaryKey()
+      .references(() => grade.id),
+    passMark: numeric("pass_mark", { precision: 5, scale: 2, mode: "number" }).notNull(),
+  },
+  (t) => [check("grading_scale_pass_mark_range", sql`${t.passMark} between 0 and 100`)],
+);
+
+/**
+ * A band runs from `minPercent` up to the next band's start, so bands can't leave gaps
+ * or overlap. The layer requires the lowest to start at 0.
+ */
+export const gradingBand = pgTable(
+  "grading_band",
+  {
+    gradeId: integer("grade_id")
+      .notNull()
+      .references(() => gradingScale.gradeId, { onDelete: "cascade" }),
+    minPercent: numeric("min_percent", { precision: 5, scale: 2, mode: "number" }).notNull(),
+    label: text("label").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.gradeId, t.minPercent] }),
+    check("grading_band_min_percent_range", sql`${t.minPercent} between 0 and 100`),
+  ],
+);

@@ -45,7 +45,12 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
       </header>
       <section className="card">
         <p>{t("classSubject.details", { grade: cs.grade, year: cs.academicYear, teacher: cs.teacher })}</p>
-        <Link href={`/teacher/students?classSubjectId=${cs.id}`}>{t("myStudents.title")}</Link>
+        <p>
+          <Link href={`/teacher/students?classSubjectId=${cs.id}`}>{t("myStudents.title")}</Link>
+        </p>
+        <p>
+          <Link href={`/teacher/class-subjects/${cs.id}/term-grades`}>{t("termGrades.title")}</Link>
+        </p>
       </section>
       {form && (
         <section className="card" aria-labelledby="log-lesson">

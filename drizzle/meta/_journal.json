@@ -57,6 +57,13 @@
       "when": 1793339677518,
       "tag": "0007_assessments_and_marks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793462702815,
+      "tag": "0008_grading_scales",
+      "breakpoints": true
     }
   ]
 }

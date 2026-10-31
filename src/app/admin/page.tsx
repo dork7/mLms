@@ -53,6 +53,9 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/grades">{t("setup.grades.title")}</Link>
           </li>
           <li>
+            <Link href="/admin/grading-scales">{t("gradingScales.title")}</Link>
+          </li>
+          <li>
             <Link href="/admin/subjects">{t("setup.subjects.title")}</Link>
           </li>
           <li>
