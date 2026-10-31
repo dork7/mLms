@@ -43,6 +43,7 @@ export const en = {
     classes: "Classes",
     students: "Students",
     exams: "Exam timetable",
+    myExams: "My Exams",
     yearEnd: "Year end",
   },
   yearEnd: {
@@ -101,6 +102,16 @@ export const en = {
     weight: "Weight",
     add: "Add Exam",
     added: "Exam added.",
+  },
+  examSchedule: {
+    title: "My Exams",
+    none: "No Exams are scheduled for you.",
+    line: "{subject}, {type}, {class}",
+    when: "{date}, {start} to {end}",
+    room: "Room: {room}",
+    print: "Print",
+    calendar: "Add to calendar (.ics)",
+    eventSummary: "{subject} {type} ({class})",
   },
   adminDashboard: {
     title: "Admin dashboard",
