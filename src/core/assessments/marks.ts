@@ -8,6 +8,7 @@ import { canSeeClassSubjectMarks, requireCanActOnAssessment, requireCanSeeStuden
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
 import { AccessDenied, InvalidInput, NotFound } from "../errors";
+import { requireOpenYear } from "../school/closed-year";
 import { type AssessmentRow, type AssessmentType, getAssessment } from "./assessments";
 import { markStats, type MarkStats, type MarkValue, percentOf, requireValidMark, toValue } from "./mark-values";
 
@@ -52,7 +53,7 @@ export async function marksGrid(ctx: Ctx, input: { assessmentId: number }): Prom
     assessment: found,
     rows,
     stats: markStats(rows.map((r) => r.mark)),
-    canEnterMarks: await canActOn(ctx, found.id),
+    canEnterMarks: !found.yearClosed && (await canActOn(ctx, found.id)),
   };
 }
 
@@ -149,6 +150,7 @@ export async function saveMarks(ctx: Ctx, input: SaveMarksInput): Promise<{ save
   // The last entry wins if a Student appears twice.
   const entries = [...new Map(input.marks.map((m) => [m.studentId, m.mark])).entries()];
   return ctx.db.transaction(async (tx) => {
+    await requireOpenYear(tx, { assessmentId: input.assessmentId });
     const [found] = await tx
       .select({ date: assessment.date, maxMarks: assessment.maxMarks, classId: classSubject.classId })
       .from(assessment)

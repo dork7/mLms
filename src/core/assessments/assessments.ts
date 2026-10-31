@@ -2,7 +2,7 @@
 // midterm or final), with a date, maximum marks and weight. Its Term is worked out
 // from its date and never stored. Who may create, change and see them is decided in
 // ../access.ts, always from the Class Subject.
-import { and, desc, eq, gte, inArray, isNull, lte, max, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, max, or, type SQL, sql } from "drizzle-orm";
 import { academicYear, assessment, classSubject, enrollment, mark, schoolClass, subject, term } from "@/db/schema";
 import {
   requireCanActOnAssessment,
@@ -13,7 +13,8 @@ import {
 import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import type { Tx } from "../enrollment/enrollment";
-import { InvalidInput, NotFound } from "../errors";
+import { AcademicYearClosed, InvalidInput, NotFound } from "../errors";
+import { isYearClosed, requireOpenYear } from "../school/closed-year";
 import { hasAtMostTwoDecimals, markStats, type MarkStats, type MarkValue, toValue } from "./mark-values";
 
 /**
@@ -41,19 +42,21 @@ export type CreateAssessmentInput = {
 
 export async function createAssessment(ctx: Ctx, input: CreateAssessmentInput): Promise<{ id: number }> {
   await requireCanActOnClassSubject(ctx, input.classSubjectId);
-  return insertAssessment(ctx.db, input);
+  return ctx.db.transaction((tx) => insertAssessment(tx, input));
 }
 
 /**
  * Validates and stores an Assessment, with no access check: the caller has already
  * decided who may create it (the Subject Teacher above, the Admin for an Exam's) and
- * that the Class Subject exists. Takes a transaction so an Exam can create its own.
+ * that the Class Subject exists. Takes a transaction so an Exam can create its own, and
+ * so the Closed-year guard holds until the caller's write is finished.
  */
-export async function insertAssessment(db: Ctx["db"] | Tx, input: CreateAssessmentInput): Promise<{ id: number }> {
+export async function insertAssessment(db: Tx, input: CreateAssessmentInput): Promise<{ id: number }> {
   if (!ASSESSMENT_TYPES.includes(input.type)) throw new InvalidInput("errors.assessmentTypeInvalid");
   requireMaxMarks(input.maxMarks);
   requireWeight(input.weight);
   if (!isCalendarDate(input.date)) throw new InvalidInput("errors.assessmentDateInvalid");
+  await requireOpenYear(db, { classSubjectId: input.classSubjectId });
 
   const [year] = await db
     .select({ startDate: academicYear.startDate, endDate: academicYear.endDate })
@@ -104,6 +107,7 @@ export async function updateAssessment(
   requireMaxMarks(input.maxMarks);
   requireWeight(input.weight);
   await ctx.db.transaction(async (tx) => {
+    await requireOpenYear(tx, { assessmentId: input.assessmentId });
     // Lock the Assessment so a concurrent grid save can't slip in a higher score.
     await tx.select({ id: assessment.id }).from(assessment).where(eq(assessment.id, input.assessmentId)).for("update");
     const [top] = await tx
@@ -132,6 +136,7 @@ export async function assessmentFormDefaults(
   input: { classSubjectId: number },
 ): Promise<{ today: string; types: readonly AssessmentType[] }> {
   await requireCanActOnClassSubject(ctx, input.classSubjectId);
+  if (await isYearClosed(ctx.db, { classSubjectId: input.classSubjectId })) throw new AcademicYearClosed();
   return { today: ctx.clock.today(), types: ASSESSMENT_TYPES };
 }
 
@@ -147,6 +152,8 @@ export type AssessmentRow = {
   term: string | null;
   maxMarks: number;
   weight: number;
+  /** Whether the Class's Academic Year is Closed, so nothing here can change. */
+  yearClosed: boolean;
 };
 
 export type AssessmentWithStats = AssessmentRow & { stats: MarkStats };
@@ -196,10 +203,12 @@ export function selectAssessments(ctx: Ctx, where: SQL): Promise<AssessmentRow[]
       term: term.name,
       maxMarks: assessment.maxMarks,
       weight: assessment.weight,
+      yearClosed: sql<boolean>`${academicYear.closedAt} is not null`,
     })
     .from(assessment)
     .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
     .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
+    .innerJoin(academicYear, eq(academicYear.id, schoolClass.academicYearId))
     .innerJoin(subject, eq(subject.id, classSubject.subjectId))
     .leftJoin(
       term,

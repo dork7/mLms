@@ -4,10 +4,10 @@
 
 **Blocked by:** 06 (Enrollment), 07 (Lessons), 08 (Assessments and marks grid), 13 (Exam timetable)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Admin promotes a whole Class into a Class of the next Grade in the new Academic Year
-- [ ] Individual Students can be marked Repeating (Enrollment in the same Grade) or Leaving (no new Enrollment)
-- [ ] The Admin Closes an Academic Year after Promotion
-- [ ] Every write dated in a Closed Academic Year is refused, including Lessons, Marks, Exams and Enrollments
-- [ ] Closed years stay viewable
+- [x] The Admin promotes a whole Class into a Class of the next Grade in the new Academic Year
+- [x] Individual Students can be marked Repeating (Enrollment in the same Grade) or Leaving (no new Enrollment)
+- [x] The Admin Closes an Academic Year after Promotion
+- [x] Every write dated in a Closed Academic Year is refused, including Lessons, Marks, Exams and Enrollments
+- [x] Closed years stay viewable

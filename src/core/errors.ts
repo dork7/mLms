@@ -168,6 +168,26 @@ export class ExamClashForRoom extends Error {
   }
 }
 
+// ---- Year end ----
+
+/** The Academic Year is Closed, so its records are read-only. */
+export class AcademicYearClosed extends Error {
+  readonly messageKey = "errors.academicYearClosed";
+  constructor(reason = "this Academic Year is Closed") {
+    super(reason);
+    this.name = "AcademicYearClosed";
+  }
+}
+
+/** A Student in the year still has an open Enrollment, so it can't be Closed yet. */
+export class PromotionNotDone extends Error {
+  readonly messageKey = "errors.promotionNotDone";
+  constructor(reason = "Students in this Academic Year are still waiting for Promotion") {
+    super(reason);
+    this.name = "PromotionNotDone";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {
