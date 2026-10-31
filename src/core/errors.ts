@@ -148,6 +148,26 @@ export class LessonExists extends Error {
   }
 }
 
+// ---- Exams ----
+
+/** The Exam overlaps another Exam for the same Class. */
+export class ExamClashForClass extends Error {
+  readonly messageKey = "errors.examClashForClass";
+  constructor(reason = "this Class already has an Exam at an overlapping time") {
+    super(reason);
+    this.name = "ExamClashForClass";
+  }
+}
+
+/** The Exam overlaps another Exam in the same Room. */
+export class ExamClashForRoom extends Error {
+  readonly messageKey = "errors.examClashForRoom";
+  constructor(reason = "this Room already has an Exam at an overlapping time") {
+    super(reason);
+    this.name = "ExamClashForRoom";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

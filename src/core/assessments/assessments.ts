@@ -12,6 +12,7 @@ import {
 } from "../access";
 import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
+import type { Tx } from "../enrollment/enrollment";
 import { InvalidInput, NotFound } from "../errors";
 import { hasAtMostTwoDecimals, markStats, type MarkStats, type MarkValue, toValue } from "./mark-values";
 
@@ -40,12 +41,21 @@ export type CreateAssessmentInput = {
 
 export async function createAssessment(ctx: Ctx, input: CreateAssessmentInput): Promise<{ id: number }> {
   await requireCanActOnClassSubject(ctx, input.classSubjectId);
+  return insertAssessment(ctx.db, input);
+}
+
+/**
+ * Validates and stores an Assessment, with no access check: the caller has already
+ * decided who may create it (the Subject Teacher above, the Admin for an Exam's) and
+ * that the Class Subject exists. Takes a transaction so an Exam can create its own.
+ */
+export async function insertAssessment(db: Ctx["db"] | Tx, input: CreateAssessmentInput): Promise<{ id: number }> {
   if (!ASSESSMENT_TYPES.includes(input.type)) throw new InvalidInput("errors.assessmentTypeInvalid");
   requireMaxMarks(input.maxMarks);
   requireWeight(input.weight);
   if (!isCalendarDate(input.date)) throw new InvalidInput("errors.assessmentDateInvalid");
 
-  const [year] = await ctx.db
+  const [year] = await db
     .select({ startDate: academicYear.startDate, endDate: academicYear.endDate })
     .from(classSubject)
     .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
@@ -55,7 +65,7 @@ export async function createAssessment(ctx: Ctx, input: CreateAssessmentInput): 
     throw new InvalidInput("errors.assessmentDateOutsideYear");
   }
 
-  const [row] = await ctx.db
+  const [row] = await db
     .insert(assessment)
     .values({
       classSubjectId: input.classSubjectId,

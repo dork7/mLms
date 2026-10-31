@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { AccessDenied, ClassSubjectExists, InvalidInput, NotFound } from "../errors";
+import { createAcademicYear } from "../school/academic-year";
 import { createClass } from "./classes";
-import { createClassSubject, listClassSubjects, reassignSubjectTeacher } from "./class-subjects";
+import { createClassSubject, listClassSubjects, listYearClassSubjects, reassignSubjectTeacher } from "./class-subjects";
 import { school } from "./test-school";
 
 async function schoolWithClass7A() {
@@ -16,6 +17,29 @@ async function schoolWithClass7A() {
 }
 
 describe("Class Subjects", () => {
+  it("the Admin lists every Class Subject of one Academic Year, and a Teacher is refused", async () => {
+    const { asAdmin, app, class7A, math, sara, grade7 } = await schoolWithClass7A();
+    await createClassSubject(asAdmin, { classId: class7A.id, subjectId: math.id, teacherId: sara.userId });
+    const nextYear = await createAcademicYear(asAdmin, {
+      name: "2027-2028",
+      startDate: "2027-09-01",
+      endDate: "2028-06-30",
+      terms: [{ name: "Term 1", startDate: "2027-09-01", endDate: "2028-06-30" }],
+    });
+    const later = await createClass(asAdmin, {
+      academicYearId: nextYear.id,
+      gradeId: grade7.id,
+      name: "7-Z",
+      classTeacherId: sara.userId,
+    });
+    await createClassSubject(asAdmin, { classId: later.id, subjectId: math.id, teacherId: sara.userId });
+
+    const rows = await listYearClassSubjects(asAdmin, { academicYearId: nextYear.id });
+
+    expect(rows.map((r) => `${r.subject} for ${r.class}`)).toEqual(["Math for 7-Z"]);
+    await expect(listYearClassSubjects(app.as(sara), { academicYearId: nextYear.id })).rejects.toThrow(AccessDenied);
+  });
+
   it("the Admin creates a Class Subject with a Subject Teacher and reassigns the Teacher", async () => {
     const { asAdmin, class7A, math, omar, sara, year, grade7 } = await schoolWithClass7A();
 

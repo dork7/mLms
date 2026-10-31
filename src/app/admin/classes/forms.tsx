@@ -48,7 +48,7 @@ export function Refusal({ error }: { error?: MessageKey }) {
 }
 
 /** Calls `reset` once each time `state.saved` goes up. */
-function useOnSaved(state: FormState, reset: () => void) {
+export function useOnSaved(state: FormState, reset: () => void) {
   const [seen, setSeen] = useState(0);
   if (state.saved !== seen) {
     setSeen(state.saved);
