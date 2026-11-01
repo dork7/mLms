@@ -1,16 +1,15 @@
-// The Grades, Subjects and Rooms pages: list every entry with an edit form, plus a create form.
+// The Subjects and Rooms pages: list every entry with an edit form, plus a create form.
 import { t } from "@/i18n";
 import { NamedForm } from "./named-list";
 import type { NamedKind } from "./setup-actions";
 import { SetupPage } from "./setup-shell";
 
 const labels = {
-  grades: { title: "setup.grades.title", name: "setup.grades.name", empty: "setup.grades.empty" },
   subjects: { title: "setup.subjects.title", name: "setup.subjects.name", empty: "setup.subjects.empty" },
   rooms: { title: "setup.rooms.title", name: "setup.rooms.name", empty: "setup.rooms.empty" },
 } as const;
 
-export function NamedListPage({ kind }: { kind: NamedKind }) {
+export function NamedListPage({ kind }: { kind: Exclude<NamedKind, "grades"> }) {
   const l = labels[kind];
   return (
     <SetupPage title={l.title}>

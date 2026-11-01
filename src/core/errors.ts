@@ -148,6 +148,75 @@ export class LessonExists extends Error {
   }
 }
 
+// ---- Exams ----
+
+/** The Exam overlaps another Exam for the same Class. */
+export class ExamClashForClass extends Error {
+  readonly messageKey = "errors.examClashForClass";
+  constructor(reason = "this Class already has an Exam at an overlapping time") {
+    super(reason);
+    this.name = "ExamClashForClass";
+  }
+}
+
+/** The Exam overlaps another Exam in the same Room. */
+export class ExamClashForRoom extends Error {
+  readonly messageKey = "errors.examClashForRoom";
+  constructor(reason = "this Room already has an Exam at an overlapping time") {
+    super(reason);
+    this.name = "ExamClashForRoom";
+  }
+}
+
+// ---- Year end ----
+
+/** The Academic Year is Closed, so its records are read-only. */
+export class AcademicYearClosed extends Error {
+  readonly messageKey = "errors.academicYearClosed";
+  constructor(reason = "this Academic Year is Closed") {
+    super(reason);
+    this.name = "AcademicYearClosed";
+  }
+}
+
+/** A Student in the year still has an open Enrollment, so it can't be Closed yet. */
+export class PromotionNotDone extends Error {
+  readonly messageKey = "errors.promotionNotDone";
+  constructor(reason = "Students in this Academic Year are still waiting for Promotion") {
+    super(reason);
+    this.name = "PromotionNotDone";
+  }
+}
+
+// ---- Publish ----
+
+/** A Published Report Card depends on this, so it can't change until the Admin unpublishes. */
+export class ReportCardsPublished extends Error {
+  readonly messageKey = "errors.reportCardsPublished";
+  constructor(reason = "a Published Report Card depends on this") {
+    super(reason);
+    this.name = "ReportCardsPublished";
+  }
+}
+
+/** The Class's Report Cards for this Term are already Published. */
+export class AlreadyPublished extends Error {
+  readonly messageKey = "errors.alreadyPublished";
+  constructor(reason = "these Report Cards are already Published") {
+    super(reason);
+    this.name = "AlreadyPublished";
+  }
+}
+
+/** The Class's Report Cards for this Term aren't Published, so there's nothing to unpublish. */
+export class NotPublished extends Error {
+  readonly messageKey = "errors.notPublished";
+  constructor(reason = "these Report Cards aren't Published") {
+    super(reason);
+    this.name = "NotPublished";
+  }
+}
+
 export class InvalidPeriodsPerDay extends Error {
   readonly messageKey = "errors.invalidPeriodsPerDay";
   constructor(reason = "Periods per day must be a whole number from 1 to 20") {

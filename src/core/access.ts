@@ -12,9 +12,12 @@
 //   - A Class's Teachers (its Class Teacher and its Subject Teachers) see its roster.
 //   - A Student's Teachers (the Teachers of the Class they're enrolled in today) see
 //     the Student's profile and photo, as do the Admin and the Student.
-import { and, eq, gte, isNull, lte, or, type SQL, sql } from "drizzle-orm";
-import { classSubject, enrollment, schoolClass } from "@/db/schema";
+//
+// Assessments and Marks (ticket 08): from the Class Subject, see the guards below.
+import { and, eq, exists, inArray, lt, not, or, type SQL, sql } from "drizzle-orm";
+import { assessment, classSubject, enrollment, schoolClass } from "@/db/schema";
 import type { Actor, Ctx, Role } from "./context";
+import { enrollmentCovers } from "./enrollment/roster-condition";
 import { AccessDenied, NotFound } from "./errors";
 
 export function requireRole(actor: Actor, ...roles: Role[]): void {
@@ -93,9 +96,160 @@ export async function requireCanActOnClassSubject(ctx: Ctx, classSubjectId: numb
   throw new AccessDenied("not this Class Subject's Subject Teacher");
 }
 
+// Assessments and Marks (ticket 08). Access to an Assessment and its Marks comes from
+// its Class Subject, never from the Student's Class today: after Aisha moves from 7-A
+// to 7-B, 7-A's Subject Teacher still sees and edits her Mark on a 7-A Assessment,
+// though they lose her profile (`requireCanSeeStudent`).
+
+/** See an Assessment, its grid and statistics: whoever can see its Class Subject. */
+export async function requireCanSeeAssessment(ctx: Ctx, assessmentId: number): Promise<void> {
+  await requireCanSeeClassSubject(ctx, await assessmentClassSubject(ctx, assessmentId));
+}
+
+/** Change an Assessment or enter its Marks: only its Class Subject's current Subject Teacher. */
+export async function requireCanActOnAssessment(ctx: Ctx, assessmentId: number): Promise<void> {
+  await requireCanActOnClassSubject(ctx, await assessmentClassSubject(ctx, assessmentId));
+}
+
+async function assessmentClassSubject(ctx: Ctx, assessmentId: number): Promise<number> {
+  requireRole(ctx.actor, "admin", "teacher");
+  requireId(assessmentId);
+  const [found] = await ctx.db
+    .select({ classSubjectId: assessment.classSubjectId })
+    .from(assessment)
+    .where(eq(assessment.id, assessmentId));
+  if (!found) throw new NotFound();
+  return found.classSubjectId;
+}
+
+/**
+ * Whose Marks the actor sees, as SQL over `classSubject` joined to `schoolClass`: the
+ * Admin all; a Teacher those of Class Subjects they teach or whose Class they are
+ * Class Teacher of; a Student none here (their own come through `requireCanSeeStudentMarks`).
+ */
+export function canSeeClassSubjectMarks(actor: Actor): SQL<boolean> {
+  if (actor.role === "admin") return sql<boolean>`true`;
+  if (actor.role === "teacher") {
+    return sql<boolean>`(${classSubject.teacherId} = ${actor.userId} or ${schoolClass.classTeacherId} = ${actor.userId})`;
+  }
+  return sql<boolean>`false`;
+}
+
+/**
+ * Which rows of a Student's Assessment history the actor sees, once
+ * `requireCanSeeStudentMarks` has let them in. A Student sees all of their own.
+ */
+export function canSeeInStudentHistory(actor: Actor): SQL<boolean> {
+  return actor.role === "student" ? sql<boolean>`true` : canSeeClassSubjectMarks(actor);
+}
+
+/**
+ * A Student's Assessment history: the Admin, the Student, and any Teacher of a Class
+ * the Student was ever enrolled in. A Teacher then sees only the Marks of Class
+ * Subjects they can see (`canSeeClassSubjectMarks`), whatever the Student's Class today.
+ */
+export async function requireCanSeeStudentMarks(ctx: Ctx, studentId: string): Promise<void> {
+  const { actor } = ctx;
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  if (actor.role === "teacher") {
+    const [found] = await ctx.db
+      .select({ id: enrollment.id })
+      .from(enrollment)
+      .innerJoin(schoolClass, eq(schoolClass.id, enrollment.classId))
+      .where(and(eq(enrollment.studentId, studentId), isTeacherOfClass(actor.userId)))
+      .limit(1);
+    if (found) return;
+  }
+  throw new AccessDenied("may not see this Student's Marks");
+}
+
+/**
+ * Which of a Student's Term Grades the actor sees, once `requireCanSeeStudentMarks` has
+ * let them in. A Term Grade is one figure combining every Class the Student was in, so
+ * a Teacher of any Class Subject counted in it sees the whole figure (not the other
+ * Class's Marks). The Issuing Class's Class Teacher sees them all, for the Report Card,
+ * even a Subject only the Student's old Class had.
+ */
+export function canSeeTermGrade(
+  actor: Actor,
+  grade: { studentId: string; seesACountedClassSubject: boolean; issuingClassTeacherId: string | null },
+): boolean {
+  if (actor.role === "admin") return true;
+  if (actor.role === "student") return actor.userId === grade.studentId;
+  return grade.seesACountedClassSubject || grade.issuingClassTeacherId === actor.userId;
+}
+
+/**
+ * See a Student's Published Report Cards: the Admin and the Student themselves. Teachers
+ * work from the remark sheets, which leave rank out.
+ */
+export function requireCanSeeReportCards(actor: Actor, studentId: string): void {
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  throw new AccessDenied("only the Admin and the Student see a Report Card");
+}
+
+/** Act for a whole Class (write its overall remarks): only its Class Teacher, not the Admin. */
+export async function requireCanActOnClass(ctx: Ctx, classId: number): Promise<void> {
+  requireRole(ctx.actor, "teacher");
+  await requireCanSeeClass(ctx, classId);
+}
+
+/**
+ * Write a Report Card remark: only the one Teacher it falls to, never the Admin, so a
+ * remark always comes from who taught. `writerId` is undefined if it falls to nobody:
+ * the Student has no such Report Card, or it doesn't draw on this Class or Class Subject.
+ * That Teacher sees the Term Grade the remark explains, even before any of their own
+ * Assessments count in it, since the remark can't be written without it.
+ */
+export function requireRemarkWriter(actor: Actor, writerId: string | undefined): void {
+  if (actor.role === "teacher" && writerId === actor.userId) return;
+  throw new AccessDenied("this remark isn't yours to write");
+}
+
 /** Ids arrive from URLs and forms; one that isn't a whole number names nothing. */
-function requireId(id: number): void {
+/** Ids come from URLs and forms, so a non-integer one is simply a record that isn't there. */
+export function requireId(id: number): void {
   if (!Number.isSafeInteger(id)) throw new NotFound();
+}
+
+/**
+ * The actor's own Exams, as SQL over `classSubject`: a Teacher's are those of the Class
+ * Subjects they teach, and a Student's those of the Class they're enrolled in today.
+ */
+export function isOwnExam(ctx: Ctx): SQL {
+  const me = ctx.actor.userId;
+  if (ctx.actor.role === "teacher") return eq(classSubject.teacherId, me);
+  return inArray(
+    classSubject.classId,
+    ctx.db
+      .select({ classId: enrollment.classId })
+      .from(enrollment)
+      .where(and(eq(enrollment.studentId, me), enrollmentCovers(ctx.clock.today()))),
+  );
+}
+
+/**
+ * A Student's past Exams, as SQL over `classSubject` joined to `assessment`: sat in a Class
+ * during an Enrollment that has ended, on a date that Enrollment covers. A later Exam of
+ * that Class was never theirs. A Class they're back in is left out, since all its Exams
+ * are already `isOwnExam`. Only Students have these.
+ */
+export function isOwnPastExam(ctx: Ctx): SQL {
+  if (ctx.actor.role !== "student") return sql`false`;
+  const earlierEnrollment = ctx.db
+    .select({ id: enrollment.id })
+    .from(enrollment)
+    .where(
+      and(
+        eq(enrollment.studentId, ctx.actor.userId),
+        eq(enrollment.classId, classSubject.classId),
+        lt(enrollment.endDate, ctx.clock.today()),
+        enrollmentCovers(assessment.date),
+      ),
+    );
+  return and(exists(earlierEnrollment), not(isOwnExam(ctx)))!;
 }
 
 /**
@@ -117,8 +271,7 @@ export async function requireCanSeeStudent(ctx: Ctx, studentId: string): Promise
       .where(
         and(
           eq(enrollment.studentId, studentId),
-          lte(enrollment.startDate, today),
-          or(isNull(enrollment.endDate), gte(enrollment.endDate, today)),
+          enrollmentCovers(today),
           isTeacherOfClass(actor.userId),
         ),
       )

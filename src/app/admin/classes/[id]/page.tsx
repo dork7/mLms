@@ -49,6 +49,7 @@ export default async function ClassPage({
         <Link href="/admin/classes">{t("classes.backToClasses")}</Link>
       </header>
       <section className="card">
+        {schoolClass.yearClosed && <p className="muted">{t("yearEnd.closedNotice")}</p>}
         <p>
           {t("classes.summary", {
             grade: schoolClass.grade,
@@ -59,6 +60,9 @@ export default async function ClassPage({
         <p>
           <Link href={`/admin/classes/${classId}/lessons`}>{t("lessons.summaryLink")}</Link>
         </p>
+        <p>
+          <Link href={`/admin/classes/${classId}/report-cards`}>{t("reportCards.previewLink")}</Link>
+        </p>
         <h2>{t("classes.classSubjects")}</h2>
         {classSubjects.length === 0 ? (
           <p>{t("classes.noClassSubjects")}</p>
@@ -66,31 +70,37 @@ export default async function ClassPage({
           <ul className="list">
             {classSubjects.map((cs) => (
               <li key={cs.id}>
-                <ReassignTeacherForm
-                  classId={classId}
-                  classSubjectId={cs.id}
-                  subject={cs.subject}
-                  teacherId={cs.teacherId}
-                  teachers={
-                    // Keep a disabled current Subject Teacher selectable so the form shows them.
-                    teachers.some((teacher) => teacher.id === cs.teacherId)
-                      ? teachers
-                      : [{ id: cs.teacherId, name: cs.teacher }, ...teachers]
-                  }
-                />
+                {schoolClass.yearClosed ? (
+                  t("classes.subjectTaughtBy", { subject: cs.subject, teacher: cs.teacher })
+                ) : (
+                  <ReassignTeacherForm
+                    classId={classId}
+                    classSubjectId={cs.id}
+                    subject={cs.subject}
+                    teacherId={cs.teacherId}
+                    teachers={
+                      // Keep a disabled current Subject Teacher selectable so the form shows them.
+                      teachers.some((teacher) => teacher.id === cs.teacherId)
+                        ? teachers
+                        : [{ id: cs.teacherId, name: cs.teacher }, ...teachers]
+                    }
+                  />
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
-      <section className="card">
-        <h2>{t("classes.addClassSubjectTitle")}</h2>
-        {subjects.length > 0 && teachers.length > 0 ? (
-          <AddClassSubjectForm classId={classId} subjects={subjects} teachers={teachers} />
-        ) : (
-          <p>{t("classes.needsSubjects")}</p>
-        )}
-      </section>
+      {!schoolClass.yearClosed && (
+        <section className="card">
+          <h2>{t("classes.addClassSubjectTitle")}</h2>
+          {subjects.length > 0 && teachers.length > 0 ? (
+            <AddClassSubjectForm classId={classId} subjects={subjects} teachers={teachers} />
+          ) : (
+            <p>{t("classes.needsSubjects")}</p>
+          )}
+        </section>
+      )}
       <ClassRoster roster={roster} date={date} profileHref={(id) => `/admin/students/${id}`} />
     </main>
   );

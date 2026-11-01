@@ -6,6 +6,7 @@ import { and, asc, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { academicYear, term } from "@/db/schema";
 import { requireAdmin, requireRole } from "../access";
 import type { Ctx } from "../context";
+import { nextDay } from "../dates";
 import {
   AcademicYearsOverlap,
   isUniqueViolation,
@@ -13,6 +14,8 @@ import {
   NotFound,
   TermsDoNotCoverYear,
 } from "../errors";
+import { requirePublishedTermsKept } from "../report-cards/publications";
+import { requireOpenYear } from "./closed-year";
 
 export type TermInput = { name: string; startDate: string; endDate: string };
 export type CreateAcademicYearInput = {
@@ -60,6 +63,7 @@ async function saveAcademicYear(
     return await ctx.db.transaction(async (tx) => {
       // Serialise year writes so two concurrent overlapping years can't both pass the check.
       await tx.execute(sql`LOCK TABLE ${academicYear} IN SHARE ROW EXCLUSIVE MODE`);
+      if (id !== null) await requireOpenYear(tx, { academicYearId: id });
       const overlapping = await tx
         .select({ id: academicYear.id })
         .from(academicYear)
@@ -82,6 +86,9 @@ async function saveAcademicYear(
           .where(eq(academicYear.id, id))
           .returning({ id: academicYear.id });
         if (!year) throw new NotFound();
+        // After the update: Publish holds the year's row and then waits for the freeze
+        // lock, so holding the freeze lock while waiting for the row could deadlock.
+        await requirePublishedTermsKept(tx, id, input.terms);
         await tx.delete(term).where(eq(term.academicYearId, id));
       }
       const yearId = year.id;
@@ -101,6 +108,8 @@ export type AcademicYear = {
   name: string;
   startDate: string;
   endDate: string;
+  /** Closed at year end: read-only, though still viewable. */
+  closed: boolean;
   terms: { id: number; name: string; startDate: string; endDate: string }[];
 };
 
@@ -110,12 +119,18 @@ export async function listAcademicYears(ctx: Ctx): Promise<AcademicYear[]> {
 
   const years = await ctx.db.select().from(academicYear).orderBy(desc(academicYear.startDate));
   const terms = await ctx.db.select().from(term).orderBy(asc(term.startDate));
-  return years.map((y) => ({
+  return years.map(({ closedAt, ...y }) => ({
     ...y,
+    closed: closedAt !== null,
     terms: terms
       .filter((t) => t.academicYearId === y.id)
       .map(({ id, name, startDate, endDate }) => ({ id, name, startDate, endDate })),
   }));
+}
+
+/** The Academic Years still open, so Classes can be added to them. Newest first, Admin-only. */
+export async function listOpenAcademicYears(ctx: Ctx): Promise<AcademicYear[]> {
+  return (await listAcademicYears(ctx)).filter((year) => !year.closed);
 }
 
 /** The Term a date falls in, or null if no Academic Year covers it. */
@@ -144,11 +159,4 @@ function termsCoverYear(year: CreateAcademicYearInput): boolean {
   if (terms[0].startDate !== year.startDate) return false;
   if (terms[terms.length - 1].endDate !== year.endDate) return false;
   return terms.every((t, i) => i === 0 || t.startDate === nextDay(terms[i - 1].endDate));
-}
-
-/** "2026-12-31" -> "2027-01-01". */
-function nextDay(date: string): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
 }

@@ -6,7 +6,7 @@ import { createClassSubject, reassignSubjectTeacher } from "@/core/classes/class
 import { createClass } from "@/core/classes/classes";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function addClass(prev: FormState, form: FormData): Promise<FormState> {
   const input = {

@@ -1,10 +1,16 @@
 import Link from "next/link";
-import { listClasses } from "@/core/classes/classes";
+import { studentAssessmentHistory } from "@/core/assessments/marks";
+import { enrollmentChoices } from "@/core/enrollment/enrollment";
+import { studentTermGrades } from "@/core/grading/term-grades";
+import { studentReportCards } from "@/core/report-cards/publish";
 import { getStudentProfile } from "@/core/students/student-profile";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+import { AssessmentHistory } from "../../../assessment-history";
+import { PublishedReportCards } from "../../../published-report-cards";
 import { StudentProfileCard } from "../../../student-profile-card";
+import { TermGrades } from "../../../term-grades";
 import { setStudentLoginEnabled } from "../actions";
 import { EnrollmentForm } from "./enrollment-form";
 import { ResetPasswordForm } from "./reset-password-form";
@@ -13,7 +19,14 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
   const { id } = await params;
   let data;
   try {
-    data = await asCurrentActor((ctx) => Promise.all([getStudentProfile(ctx, { studentId: id }), listClasses(ctx)]));
+    data = await asCurrentActor((ctx) => Promise.all([
+        getStudentProfile(ctx, { studentId: id }),
+        enrollmentChoices(ctx, { studentId: id }),
+        studentAssessmentHistory(ctx, { studentId: id }),
+        studentTermGrades(ctx, { studentId: id }),
+        studentReportCards(ctx, { studentId: id }),
+      ]),
+    );
   } catch (err) {
     return (
       <main className="page">
@@ -21,16 +34,12 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [profile, classes] = data;
-  const open = profile.enrollments.find((e) => e.endDate === null);
-  const current = open && classes.find((c) => c.id === open.classId);
-  // Moving stays within the current Class's Grade and Academic Year (the layer checks it too).
-  const choices = current
-    ? classes.filter(
-        (c) => c.id !== current.id && c.gradeId === current.gradeId && c.academicYearId === current.academicYearId,
-      )
-    : classes;
-  const options = choices.map((c) => ({ id: c.id, name: `${c.name} (${c.grade}, ${c.academicYear})` }));
+  const [profile, choices, history, termGrades, reportCards] = data;
+  const moving = choices.mode === "move";
+  const options = choices.classes.map((c) => ({
+    id: c.id,
+    name: t("enrollment.classOption", { class: c.name, grade: c.grade, year: c.academicYear }),
+  }));
 
   return (
     <main className="page">
@@ -39,16 +48,19 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
         <Link href="/admin/students">{t("students.backToList")}</Link>
       </header>
       <StudentProfileCard profile={profile} />
+      <TermGrades terms={termGrades} />
+      <PublishedReportCards cards={reportCards} />
+      <AssessmentHistory rows={history} />
       <section className="card">
-        <h2>{current ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>
-        {current && <p className="muted">{t("enrollment.moveHint")}</p>}
-        {current && options.length === 0 ? (
+        <h2>{moving ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>
+        {moving && <p className="muted">{t("enrollment.moveHint")}</p>}
+        {moving && options.length === 0 ? (
           <p>{t("enrollment.noMoveTargets")}</p>
         ) : (
           <EnrollmentForm
-            key={current ? "move" : "enroll"}
+            key={choices.mode}
             studentId={profile.id}
-            mode={current ? "move" : "enroll"}
+            mode={choices.mode}
             classes={options}
           />
         )}

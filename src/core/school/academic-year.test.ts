@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { testApp } from "../../../test/test-app";
 import type { Actor } from "../context";
 import { AccessDenied, AcademicYearsOverlap, NameTaken, NotFound, TermsDoNotCoverYear } from "../errors";
-import { createAcademicYear, termOn, updateAcademicYear } from "./academic-year";
+import { closeAcademicYear } from "../year-end/year-end";
+import { createAcademicYear, listOpenAcademicYears, termOn, updateAcademicYear } from "./academic-year";
 
 const year2026 = {
   name: "2026-2027",
@@ -210,5 +211,19 @@ describe("Academic Year and Terms", () => {
     await expect(createAcademicYear(app.as(teacher), year2026)).rejects.toThrow(AccessDenied);
     await expect(updateAcademicYear(app.as(teacher), { id: 1, ...year2026 })).rejects.toThrow(AccessDenied);
     expect(await termOn(app.as(teacher), "2026-10-01")).toMatchObject({ name: "Term 1" });
+  });
+});
+
+describe("the open Academic Years", () => {
+  it("leaves out a Closed year", async () => {
+    const app = await testApp();
+    const asAdmin = app.as(await app.seedAdmin());
+    const year = (name: string, startDate: string, endDate: string) =>
+      createAcademicYear(asAdmin, { name, startDate, endDate, terms: [{ name: "Whole year", startDate, endDate }] });
+    const closed = await year("2025-2026", "2025-09-01", "2026-06-30");
+    await year("2026-2027", "2026-09-01", "2027-06-30");
+    await closeAcademicYear(asAdmin, { academicYearId: closed.id });
+
+    expect((await listOpenAcademicYears(asAdmin)).map((y) => y.name)).toEqual(["2026-2027"]);
   });
 });
