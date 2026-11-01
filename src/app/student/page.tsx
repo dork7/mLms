@@ -1,26 +1,16 @@
+// Where a Student lands: their next Exam and latest Marks, with the way to everything else.
 import Link from "next/link";
-import { studentAssessmentHistory } from "@/core/assessments/marks";
-import { studentTermGrades } from "@/core/grading/term-grades";
-import { getStudentProfile } from "@/core/students/student-profile";
+import { getStudentDashboard } from "@/core/dashboard/student-dashboard";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { logout } from "../actions";
 import { AssessmentHistory } from "../assessment-history";
-import { StudentProfileCard } from "../student-profile-card";
-import { TermGrades } from "../term-grades";
 
-// Where a Student lands: their own profile and Assessment history, until the Student dashboard ticket.
-export default async function MyProfilePage() {
-  let data;
+export default async function StudentDashboardPage() {
+  let dashboard;
   try {
-    data = await asCurrentActor((ctx) =>
-      Promise.all([
-        getStudentProfile(ctx, { studentId: ctx.actor.userId }),
-        studentAssessmentHistory(ctx, { studentId: ctx.actor.userId }),
-        studentTermGrades(ctx, { studentId: ctx.actor.userId }),
-      ]),
-    );
+    dashboard = await asCurrentActor((ctx) => getStudentDashboard(ctx));
   } catch (err) {
     return (
       <main className="page">
@@ -28,24 +18,55 @@ export default async function MyProfilePage() {
       </main>
     );
   }
-
-  const [profile, history, termGrades] = data;
+  const { name, nextExam, latestMarks } = dashboard;
 
   return (
     <main className="page">
       <header className="topbar">
-        <h1>{t("studentProfile.myTitle")}</h1>
-        <Link href="/student/exams">{t("nav.myExams")}</Link>
-        <Link href="/student/report-cards">{t("nav.myReportCards")}</Link>
+        <h1>{t("studentDashboard.title")}</h1>
         <form action={logout}>
           <button className="button-link" type="submit">
             {t("nav.logout")}
           </button>
         </form>
       </header>
-      <StudentProfileCard profile={profile} />
-      <TermGrades terms={termGrades} />
-      <AssessmentHistory rows={history} />
+      <section className="card" aria-labelledby="next-exam">
+        <p className="muted">{t("studentDashboard.welcome", { name })}</p>
+        <h2 id="next-exam">{t("studentDashboard.nextExam")}</h2>
+        {nextExam ? (
+          <>
+            <strong>
+              {t("examSchedule.line", {
+                subject: nextExam.subject,
+                type: t(`assessments.types.${nextExam.type}`),
+                class: nextExam.class,
+              })}
+            </strong>
+            <div>{t("examSchedule.when", { date: nextExam.date, start: nextExam.startTime, end: nextExam.endTime })}</div>
+            <div>{t("examSchedule.room", { room: nextExam.room })}</div>
+          </>
+        ) : (
+          <p>{t("studentDashboard.noNextExam")}</p>
+        )}
+      </section>
+      <AssessmentHistory
+        rows={latestMarks}
+        title={t("studentDashboard.latestMarks")}
+        none={t("studentDashboard.noMarks")}
+      />
+      <nav className="card" aria-label={t("studentDashboard.moreHeading")}>
+        <ul className="list">
+          <li>
+            <Link href="/student/exams">{t("nav.myExams")}</Link>
+          </li>
+          <li>
+            <Link href="/student/report-cards">{t("nav.myReportCards")}</Link>
+          </li>
+          <li>
+            <Link href="/student/profile">{t("studentProfile.myTitle")}</Link>
+          </li>
+        </ul>
+      </nav>
     </main>
   );
 }

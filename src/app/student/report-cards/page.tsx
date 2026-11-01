@@ -22,7 +22,7 @@ export default async function MyReportCardsPage() {
     <main className="page">
       <header className="topbar">
         <h1>{t("publish.myTitle")}</h1>
-        <Link href="/student">{t("studentProfile.myTitle")}</Link>
+        <Link href="/student">{t("nav.dashboard")}</Link>
       </header>
       {cards.length === 0 && (
         <section className="card">

@@ -19,6 +19,7 @@ export default async function AdminDashboardPage() {
     }
     throw err;
   }
+  const waitingTotal = dashboard.reportCardsWaiting.reduce((total, w) => total + w.reportCards, 0);
 
   return (
     <main className="page">
@@ -33,6 +34,47 @@ export default async function AdminDashboardPage() {
       <section className="card">
         <p>{t("adminDashboard.welcome", { name: dashboard.adminName })}</p>
         <p>{t("adminDashboard.today", { date: dashboard.today })}</p>
+        <dl className="stats">
+          <div>
+            <dt>{t("adminDashboard.studentsEnrolled")}</dt>
+            <dd>{dashboard.students}</dd>
+          </div>
+          <div>
+            <dt>{t("adminDashboard.activeTeachers")}</dt>
+            <dd>{dashboard.teachers}</dd>
+          </div>
+          <div>
+            <dt>
+              {dashboard.academicYear
+                ? t("adminDashboard.classesIn", { year: dashboard.academicYear })
+                : t("adminDashboard.classes")}
+            </dt>
+            <dd>{dashboard.classes}</dd>
+          </div>
+          <div>
+            <dt>{t("adminDashboard.reportCardsWaiting")}</dt>
+            <dd>{waitingTotal}</dd>
+          </div>
+        </dl>
+      </section>
+      <section className="card" aria-labelledby="waiting-heading">
+        <h2 id="waiting-heading">{t("adminDashboard.reportCardsWaiting")}</h2>
+        {dashboard.reportCardsWaiting.length === 0 ? (
+          <p>{t("adminDashboard.noneWaiting")}</p>
+        ) : (
+          <ul className="list">
+            {dashboard.reportCardsWaiting.map((w) => (
+              <li key={`${w.classId}:${w.termId}`} className="list-item">
+                <Link href={`/admin/classes/${w.classId}/report-cards?termId=${w.termId}`}>
+                  {t("adminDashboard.waitingLine", { class: w.class, term: w.term, year: w.academicYear })}
+                </Link>
+                <strong>{w.reportCards}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="card">
         <p>
           <Link href="/admin/teachers">{t("nav.teachers")}</Link>
         </p>
