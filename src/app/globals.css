@@ -1,15 +1,53 @@
 /* Use logical properties only (margin-inline, padding-block, inset-inline-start,
    text-align: start ...) so the UI flips correctly for right-to-left. Never left/right. */
+/* Colours are semantic tokens, each light-dark(light, dark). The scheme follows the system unless
+   the person picked one (data-theme, see theme.ts). Dark surfaces get lighter as they rise. */
 :root {
-  --fg: #1a1a1a;
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --accent: #1f5f8b;
-  --danger: #b00020;
-  --border: #d8d8d4;
+  color-scheme: light dark;
+  --fg: light-dark(#1a1a1a, #e0e0e0);
+  --muted: light-dark(#5c5c58, #a8a8a4);
+  --bg: light-dark(#f7f7f5, #121212);
+  --surface: light-dark(#ffffff, #1e1e1e);
+  --surface-2: light-dark(#ffffff, #2a2a2a); /* controls that sit on a card */
+  --accent: light-dark(#1f5f8b, #85b5d6);
+  --on-accent: light-dark(#ffffff, #10222e);
+  --danger: light-dark(#b00020, #f2929f);
+  --success: light-dark(#1b6e3a, #7fc99b);
+  --border: light-dark(#d8d8d4, rgb(255 255 255 / 0.16));
   font-family: system-ui, sans-serif;
   color: var(--fg);
   background: var(--bg);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+a:link {
+  color: light-dark(LinkText, var(--accent));
+}
+
+a:visited {
+  color: light-dark(VisitedText, var(--accent));
+}
+
+input:enabled:not([type="checkbox"], [type="radio"], [type="file"]),
+select:enabled,
+textarea:enabled {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 * {
@@ -65,7 +103,7 @@ body {
   border: 0;
   border-radius: 0.375rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 1rem;
   cursor: pointer;
 }
@@ -89,7 +127,7 @@ body {
 }
 
 .muted {
-  color: #5c5c58;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -115,7 +153,7 @@ body {
 }
 
 .stats dt {
-  color: #5c5c58;
+  color: var(--muted);
   font-size: 0.875rem;
 }
 
@@ -196,7 +234,7 @@ code {
 }
 
 .details dt {
-  color: #5c5c58;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -227,7 +265,7 @@ code {
 }
 
 .success {
-  color: #1b6e3a;
+  color: var(--success);
   margin-block: 0 1rem;
 }
 
@@ -271,14 +309,14 @@ code {
   min-block-size: 3rem;
   border: 1px solid var(--border);
   border-radius: 0.375rem;
-  background: var(--surface);
+  background: var(--surface-2);
   font-size: 1.1rem;
 }
 
 .period-choice input:checked + span {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .period-choice input:focus-visible + span {
@@ -353,9 +391,37 @@ code {
   margin-block-start: 1rem;
 }
 
-/* Printing a page gives just its content: no navigation or actions, no card chrome. */
+.app-footer {
+  display: flex;
+  justify-content: flex-end;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+  padding-block-end: 2rem;
+  padding-inline: 1rem;
+}
+
+.theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.theme-picker select {
+  padding-block: 0.25rem;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+}
+
+/* Printing a page gives just its content: no navigation or actions, no card chrome,
+   and always the light scheme, whatever is on screen. */
 @media print {
-  :root {
+  :root,
+  :root[data-theme] {
+    color-scheme: light;
     background: none;
   }
 
