@@ -71,7 +71,9 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
             {grid.rows.map((r) => (
               <li key={r.studentId} className="list-item">
                 <Link href={`/teacher/students/${r.studentId}/marks`}>{r.name}</Link>{" "}
-                <span className="muted">{r.studentNumber}</span>: {markText(r.mark, a.maxMarks, r.percent)}
+                <span className="muted">{r.studentNumber}</span>
+                {t("common.labelSeparator")}
+                {markText(r.mark, a.maxMarks, r.percent)}
               </li>
             ))}
           </ul>

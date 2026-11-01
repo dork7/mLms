@@ -18,7 +18,7 @@ export function reportCardsHtml(cards: PrintableReportCard[]): string {
 function sheet({ card, term, rankShown, publishedAt }: PrintableReportCard): string {
   const rank = !rankShown
     ? ""
-    : ` · ${card.rank === null ? t("reportCards.noRank") : t("reportCards.rank", { rank: card.rank })}`;
+    : t("common.separator") + (card.rank === null ? t("reportCards.noRank") : t("reportCards.rank", { rank: card.rank }));
   return `<section class="sheet">
   ${publishedAt === null ? `<p class="draft">${escaped(t("reportCardPdf.draft"))}</p>` : ""}
   <h1>${escaped(t("reportCardPdf.title"))}</h1>

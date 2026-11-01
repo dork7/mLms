@@ -39,30 +39,7 @@ export async function saveSubjectRemark(
   const row = card?.grades.find((g) => g.classSubjectId === input.classSubjectId);
   requireRemarkWriter(ctx.actor, row?.teacherId);
 
-  const key = { classSubjectId: input.classSubjectId, studentId: input.studentId, termLastDay: term.endDate };
-  await ctx.db.transaction(async (tx) => {
-    await requireOpenYear(tx, { classSubjectId: input.classSubjectId });
-    await requireCardNotPublished(tx, input.studentId, term.endDate);
-    if (text === null) {
-      await tx
-        .delete(subjectRemark)
-        .where(
-          and(
-            eq(subjectRemark.classSubjectId, key.classSubjectId),
-            eq(subjectRemark.studentId, key.studentId),
-            eq(subjectRemark.termLastDay, key.termLastDay),
-          ),
-        );
-      return;
-    }
-    await tx
-      .insert(subjectRemark)
-      .values({ ...key, remark: text })
-      .onConflictDoUpdate({
-        target: [subjectRemark.classSubjectId, subjectRemark.studentId, subjectRemark.termLastDay],
-        set: { remark: text },
-      });
-  });
+  await writeRemark(ctx, { classSubjectId: input.classSubjectId }, input.studentId, term.endDate, text);
 }
 
 export async function saveOverallRemark(
@@ -76,29 +53,37 @@ export async function saveOverallRemark(
   const issuing = (await issuingClasses(ctx.db, [input.studentId], term.endDate)).get(input.studentId);
   requireRemarkWriter(ctx.actor, issuing?.id === input.classId ? issuing.classTeacherId : undefined);
 
-  const key = { classId: input.classId, studentId: input.studentId, termLastDay: term.endDate };
+  await writeRemark(ctx, { classId: input.classId }, input.studentId, term.endDate, text);
+}
+
+/**
+ * Stores or, with null text, clears one remark. `owner` names the Class Subject or Class
+ * it was written for. Refused for a Closed year or a Published Report Card.
+ */
+async function writeRemark(
+  ctx: Ctx,
+  owner: { classSubjectId: number } | { classId: number },
+  studentId: string,
+  termLastDay: string,
+  text: string | null,
+): Promise<void> {
+  const { table, ownerColumn, ownerId } =
+    "classSubjectId" in owner
+      ? { table: subjectRemark, ownerColumn: subjectRemark.classSubjectId, ownerId: owner.classSubjectId }
+      : { table: overallRemark, ownerColumn: overallRemark.classId, ownerId: owner.classId };
   await ctx.db.transaction(async (tx) => {
-    await requireOpenYear(tx, { classId: input.classId });
-    await requireCardNotPublished(tx, input.studentId, term.endDate);
+    await requireOpenYear(tx, owner);
+    await requireCardNotPublished(tx, studentId, termLastDay);
     if (text === null) {
       await tx
-        .delete(overallRemark)
-        .where(
-          and(
-            eq(overallRemark.classId, key.classId),
-            eq(overallRemark.studentId, key.studentId),
-            eq(overallRemark.termLastDay, key.termLastDay),
-          ),
-        );
+        .delete(table)
+        .where(and(eq(ownerColumn, ownerId), eq(table.studentId, studentId), eq(table.termLastDay, termLastDay)));
       return;
     }
     await tx
-      .insert(overallRemark)
-      .values({ ...key, remark: text })
-      .onConflictDoUpdate({
-        target: [overallRemark.classId, overallRemark.studentId, overallRemark.termLastDay],
-        set: { remark: text },
-      });
+      .insert(table)
+      .values({ ...owner, studentId, termLastDay, remark: text } as typeof table.$inferInsert)
+      .onConflictDoUpdate({ target: [ownerColumn, table.studentId, table.termLastDay], set: { remark: text } });
   });
 }
 

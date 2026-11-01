@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { ASSESSMENT_TYPES } from "@/core/assessments/assessments";
 import { listYearClassSubjects } from "@/core/classes/class-subjects";
-import { examTimetable } from "@/core/exams/exams";
+import { examTimetable, gradeWideExamChoices } from "@/core/exams/exams";
 import { getSchoolSetup } from "@/core/school/school-setup";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { AddExamForm } from "./add-exam-form";
+import { AddGradeWideExamForm } from "./add-grade-wide-exam-form";
 
 export default async function ExamsPage({ searchParams }: { searchParams: Promise<{ term?: string | string[] }> }) {
   const { term } = await searchParams;
@@ -18,10 +19,15 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
   try {
     data = await asCurrentActor(async (ctx) => {
       const [timetable, setup] = await Promise.all([examTimetable(ctx, { termId }), getSchoolSetup(ctx)]);
-      const classSubjects = timetable
-        ? await listYearClassSubjects(ctx, { academicYearId: timetable.term.academicYearId })
-        : [];
-      return { timetable, setup, classSubjects };
+      const academicYearId = timetable?.term.academicYearId;
+      const [classSubjects, gradeWideChoices] =
+        academicYearId === undefined
+          ? [[], []]
+          : await Promise.all([
+              listYearClassSubjects(ctx, { academicYearId }),
+              gradeWideExamChoices(ctx, { academicYearId }),
+            ]);
+      return { timetable, setup, classSubjects, gradeWideChoices };
     });
   } catch (err) {
     return (
@@ -31,7 +37,10 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
       </main>
     );
   }
-  const { timetable, setup, classSubjects } = data;
+  const { timetable, setup, classSubjects, gradeWideChoices } = data;
+  const types = ASSESSMENT_TYPES.map((type) => ({ id: type, name: t(`assessments.types.${type}`) }));
+  const yearClosed = setup.academicYears.find((year) => year.id === timetable?.term.academicYearId)?.closed;
+  const ready = classSubjects.length > 0 && setup.rooms.length > 0;
 
   return (
     <main className="page">
@@ -97,9 +106,9 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
           </section>
           <section className="card" aria-labelledby="add-exam-heading">
             <h2 id="add-exam-heading">{t("exams.addTitle")}</h2>
-            {setup.academicYears.find((year) => year.id === timetable.term.academicYearId)?.closed ? (
+            {yearClosed ? (
               <p>{t("yearEnd.closedNotice")}</p>
-            ) : classSubjects.length === 0 || setup.rooms.length === 0 ? (
+            ) : !ready ? (
               <p>{t("exams.needsSetup")}</p>
             ) : (
               <>
@@ -111,13 +120,28 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
                     name: t("classSubject.title", { subject: cs.subject, class: cs.class }),
                   }))}
                   rooms={setup.rooms}
-                  types={ASSESSMENT_TYPES.map((type) => ({ id: type, name: t(`assessments.types.${type}`) }))}
+                  types={types}
                   firstDay={timetable.term.startDate}
                   lastDay={timetable.term.endDate}
                 />
               </>
             )}
           </section>
+          {!yearClosed && ready && (
+            <section className="card" aria-labelledby="add-grade-wide-exam-heading">
+              <h2 id="add-grade-wide-exam-heading">{t("exams.gradeWideTitle")}</h2>
+              <p className="muted">{t("exams.gradeWideHint")}</p>
+              <AddGradeWideExamForm
+                key={timetable.term.id}
+                academicYearId={timetable.term.academicYearId}
+                choices={gradeWideChoices}
+                rooms={setup.rooms}
+                types={types}
+                firstDay={timetable.term.startDate}
+                lastDay={timetable.term.endDate}
+              />
+            </section>
+          )}
         </>
       )}
     </main>

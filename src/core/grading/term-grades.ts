@@ -2,7 +2,8 @@
 // read and never stored. It takes every Assessment in the Term for any Class Subject of
 // the Subject in any Class the Student was enrolled in on the Assessment's date, so a
 // mid-Term move loses nothing. The label and pass or fail come from the Grading Scale
-// of the Issuing Class's Grade (the Student's Class on the Term's last day).
+// of the Issuing Class's Grade (the Student's Class on the Term's last day): in a Closed
+// year, the Scale as it stood at Closing.
 import { and, asc, eq, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import {
@@ -24,17 +25,25 @@ import {
   requireCanSeeClassSubject,
   requireCanSeeStudentMarks,
 } from "../access";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import { type MarkValue, toValue } from "../assessments/mark-values";
 import type { Ctx } from "../context";
 import { NotFound } from "../errors";
-import { scalesFor } from "./grading-scales";
+import { termGradeScales } from "./grading-scales";
 import { type GradingScale, readOnScale, type ScaleReading, termGradeFigures, type TermGradeFigures } from "./term-grade-rules";
 
 export type TermGrade = TermGradeFigures & ScaleReading & { subjectId: number; subject: string };
 
 export type TermRef = { id: number; name: string; startDate: string; endDate: string; academicYear: string };
 
-export type IssuingClass = { id: number; name: string; gradeId: number; grade: string; classTeacherId: string };
+export type IssuingClass = {
+  id: number;
+  name: string;
+  gradeId: number;
+  grade: string;
+  academicYearId: number;
+  classTeacherId: string;
+};
 
 export type StudentTerm = { term: TermRef; issuingClass: IssuingClass | null; grades: TermGrade[] };
 
@@ -52,13 +61,13 @@ export async function studentTermGrades(ctx: Ctx, input: { studentId: string }):
   for (const t of terms.values()) {
     issuing.set(t.id, (await issuingClasses(ctx.db, [input.studentId], t.endDate)).get(input.studentId) ?? null);
   }
-  const scales = await scalesFor(ctx.db, gradeIdsOf(issuing.values()));
+  const scaleOf = await termGradeScales(ctx.db, issuing.values());
 
   return [...terms.values()]
     .sort((a, b) => b.startDate.localeCompare(a.startDate))
     .map((t) => {
       const issuingClass = issuing.get(t.id) ?? null;
-      const scale = issuingClass ? (scales.get(issuingClass.gradeId) ?? null) : null;
+      const scale = scaleOf(issuingClass);
       const inTerm = rows.filter((r) => r.term.id === t.id);
       const grades = bySubject(inTerm)
         .filter((entries) =>
@@ -123,7 +132,7 @@ export async function classSubjectTermGrades(
   const ids = students.map((s) => s.studentId);
 
   const issuing = await issuingClasses(ctx.db, ids, chosen.endDate);
-  const scales = await scalesFor(ctx.db, gradeIdsOf(issuing.values()));
+  const scaleOf = await termGradeScales(ctx.db, issuing.values());
   const rows =
     ids.length === 0
       ? []
@@ -140,7 +149,7 @@ export async function classSubjectTermGrades(
     rows: students.map((s) => {
       const issuingClass = issuing.get(s.studentId);
       const entries = rows.filter((r) => r.studentId === s.studentId);
-      const scale = issuingClass ? (scales.get(issuingClass.gradeId) ?? null) : null;
+      const scale = scaleOf(issuingClass);
       return {
         ...s,
         issuingClass: issuingClass?.name ?? null,
@@ -166,6 +175,7 @@ export async function issuingClasses(db: Db, studentIds: string[], lastDay: stri
       name: schoolClass.name,
       gradeId: schoolClass.gradeId,
       grade: grade.name,
+      academicYearId: schoolClass.academicYearId,
       classTeacherId: schoolClass.classTeacherId,
     })
     .from(enrollment)
@@ -174,8 +184,7 @@ export async function issuingClasses(db: Db, studentIds: string[], lastDay: stri
     .where(
       and(
         inArray(enrollment.studentId, studentIds),
-        lte(enrollment.startDate, lastDay),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, lastDay)),
+        enrollmentCovers(lastDay),
       ),
     )
     .orderBy(asc(enrollment.startDate));
@@ -246,12 +255,11 @@ export async function termGradesIn(
   issuing: Map<string, IssuingClass>,
 ): Promise<Map<string, TermGradeInTerm[]>> {
   if (studentIds.length === 0) return new Map();
-  const scales = await scalesFor(ctx.db, gradeIdsOf(issuing.values()));
+  const scaleOf = await termGradeScales(ctx.db, issuing.values());
   const rows = await countedAssessments(ctx, and(inArray(enrollment.studentId, studentIds), eq(term.id, within.id)));
   return new Map(
     studentIds.map((studentId) => {
-      const issuingClass = issuing.get(studentId);
-      const scale = issuingClass ? (scales.get(issuingClass.gradeId) ?? null) : null;
+      const scale = scaleOf(issuing.get(studentId));
       const grades = bySubject(rows.filter((r) => r.studentId === studentId)).map((entries) => ({
         grade: toTermGrade(entries, scale),
         latestClassSubjectId: entries.reduce((a, b) => (b.date > a.date ? b : a)).classSubjectId,
@@ -323,8 +331,7 @@ async function countedAssessments(ctx: Ctx, where: SQL | undefined): Promise<Cou
       enrollment,
       and(
         eq(enrollment.classId, schoolClass.id),
-        lte(enrollment.startDate, assessment.date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, assessment.date)),
+        enrollmentCovers(assessment.date),
       ),
     )
     .leftJoin(mark, and(eq(mark.assessmentId, assessment.id), eq(mark.studentId, enrollment.studentId)))
@@ -358,10 +365,4 @@ function toTermGrade(entries: CountedAssessment[], scale: GradingScale | null): 
     ...figures,
     ...readOnScale(figures.percent, scale),
   };
-}
-
-function gradeIdsOf(classes: Iterable<IssuingClass | null>): number[] {
-  const ids = new Set<number>();
-  for (const c of classes) if (c) ids.add(c.gradeId);
-  return [...ids];
 }

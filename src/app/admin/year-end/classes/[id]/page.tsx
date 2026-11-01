@@ -39,6 +39,7 @@ export default async function PromoteClassPage({ params }: { params: Promise<{ i
                 classId={classId}
                 students={form.students}
                 targets={form.targets}
+                noTargets={form.noTargets && t(`yearEnd.noTargets.${form.noTargets}`)}
                 repeatTargets={form.repeatTargets}
                 firstDay={form.class.startDate}
                 lastDay={form.class.endDate}

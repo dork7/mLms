@@ -7,7 +7,7 @@ import { type AssessmentType, createAssessment, updateAssessment } from "@/core/
 import { type MarkValue, saveMarks } from "@/core/assessments/marks";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../../admin/setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function createAssessmentAction(prev: FormState, form: FormData): Promise<FormState> {
   const input = {

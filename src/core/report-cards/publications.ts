@@ -18,6 +18,7 @@ import {
   user,
 } from "@/db/schema";
 import type { Tx } from "../enrollment/enrollment";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import { ReportCardsPublished } from "../errors";
 
 const REPORT_CARD_FREEZE_LOCK = 11;
@@ -90,8 +91,7 @@ export async function requireAssessmentNotFrozen(tx: Tx, assessmentId: number): 
       and(
         eq(enrollment.classId, found.classId),
         inArray(enrollment.studentId, [...frozen.students]),
-        lte(enrollment.startDate, found.date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, found.date)),
+        enrollmentCovers(found.date),
       ),
     );
   if (onRoster.length > 0) throw new ReportCardsPublished();

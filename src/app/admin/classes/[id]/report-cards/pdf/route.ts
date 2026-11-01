@@ -2,7 +2,8 @@
 // Takes ?termId= like the preview.
 import { classReportCardExport } from "@/core/report-cards/export";
 import { asCurrentActor } from "@/web/as-current-actor";
-import { pdfResponse, refusalResponse, renderPdf } from "@/web/pdf";
+import { pdfResponse, renderPdf } from "@/web/pdf";
+import { refusalResponse } from "@/web/refusal";
 import { reportCardsHtml } from "../../../../../report-card-document";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {

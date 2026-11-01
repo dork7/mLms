@@ -1,16 +1,15 @@
 // The acting person's own Exams as a calendar file. The viewer comes from the session, so
 // the URL can't name anyone else.
-import { AccessDenied } from "@/core/errors";
 import { myExamCalendar } from "@/core/exams/exam-schedule";
 import { asCurrentActor } from "@/web/as-current-actor";
+import { refusalResponse } from "@/web/refusal";
 
 export async function GET() {
   let calendar;
   try {
     calendar = await asCurrentActor((ctx) => myExamCalendar(ctx));
   } catch (err) {
-    if (err instanceof AccessDenied) return new Response(null, { status: 403 });
-    throw err;
+    return refusalResponse(err);
   }
   return new Response(calendar, {
     headers: {

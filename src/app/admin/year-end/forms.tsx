@@ -2,8 +2,7 @@
 // The year-end forms. Inputs are controlled so the choices survive a refusal.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type Option, Refusal, Select } from "../classes/forms";
-import type { FormState } from "../setup-actions";
+import { type FormState, type Option, Refusal, Select } from "@/app/form-kit";
 import { closeYear, savePromotion } from "./actions";
 
 const OUTCOMES = ["promoted", "repeating", "leaving"] as const;
@@ -14,6 +13,7 @@ export function PromotionForm({
   classId,
   students,
   targets,
+  noTargets,
   repeatTargets,
   firstDay,
   lastDay,
@@ -21,6 +21,8 @@ export function PromotionForm({
   classId: number;
   students: { studentId: string; name: string; studentNumber: string }[];
   targets: Option[];
+  /** Why there are no targets, if there are none. */
+  noTargets: string | null;
   repeatTargets: Option[];
   firstDay: string;
   lastDay: string;
@@ -41,7 +43,7 @@ export function PromotionForm({
         (targets.length > 0 ? (
           <Select label={t("yearEnd.toClass")} name="toClassId" options={targets} value={toClass} onChange={setToClass} />
         ) : (
-          <p className="error">{t("yearEnd.needsTargets")}</p>
+          <p className="error">{noTargets}</p>
         ))}
       <p className="muted">{t("yearEnd.lastDayHint")}</p>
       {students.map((s) => {

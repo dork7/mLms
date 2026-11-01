@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { setRankEnabled } from "@/core/report-cards/rank-setting";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function saveRankEnabledAction(prev: FormState, form: FormData): Promise<FormState> {
   const enabled = form.get("rankEnabled") === "on";

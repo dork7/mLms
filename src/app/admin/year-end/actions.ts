@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { closeAcademicYear, type PromoteClassInput, promoteClass } from "@/core/year-end/year-end";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function savePromotion(prev: FormState, form: FormData): Promise<FormState> {
   const toClass = String(form.get("toClassId") ?? "");

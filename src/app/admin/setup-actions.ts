@@ -11,14 +11,12 @@ import {
   renameGrade,
   renameRoom,
   renameSubject,
+  setGradeOrder,
 } from "@/core/school/catalogue";
 import { setPeriodsPerDay } from "@/core/school/periods";
-import type { MessageKey } from "@/i18n";
+import type { FormState } from "@/app/form-kit";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-
-/** `saved` counts successful saves so a create form knows when to clear itself. */
-export type FormState = { error?: MessageKey; saved: number };
 
 export type NamedKind = "grades" | "subjects" | "rooms";
 
@@ -39,6 +37,18 @@ export async function saveNamed(kind: NamedKind, prev: FormState, form: FormData
     return { error: refusalKey(err), saved: prev.saved };
   }
   revalidatePath(`/admin/${kind}`);
+  return { saved: prev.saved + 1 };
+}
+
+export async function saveGradeOrder(prev: FormState, form: FormData): Promise<FormState> {
+  const gradeId = Number(form.get("gradeId"));
+  const entered = String(form.get("order") ?? "").trim();
+  try {
+    await asCurrentActor((ctx) => setGradeOrder(ctx, { gradeId, order: entered === "" ? null : Number(entered) }));
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  revalidatePath("/admin/grades");
   return { saved: prev.saved + 1 };
 }
 

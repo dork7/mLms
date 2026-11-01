@@ -1,11 +1,13 @@
 // Grading Scales: each Grade's percentage bands and pass mark. A band is its lowest
 // percentage and label, and runs up to the next band's start, so bands can't leave
-// gaps or overlap. The lowest must start at 0 so every percentage gets a label.
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+// gaps or overlap. The lowest must start at 0 so every percentage gets a label. An open
+// year's Term Grades read the live Scale; Closing keeps a snapshot for the Closed year's.
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { grade, gradingBand, gradingScale } from "@/db/schema";
+import { academicYear, closedYearScale, grade, gradingBand, gradingScale, schoolClass } from "@/db/schema";
 import { requireAdmin, requireRole } from "../access";
 import type { Ctx } from "../context";
+import type { Tx } from "../enrollment/enrollment";
 import { InvalidInput, NotFound } from "../errors";
 import { hasAtMostTwoDecimals } from "../assessments/mark-values";
 import type { GradingScale } from "./term-grade-rules";
@@ -63,6 +65,63 @@ export async function scalesFor(db: Db, gradeIds: number[]): Promise<Map<number,
     .orderBy(desc(gradingBand.minPercent));
   for (const b of bands) scales.get(b.gradeId)?.bands.push({ minPercent: b.minPercent, label: b.label });
   return scales;
+}
+
+/**
+ * Keeps each Grade's Scale as it stands now, for a year being Closed: the Grades with a
+ * Class in that year, the only ones its Term Grades can read. One statement, so it can't
+ * catch a concurrent `setGradingScale` halfway. Runs in Closing's transaction.
+ */
+export async function snapshotScalesForClosing(tx: Tx, academicYearId: number): Promise<void> {
+  await tx.execute(sql`
+    insert into ${closedYearScale} (academic_year_id, grade_id, pass_mark, bands)
+    select ${academicYearId}::integer, s.grade_id, s.pass_mark,
+      (select jsonb_agg(jsonb_build_object('minPercent', b.min_percent, 'label', b.label) order by b.min_percent desc)
+       from ${gradingBand} b where b.grade_id = s.grade_id)
+    from ${gradingScale} s
+    where s.grade_id in (select c.grade_id from ${schoolClass} c where c.academic_year_id = ${academicYearId}::integer)
+  `);
+}
+
+/** A Class, as far as which Grading Scale its Term Grades read. */
+type ScaleOwner = { gradeId: number; academicYearId: number };
+
+/**
+ * Which Grading Scale a Term Grade reads, given its Issuing Class: in a Closed year the
+ * snapshot taken at Closing, otherwise the Grade's live Scale. A Closed year never falls
+ * back to the live Scale, so a Grade that had none at Closing stays without a label.
+ */
+export async function termGradeScales(
+  db: Db,
+  owners: Iterable<ScaleOwner | null | undefined>,
+): Promise<(owner: ScaleOwner | null | undefined) => GradingScale | null> {
+  const known = [...owners].filter((o) => o !== null && o !== undefined);
+  const gradeIds = [...new Set(known.map((o) => o.gradeId))];
+  const yearIds = [...new Set(known.map((o) => o.academicYearId))];
+  if (known.length === 0) return () => null;
+
+  const live = await scalesFor(db, gradeIds);
+  const closedYears = await db
+    .select({ id: academicYear.id })
+    .from(academicYear)
+    .where(and(inArray(academicYear.id, yearIds), isNotNull(academicYear.closedAt)));
+  const closed = new Set(closedYears.map((y) => y.id));
+  const snapshots =
+    closed.size === 0
+      ? []
+      : await db
+          .select()
+          .from(closedYearScale)
+          .where(and(inArray(closedYearScale.academicYearId, [...closed]), inArray(closedYearScale.gradeId, gradeIds)));
+  const snapshot = new Map(
+    snapshots.map((s) => [`${s.academicYearId}:${s.gradeId}`, { passMark: s.passMark, bands: s.bands }]),
+  );
+
+  return (owner) => {
+    if (!owner) return null;
+    if (closed.has(owner.academicYearId)) return snapshot.get(`${owner.academicYearId}:${owner.gradeId}`) ?? null;
+    return live.get(owner.gradeId) ?? null;
+  };
 }
 
 function validScale(input: GradingScale): GradingScale {

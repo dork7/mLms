@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 import { saveRankEnabledAction } from "./actions";
 
 export function RankForm({ enabled }: { enabled: boolean }) {

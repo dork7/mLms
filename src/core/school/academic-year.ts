@@ -6,6 +6,7 @@ import { and, asc, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { academicYear, term } from "@/db/schema";
 import { requireAdmin, requireRole } from "../access";
 import type { Ctx } from "../context";
+import { nextDay } from "../dates";
 import {
   AcademicYearsOverlap,
   isUniqueViolation,
@@ -127,6 +128,11 @@ export async function listAcademicYears(ctx: Ctx): Promise<AcademicYear[]> {
   }));
 }
 
+/** The Academic Years still open, so Classes can be added to them. Newest first, Admin-only. */
+export async function listOpenAcademicYears(ctx: Ctx): Promise<AcademicYear[]> {
+  return (await listAcademicYears(ctx)).filter((year) => !year.closed);
+}
+
 /** The Term a date falls in, or null if no Academic Year covers it. */
 export async function termOn(ctx: Ctx, date: string): Promise<Term | null> {
   requireRole(ctx.actor, "admin", "teacher", "student");
@@ -153,11 +159,4 @@ function termsCoverYear(year: CreateAcademicYearInput): boolean {
   if (terms[0].startDate !== year.startDate) return false;
   if (terms[terms.length - 1].endDate !== year.endDate) return false;
   return terms.every((t, i) => i === 0 || t.startDate === nextDay(terms[i - 1].endDate));
-}
-
-/** "2026-12-31" -> "2027-01-01". */
-function nextDay(date: string): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
 }

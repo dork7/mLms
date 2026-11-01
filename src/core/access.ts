@@ -14,9 +14,10 @@
 //     the Student's profile and photo, as do the Admin and the Student.
 //
 // Assessments and Marks (ticket 08): from the Class Subject, see the guards below.
-import { and, eq, gte, isNull, lte, or, type SQL, sql } from "drizzle-orm";
+import { and, eq, exists, inArray, lt, not, or, type SQL, sql } from "drizzle-orm";
 import { assessment, classSubject, enrollment, schoolClass } from "@/db/schema";
 import type { Actor, Ctx, Role } from "./context";
+import { enrollmentCovers } from "./enrollment/roster-condition";
 import { AccessDenied, NotFound } from "./errors";
 
 export function requireRole(actor: Actor, ...roles: Role[]): void {
@@ -135,6 +136,14 @@ export function canSeeClassSubjectMarks(actor: Actor): SQL<boolean> {
 }
 
 /**
+ * Which rows of a Student's Assessment history the actor sees, once
+ * `requireCanSeeStudentMarks` has let them in. A Student sees all of their own.
+ */
+export function canSeeInStudentHistory(actor: Actor): SQL<boolean> {
+  return actor.role === "student" ? sql<boolean>`true` : canSeeClassSubjectMarks(actor);
+}
+
+/**
  * A Student's Assessment history: the Admin, the Student, and any Teacher of a Class
  * the Student was ever enrolled in. A Teacher then sees only the Marks of Class
  * Subjects they can see (`canSeeClassSubjectMarks`), whatever the Student's Class today.
@@ -206,6 +215,44 @@ export function requireId(id: number): void {
 }
 
 /**
+ * The actor's own Exams, as SQL over `classSubject`: a Teacher's are those of the Class
+ * Subjects they teach, and a Student's those of the Class they're enrolled in today.
+ */
+export function isOwnExam(ctx: Ctx): SQL {
+  const me = ctx.actor.userId;
+  if (ctx.actor.role === "teacher") return eq(classSubject.teacherId, me);
+  return inArray(
+    classSubject.classId,
+    ctx.db
+      .select({ classId: enrollment.classId })
+      .from(enrollment)
+      .where(and(eq(enrollment.studentId, me), enrollmentCovers(ctx.clock.today()))),
+  );
+}
+
+/**
+ * A Student's past Exams, as SQL over `classSubject` joined to `assessment`: sat in a Class
+ * during an Enrollment that has ended, on a date that Enrollment covers. A later Exam of
+ * that Class was never theirs. A Class they're back in is left out, since all its Exams
+ * are already `isOwnExam`. Only Students have these.
+ */
+export function isOwnPastExam(ctx: Ctx): SQL {
+  if (ctx.actor.role !== "student") return sql`false`;
+  const earlierEnrollment = ctx.db
+    .select({ id: enrollment.id })
+    .from(enrollment)
+    .where(
+      and(
+        eq(enrollment.studentId, ctx.actor.userId),
+        eq(enrollment.classId, classSubject.classId),
+        lt(enrollment.endDate, ctx.clock.today()),
+        enrollmentCovers(assessment.date),
+      ),
+    );
+  return and(exists(earlierEnrollment), not(isOwnExam(ctx)))!;
+}
+
+/**
  * Who may see a Student's profile and photo: the Admin, the Student themselves, and
  * the Student's Teachers. A Student's Teachers are the Teachers (Class Teacher and
  * Subject Teachers, see `isTeacherOfClass`) of a Class the Student is enrolled in
@@ -224,8 +271,7 @@ export async function requireCanSeeStudent(ctx: Ctx, studentId: string): Promise
       .where(
         and(
           eq(enrollment.studentId, studentId),
-          lte(enrollment.startDate, today),
-          or(isNull(enrollment.endDate), gte(enrollment.endDate, today)),
+          enrollmentCovers(today),
           isTeacherOfClass(actor.userId),
         ),
       )

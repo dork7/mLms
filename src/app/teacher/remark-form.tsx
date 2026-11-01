@@ -3,8 +3,7 @@
 // by Term so another Term's remark doesn't inherit this one's text.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import type { FormState } from "../admin/setup-actions";
-import { Refusal } from "../admin/classes/forms";
+import { type FormState, Refusal } from "@/app/form-kit";
 
 export function RemarkForm({
   action: save,

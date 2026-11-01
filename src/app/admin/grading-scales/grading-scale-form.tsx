@@ -4,7 +4,7 @@
 import { useActionState, useState } from "react";
 import type { GradingScale } from "@/core/grading/term-grade-rules";
 import { t } from "@/i18n";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 import { saveGradingScaleAction } from "./actions";
 
 type BandRow = { start: string; label: string };

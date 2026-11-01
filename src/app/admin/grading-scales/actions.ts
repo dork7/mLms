@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { setGradingScale } from "@/core/grading/grading-scales";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 /** The form posts `bandStart` and `bandLabel` once per band, in the same order. */
 export async function saveGradingScaleAction(prev: FormState, form: FormData): Promise<FormState> {

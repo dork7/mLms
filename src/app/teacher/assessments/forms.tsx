@@ -3,7 +3,8 @@
 // a refusal (React resets uncontrolled forms after a server action).
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import type { FormState } from "../../admin/setup-actions";
+import type { MarkValue } from "@/core/assessments/mark-values";
+import type { FormState } from "@/app/form-kit";
 import { createAssessmentAction, saveMarksAction, updateAssessmentAction } from "./actions";
 
 type AssessmentType = "quiz" | "assignment" | "midterm" | "final";
@@ -130,7 +131,7 @@ export type GridEntry = {
   studentId: string;
   name: string;
   studentNumber: string;
-  mark: number | "absent" | "exempt" | null;
+  mark: MarkValue;
   /** The Mark as text if a Published Report Card freezes it; the row is then read-only and not sent. */
   frozenText: string | null;
 };

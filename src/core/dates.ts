@@ -7,3 +7,19 @@ export function isCalendarDate(value: string): boolean {
   const parsed = new Date(Date.UTC(y, m - 1, d));
   return parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d;
 }
+
+function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** "2027-01-01" -> "2026-12-31". */
+export function dayBefore(date: string): string {
+  return addDays(date, -1);
+}
+
+/** "2026-12-31" -> "2027-01-01". */
+export function nextDay(date: string): string {
+  return addDays(date, 1);
+}

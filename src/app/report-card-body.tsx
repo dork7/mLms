@@ -12,7 +12,7 @@ export function ReportCardBody({ card, rankShown }: { card: PublishedCard; rankS
         <strong>{overallText(card.overallPercent)}</strong>
         {rankShown && (
           <>
-            {" · "}
+            {t("common.separator")}
             <strong>{card.rank === null ? t("reportCards.noRank") : t("reportCards.rank", { rank: card.rank })}</strong>
           </>
         )}

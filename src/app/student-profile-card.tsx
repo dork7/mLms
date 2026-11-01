@@ -45,7 +45,7 @@ export function StudentProfileCard({ profile }: { profile: StudentProfile }) {
               <div className="muted">
                 {e.endDate
                   ? t("enrollment.fromTo", { start: e.startDate, end: e.endDate })
-                  : `${t("enrollment.from", { start: e.startDate })} · ${t("enrollment.current")}`}
+                  : t("enrollment.from", { start: e.startDate }) + t("common.separator") + t("enrollment.current")}
               </div>
             </li>
           ))}

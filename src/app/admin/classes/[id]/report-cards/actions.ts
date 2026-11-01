@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { publishReportCards, unpublishReportCards } from "@/core/report-cards/publish";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../../../setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function publishAction(prev: FormState, form: FormData): Promise<FormState> {
   return run(prev, form, publishReportCards);

@@ -1,9 +1,10 @@
 // What a Teacher lands on: the Class Subjects they teach, what was last taught in them, and
 // which of their Assessments they still have Marks to enter for. All of it follows the
 // current Subject Teacher, so a reassignment hands it over.
-import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 import { academicYear, assessment, classSubject, enrollment, lesson, mark, schoolClass, subject, user } from "@/db/schema";
 import { requireRole } from "../access";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import { type AssessmentRow, selectAssessments } from "../assessments/assessments";
 import { type ClassSubjectRow, listMyClassSubjects } from "../classes/class-subjects";
 import type { Ctx } from "../context";
@@ -75,8 +76,7 @@ async function needingMarks(ctx: Ctx): Promise<AssessmentNeedingMarks[]> {
       enrollment,
       and(
         eq(enrollment.classId, schoolClass.id),
-        lte(enrollment.startDate, assessment.date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, assessment.date)),
+        enrollmentCovers(assessment.date),
       ),
     )
     .leftJoin(mark, and(eq(mark.assessmentId, assessment.id), eq(mark.studentId, enrollment.studentId)))

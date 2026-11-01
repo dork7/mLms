@@ -7,11 +7,11 @@ import { createClass, getClass } from "../classes/classes";
 import { classRoster, enrollStudent } from "../enrollment/enrollment";
 import { AcademicYearClosed, AccessDenied, InvalidInput, NotFound, PromotionNotDone } from "../errors";
 import { addExam, examTimetable } from "../exams/exams";
-import { setGradingScale } from "../grading/grading-scales";
-import { studentTermGrades } from "../grading/term-grades";
+import { getGradingScale, setGradingScale } from "../grading/grading-scales";
+import { classSubjectTermGrades, studentTermGrades } from "../grading/term-grades";
 import { lessonFormDefaults, listClassLessons, logLesson } from "../lessons/lessons";
 import { listAcademicYears, updateAcademicYear } from "../school/academic-year";
-import { createRoom } from "../school/catalogue";
+import { createGrade, createRoom, setGradeOrder } from "../school/catalogue";
 import { requireOpenYear } from "../school/closed-year";
 import { setPeriodsPerDay } from "../school/periods";
 import { publishReportCards, studentReportCards, unpublishReportCards } from "../report-cards/publish";
@@ -138,6 +138,50 @@ describe("Promotion", () => {
       );
     });
 
+    test("a target Class in a Grade further on than the next one", async () => {
+      const s = await yearEndSchool();
+      const grade9 = await createGrade(s.asAdmin, { name: "Grade 9" });
+      await setGradeOrder(s.asAdmin, { gradeId: grade9.id, order: 9 });
+      const class9A = await createClass(s.asAdmin, {
+        academicYearId: s.nextYear.id,
+        gradeId: grade9.id,
+        name: "9-A",
+        classTeacherId: s.omar.userId,
+      });
+
+      await expect(promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: class9A.id })).rejects.toEqual(
+        refusal("errors.promotionNeedsNextGrade"),
+      );
+      expect(await rosterNames(s, class9A.id, "2027-09-01")).toEqual([]);
+    });
+
+    test("a target Class in an earlier Grade", async () => {
+      const s = await yearEndSchool();
+      await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: 6 });
+
+      await expect(promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id })).rejects.toEqual(
+        refusal("errors.promotionNeedsNextGrade"),
+      );
+    });
+
+    test("a Grade with no order, on either side, until the Admin sets it", async () => {
+      const s = await yearEndSchool();
+      await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: null });
+      await expect(promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id })).rejects.toEqual(
+        refusal("errors.promotionNeedsGradeOrder"),
+      );
+
+      await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: 8 });
+      await setGradeOrder(s.asAdmin, { gradeId: s.grade7.id, order: null });
+      await expect(promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id })).rejects.toEqual(
+        refusal("errors.promotionNeedsGradeOrder"),
+      );
+
+      await setGradeOrder(s.asAdmin, { gradeId: s.grade7.id, order: 7 });
+      await promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id });
+      expect(await rosterNames(s, s.class8A.id, "2027-09-01")).toEqual(["Aisha Rahman", "Bilal Khan"]);
+    });
+
     test("a target Class in the same Academic Year", async () => {
       const s = await yearEndSchool();
       const sameYear8 = await createClass(s.asAdmin, {
@@ -226,6 +270,89 @@ describe("Promotion", () => {
     expect(form.targets.map((c) => c.name)).toEqual(["8-A", "8-B"]);
     expect(form.repeatTargets.map((c) => c.name)).toEqual(["7-A next"]);
     await expect(promotionForm(s.app.as(s.huda), { classId: s.class7A.id })).rejects.toThrow(AccessDenied);
+  });
+});
+
+describe("the next Grade follows the Admin's order", () => {
+  it("not the Grades' names or when they were created, and gaps in the numbers don't matter", async () => {
+    const s = await yearEndSchool();
+    const grade9 = await createGrade(s.asAdmin, { name: "A Grade named to sort first" });
+    await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: 20 });
+    await setGradeOrder(s.asAdmin, { gradeId: grade9.id, order: 15 });
+    const class9A = await createClass(s.asAdmin, {
+      academicYearId: s.nextYear.id,
+      gradeId: grade9.id,
+      name: "9-A",
+      classTeacherId: s.omar.userId,
+    });
+
+    await expect(promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id })).rejects.toEqual(
+      refusal("errors.promotionNeedsNextGrade"),
+    );
+    expect((await promotionForm(s.asAdmin, { classId: s.class7A.id })).targets.map((c) => c.name)).toEqual(["9-A"]);
+
+    await promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: class9A.id });
+    expect(await rosterNames(s, class9A.id, "2027-09-01")).toEqual(["Aisha Rahman", "Bilal Khan"]);
+  });
+
+  it("the form offers only the next Grade's Classes", async () => {
+    const s = await yearEndSchool();
+    const grade9 = await createGrade(s.asAdmin, { name: "Grade 9" });
+    await setGradeOrder(s.asAdmin, { gradeId: grade9.id, order: 9 });
+    await createClass(s.asAdmin, {
+      academicYearId: s.nextYear.id,
+      gradeId: grade9.id,
+      name: "9-A",
+      classTeacherId: s.omar.userId,
+    });
+
+    const form = await promotionForm(s.asAdmin, { classId: s.class7A.id });
+
+    expect(form.targets.map((c) => c.name)).toEqual(["8-A", "8-B"]);
+    expect(form.noTargets).toBeNull();
+  });
+
+  it("a Grade with no order offers no target and says why, but Repeating and Leaving still work", async () => {
+    const s = await yearEndSchool();
+    await setGradeOrder(s.asAdmin, { gradeId: s.grade7.id, order: null });
+
+    const form = await promotionForm(s.asAdmin, { classId: s.class7A.id });
+    expect(form.targets).toEqual([]);
+    expect(form.noTargets).toBe("gradeHasNoOrder");
+    expect(form.repeatTargets.map((c) => c.name)).toEqual(["7-A next"]);
+
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      repeating: [{ studentId: s.aisha, classId: s.next7A.id }],
+      leaving: [{ studentId: s.bilal }],
+    });
+    expect(await rosterNames(s, s.next7A.id, "2027-09-01")).toEqual(["Aisha Rahman"]);
+  });
+
+  it("the last Grade has no target, and its Students can still leave", async () => {
+    const s = await yearEndSchool();
+    await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: 3 });
+
+    const form = await promotionForm(s.asAdmin, { classId: s.class7A.id });
+
+    expect(form.targets).toEqual([]);
+    expect(form.noTargets).toBe("lastGrade");
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      leaving: [{ studentId: s.aisha }, { studentId: s.bilal }],
+    });
+  });
+
+  it("a next Grade with no Class in the new year says so", async () => {
+    const s = await yearEndSchool();
+    const grade9 = await createGrade(s.asAdmin, { name: "Grade 9" });
+    await setGradeOrder(s.asAdmin, { gradeId: s.grade8.id, order: 9 });
+    await setGradeOrder(s.asAdmin, { gradeId: grade9.id, order: 8 });
+
+    const form = await promotionForm(s.asAdmin, { classId: s.class7A.id });
+
+    expect(form.targets).toEqual([]);
+    expect(form.noTargets).toBe("noClassInNextGrade");
   });
 });
 
@@ -321,6 +448,112 @@ describe("Term Grades after year end", () => {
     const term1 = (await studentTermGrades(s.asAdmin, { studentId: s.aisha })).find((x) => x.term.name === "Term 1");
     expect(term1?.issuingClass).toMatchObject({ name: "8-early", grade: "Grade 8" });
     expect(term1?.grades).toMatchObject([{ percent: 80, label: "Secure", passed: false }]);
+  });
+});
+
+describe("a Closed year's Term Grades keep the Grading Scale it Closed with", () => {
+  const letters = { passMark: 50, bands: [{ minPercent: 75, label: "A" }, { minPercent: 0, label: "F" }] };
+  const raised = { passMark: 90, bands: [{ minPercent: 85, label: "Merit" }, { minPercent: 0, label: "Below" }] };
+
+  /** Aisha has 80% in 7-A's Math in Term 1. The year then rolls over and Closes. */
+  const closedYear = async () => {
+    const s = await yearEndSchool();
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...letters });
+    const { id } = await createAssessment(s.asSara, quiz(s.math7A.id));
+    await saveMarks(s.asSara, { assessmentId: id, marks: [{ studentId: s.aisha, mark: 8 }] });
+    return s;
+  };
+  const inClosedYear = async (s: School) =>
+    (await studentTermGrades(s.asAdmin, { studentId: s.aisha })).find((x) => x.term.academicYear === "2026-2027");
+
+  it("editing the Scale after Closing leaves the label and pass or fail unchanged, wherever they're read", async () => {
+    const s = await closedYear();
+    await promoteAndClose(s);
+    const [term1] = (await listAcademicYears(s.asAdmin)).find((y) => y.id === s.year.id)!.terms;
+
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...raised });
+
+    expect((await inClosedYear(s))?.grades).toMatchObject([{ percent: 80, label: "A", passed: true }]);
+    const classSubject = await classSubjectTermGrades(s.asAdmin, { classSubjectId: s.math7A.id, termId: term1.id });
+    expect(classSubject.rows.find((r) => r.studentId === s.aisha)?.grade).toMatchObject({ label: "A", passed: true });
+    const cards = await classReportCards(s.asAdmin, { classId: s.class7A.id, termId: term1.id });
+    expect(cards.cards.find((c) => c.studentId === s.aisha)?.grades).toMatchObject([{ label: "A", passed: true }]);
+  });
+
+  it("the live Scale still changes, and open years follow it", async () => {
+    const s = await closedYear();
+    const math = await createClassSubject(s.asAdmin, {
+      classId: s.next7A.id,
+      subjectId: s.math.id,
+      teacherId: s.sara.userId,
+    });
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      repeating: [{ studentId: s.aisha, classId: s.next7A.id }],
+    });
+    await closeAcademicYear(s.asAdmin, { academicYearId: s.year.id });
+    const { id } = await createAssessment(s.asSara, quiz(math.id, { date: "2027-10-01" }));
+    await saveMarks(s.asSara, { assessmentId: id, marks: [{ studentId: s.aisha, mark: 8 }] });
+    const inOpenYear = async () =>
+      (await studentTermGrades(s.asAdmin, { studentId: s.aisha })).find((x) => x.term.academicYear === "2027-2028");
+    expect((await inOpenYear())?.grades).toMatchObject([{ label: "A", passed: true }]);
+
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...raised });
+
+    expect(await getGradingScale(s.asAdmin, { gradeId: s.grade7.id })).toEqual(raised);
+    expect((await inOpenYear())?.grades).toMatchObject([{ label: "Below", passed: false }]);
+    // The same Grade, the same 80%, in the Closed year: still as it Closed.
+    expect((await inClosedYear(s))?.grades).toMatchObject([{ label: "A", passed: true }]);
+  });
+
+  it("before Closing the live Scale applies, and Closing keeps the Scale as it stands then", async () => {
+    const s = await closedYear();
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...raised });
+    expect((await inClosedYear(s))?.grades).toMatchObject([{ label: "Below", passed: false }]);
+
+    await promoteAndClose(s);
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...letters });
+
+    expect((await inClosedYear(s))?.grades).toMatchObject([{ label: "Below", passed: false }]);
+  });
+
+  it("a Grade with no Scale at Closing stays without a label, even if it gets one later", async () => {
+    const s = await yearEndSchool();
+    const { id } = await createAssessment(s.asSara, quiz(s.math7A.id));
+    await saveMarks(s.asSara, { assessmentId: id, marks: [{ studentId: s.aisha, mark: 8 }] });
+    await promoteAndClose(s);
+
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...letters });
+
+    expect((await inClosedYear(s))?.grades).toMatchObject([{ percent: 80, label: null, passed: null }]);
+  });
+
+  it("each Closed year keeps its own Scale", async () => {
+    const s = await closedYear();
+    await promoteClass(s.asAdmin, {
+      classId: s.class7A.id,
+      toClassId: s.class8A.id,
+      repeating: [{ studentId: s.aisha, classId: s.next7A.id }],
+    });
+    await closeAcademicYear(s.asAdmin, { academicYearId: s.year.id });
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...raised });
+    const math = await createClassSubject(s.asAdmin, {
+      classId: s.next7A.id,
+      subjectId: s.math.id,
+      teacherId: s.sara.userId,
+    });
+    const { id } = await createAssessment(s.asSara, quiz(math.id, { date: "2027-10-01" }));
+    await saveMarks(s.asSara, { assessmentId: id, marks: [{ studentId: s.aisha, mark: 8 }] });
+    await promoteClass(s.asAdmin, { classId: s.next7A.id, leaving: [{ studentId: s.aisha }] });
+    await promoteClass(s.asAdmin, { classId: s.class8A.id, leaving: [{ studentId: s.bilal }] });
+    await closeAcademicYear(s.asAdmin, { academicYearId: s.nextYear.id });
+    await setGradingScale(s.asAdmin, { gradeId: s.grade7.id, ...letters });
+
+    const terms = await studentTermGrades(s.asAdmin, { studentId: s.aisha });
+    const labelIn = (year: string) => terms.find((x) => x.term.academicYear === year)?.grades[0].label;
+    expect(labelIn("2026-2027")).toBe("A");
+    expect(labelIn("2027-2028")).toBe("Below");
   });
 });
 
