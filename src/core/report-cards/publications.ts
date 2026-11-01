@@ -163,6 +163,9 @@ export async function studentsPublishedFor(db: Db | Tx, termLastDay: string, stu
 
 export type PublicationRecord = {
   id: number;
+  /** The Term's names as Published. Renaming the Term later doesn't change them. */
+  termName: string;
+  academicYearName: string;
   rankShown: boolean;
   publishedAt: Date;
   publishedBy: string;
@@ -177,6 +180,8 @@ export async function publicationRecords(db: Db | Tx, classId: number, termLastD
   return db
     .select({
       id: reportCardPublication.id,
+      termName: reportCardPublication.termName,
+      academicYearName: reportCardPublication.academicYearName,
       rankShown: reportCardPublication.rankShown,
       publishedAt: reportCardPublication.publishedAt,
       publishedBy: user.name,

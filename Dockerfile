@@ -1,8 +1,14 @@
-FROM node:24-alpine
+# Debian, not Alpine: the Chromium that renders PDFs (src/web/pdf.ts) doesn't run on musl.
+FROM node:24-bookworm-slim
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci
+
+# Chromium with its system libraries and fonts, at the version package-lock.json pins. A fixed
+# path, so the browser is found whichever user or HOME the app runs with.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install --with-deps --only-shell chromium
 
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1

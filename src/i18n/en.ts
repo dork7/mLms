@@ -309,6 +309,16 @@ export const en = {
     studentHeading: "{term} ({year})",
     issuedBy: "Class {class}, {grade}",
   },
+  reportCardPdf: {
+    title: "Report Card",
+    draft: "Draft: not Published",
+    publishedOn: "Published on {when}",
+    download: "Download PDF",
+    export: "Export as PDF",
+    exportDraft: "Export as a draft PDF",
+    exportClass: "Export the whole Class as PDF",
+    exportClassDraft: "Export the whole Class as a draft PDF",
+  },
   remarks: {
     subjectTitle: "Remarks: {subject} for {class}",
     overallTitle: "Overall remarks: {class}",

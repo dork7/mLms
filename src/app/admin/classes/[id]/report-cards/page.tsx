@@ -33,6 +33,7 @@ export default async function ReportCardPreviewPage({
     );
   }
   const incomplete = page.cards.filter((card) => card.flags.length > 0).length;
+  const pdfPath = `/admin/classes/${classId}/report-cards/pdf`;
 
   return (
     <main className="page">
@@ -50,6 +51,13 @@ export default async function ReportCardPreviewPage({
             {incomplete > 0
               ? t("reportCards.summaryIncomplete", { incomplete, total: page.cards.length })
               : t("reportCards.summaryComplete", { total: page.cards.length })}
+          </p>
+        )}
+        {page.cards.length > 0 && (
+          <p>
+            <a href={`${pdfPath}?termId=${page.term.id}`} download>
+              {t(page.publication ? "reportCardPdf.exportClass" : "reportCardPdf.exportClassDraft")}
+            </a>
           </p>
         )}
       </section>
@@ -103,6 +111,11 @@ export default async function ReportCardPreviewPage({
             {t("termGrades.studentLine", { name: card.name, studentNumber: card.studentNumber })}
           </h2>
           <ReportCardBody card={card} rankShown={page.rankEnabled} />
+          <p>
+            <a href={`${pdfPath}?termId=${page.term.id}&studentId=${encodeURIComponent(card.studentId)}`} download>
+              {t(page.publication ? "reportCardPdf.export" : "reportCardPdf.exportDraft")}
+            </a>
+          </p>
           {card.flags.length > 0 && (
             <>
               <h3 id={`missing-${card.studentId}`}>{t("reportCards.missingHeading")}</h3>
