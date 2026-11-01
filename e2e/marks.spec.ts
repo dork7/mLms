@@ -139,6 +139,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
   await logIn(page, "E2E-8001", huwaidaPassword);
   await changeInitialPassword(page, huwaidaPassword, "huwaida's own password");
   await expect(page).toHaveURL(/\/student$/);
+  await page.getByRole("link", { name: "My profile" }).click();
   const history = page.getByRole("region", { name: "Assessment history" });
   await expect(history.getByText("Chemistry, 11-M: Quiz on 2051-10-10 (Whole year)")).toBeVisible();
   await expect(history.getByText("18 / 24 (75%)")).toBeVisible();

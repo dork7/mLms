@@ -1,15 +1,24 @@
 // A Student's Assessment history, newest first. The layer has already left out
-// whatever the viewer may not see.
+// whatever the viewer may not see. The Student dashboard shows the latest of it under
+// its own title.
 import type { HistoryRow } from "@/core/assessments/marks";
 import { t } from "@/i18n";
 import { markText } from "./mark-text";
 
-export function AssessmentHistory({ rows }: { rows: HistoryRow[] }) {
+export function AssessmentHistory({
+  rows,
+  title = t("marks.historyTitle"),
+  none = t("marks.historyNone"),
+}: {
+  rows: HistoryRow[];
+  title?: string;
+  none?: string;
+}) {
   return (
     <section className="card" aria-labelledby="assessment-history">
-      <h2 id="assessment-history">{t("marks.historyTitle")}</h2>
+      <h2 id="assessment-history">{title}</h2>
       {rows.length === 0 ? (
-        <p>{t("marks.historyNone")}</p>
+        <p>{none}</p>
       ) : (
         <ul className="list">
           {rows.map((r) => (
