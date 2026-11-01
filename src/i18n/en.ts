@@ -4,6 +4,12 @@ export const en = {
   app: {
     name: "School LMS",
   },
+  theme: {
+    label: "Theme",
+    system: "System",
+    light: "Light",
+    dark: "Dark",
+  },
   login: {
     title: "Log in",
     identifier: "Email, phone or Student Number",
