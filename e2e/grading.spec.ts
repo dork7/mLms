@@ -189,6 +189,7 @@ test("the Admin defines a Grading Scale, and a Student who moved Class mid-Term 
   await logIn(page, "E2E-9001", noorPassword);
   await changeInitialPassword(page, noorPassword, "noor's own password");
   await expect(page).toHaveURL(/\/student$/);
+  await page.getByRole("link", { name: "My profile" }).click();
   const termGrades = page.getByRole("region", { name: "Term Grades" });
   await expect(termGrades.getByText("Whole year (2081-2082)")).toBeVisible();
   await expect(termGrades.getByText("Class on the Term's last day: 3-H")).toBeVisible();
