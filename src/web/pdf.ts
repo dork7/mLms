@@ -2,7 +2,6 @@
 // goes through here: Report Cards now, Payment Records next.
 import "server-only";
 import { type Browser, chromium } from "playwright";
-import { AccessDenied, NotFound } from "@/core/errors";
 
 // One browser for the whole server, so a rush of downloads opens contexts rather than browsers.
 const globalForPdf = globalThis as unknown as { lmsPdfBrowser?: Promise<Browser> };
@@ -53,11 +52,4 @@ export function pdfResponse(pdf: Uint8Array, fileName: string): Response {
       "Cache-Control": "private, no-store",
     },
   });
-}
-
-/** The response for a refusal from the layer. Rethrows anything else, including Next redirects. */
-export function refusalResponse(err: unknown): Response {
-  if (err instanceof AccessDenied) return new Response(null, { status: 403 });
-  if (err instanceof NotFound) return new Response(null, { status: 404 });
-  throw err;
 }

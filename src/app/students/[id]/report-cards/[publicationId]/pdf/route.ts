@@ -2,7 +2,8 @@
 // decides who gets it, whatever the URL names.
 import { studentReportCardExport } from "@/core/report-cards/export";
 import { asCurrentActor } from "@/web/as-current-actor";
-import { pdfResponse, refusalResponse, renderPdf } from "@/web/pdf";
+import { pdfResponse, renderPdf } from "@/web/pdf";
+import { refusalResponse } from "@/web/refusal";
 import { reportCardsHtml } from "../../../../../report-card-document";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; publicationId: string }> }) {

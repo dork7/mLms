@@ -13,6 +13,7 @@ import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import type { Tx } from "../enrollment/enrollment";
 import { AcademicYearClosed, InvalidInput, NotFound, PromotionNotDone } from "../errors";
+import { snapshotScalesForClosing } from "../grading/grading-scales";
 import { requireEnrollmentNotFrozen } from "../report-cards/publications";
 import { requireOpenYear } from "../school/closed-year";
 
@@ -39,7 +40,7 @@ export async function promoteClass(ctx: Ctx, input: PromoteClassInput): Promise<
     const to = input.toClassId === undefined ? null : await classInYear(tx, input.toClassId);
     if (to) {
       if (to.academicYearId !== next?.id) throw new InvalidInput("errors.promotionNeedsNextYear");
-      if (to.gradeId === from.gradeId) throw new InvalidInput("errors.promotionNeedsNextGrade");
+      await requireNextGrade(tx, from.gradeId, to.gradeId);
     }
     const repeatClasses = new Map<string, Awaited<ReturnType<typeof classInYear>>>();
     for (const r of repeating) {
@@ -104,6 +105,7 @@ export async function closeAcademicYear(ctx: Ctx, input: { academicYearId: numbe
       .where(and(eq(schoolClass.academicYearId, input.academicYearId), isNull(enrollment.endDate)));
     if (waiting.n > 0) throw new PromotionNotDone();
 
+    await snapshotScalesForClosing(tx, input.academicYearId);
     await tx
       .update(academicYear)
       .set({ closedAt: ctx.clock.now() })
@@ -174,8 +176,10 @@ export type PromotionForm = {
   /** The new Academic Year, or null if none has been created yet. */
   nextYear: string | null;
   students: { studentId: string; name: string; studentNumber: string }[];
-  /** The new year's Classes in other Grades. */
+  /** The new year's Classes in the next Grade of the Admin's order. */
   targets: PromotionChoice[];
+  /** Why `targets` is empty; null if it isn't. */
+  noTargets: "gradeHasNoOrder" | "lastGrade" | "noClassInNextGrade" | null;
   /** The new year's Classes in the same Grade, for Repeating Students. */
   repeatTargets: PromotionChoice[];
 };
@@ -210,11 +214,17 @@ export async function promotionForm(ctx: Ctx, input: { classId: number }): Promi
     : [];
   const choice = (c: (typeof nextClasses)[number]) => ({ id: c.id, name: c.name });
 
+  const order = await gradeOrder(ctx.db, from.gradeId);
+  const nextGrade = order === null ? null : await gradeAfter(ctx.db, order);
+  const targets = nextClasses.filter((c) => c.gradeId === nextGrade?.id).map(choice);
+
   return {
     class: { id: from.id, ...named, startDate: from.yearStart, endDate: from.yearEnd },
     nextYear: next?.name ?? null,
     students,
-    targets: nextClasses.filter((c) => c.gradeId !== from.gradeId).map(choice),
+    targets,
+    noTargets:
+      order === null ? "gradeHasNoOrder" : !nextGrade ? "lastGrade" : targets.length === 0 ? "noClassInNextGrade" : null,
     repeatTargets: nextClasses.filter((c) => c.gradeId === from.gradeId).map(choice),
   };
 }
@@ -234,6 +244,35 @@ async function classInYear(db: Ctx["db"] | Tx, classId: number) {
     .where(eq(schoolClass.id, classId));
   if (!found) throw new NotFound();
   return found;
+}
+
+/**
+ * Promotion goes to the next Grade in the Admin's order and nowhere else. A Grade with no
+ * order has no next Grade and is no one's next Grade, so it's refused until the Admin sets it.
+ */
+async function requireNextGrade(tx: Tx, fromGradeId: number, toGradeId: number): Promise<void> {
+  if (toGradeId === fromGradeId) throw new InvalidInput("errors.promotionNeedsNextGrade");
+  const fromOrder = await gradeOrder(tx, fromGradeId);
+  const toOrder = await gradeOrder(tx, toGradeId);
+  if (fromOrder === null || toOrder === null) throw new InvalidInput("errors.promotionNeedsGradeOrder");
+  const nextGrade = await gradeAfter(tx, fromOrder);
+  if (nextGrade?.id !== toGradeId) throw new InvalidInput("errors.promotionNeedsNextGrade");
+}
+
+async function gradeOrder(db: Ctx["db"] | Tx, gradeId: number): Promise<number | null> {
+  const [found] = await db.select({ order: grade.sortOrder }).from(grade).where(eq(grade.id, gradeId));
+  return found.order;
+}
+
+/** The Grade with the next higher order, or null if this is the last. */
+async function gradeAfter(db: Ctx["db"] | Tx, order: number) {
+  const [found] = await db
+    .select({ id: grade.id })
+    .from(grade)
+    .where(gt(grade.sortOrder, order))
+    .orderBy(asc(grade.sortOrder))
+    .limit(1);
+  return found ?? null;
 }
 
 /** The Academic Year starting soonest after a date, or null. */

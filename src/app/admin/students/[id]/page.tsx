@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
-import { listClasses } from "@/core/classes/classes";
+import { enrollmentChoices } from "@/core/enrollment/enrollment";
 import { studentTermGrades } from "@/core/grading/term-grades";
 import { studentReportCards } from "@/core/report-cards/publish";
 import { getStudentProfile } from "@/core/students/student-profile";
@@ -21,7 +21,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
   try {
     data = await asCurrentActor((ctx) => Promise.all([
         getStudentProfile(ctx, { studentId: id }),
-        listClasses(ctx),
+        enrollmentChoices(ctx, { studentId: id }),
         studentAssessmentHistory(ctx, { studentId: id }),
         studentTermGrades(ctx, { studentId: id }),
         studentReportCards(ctx, { studentId: id }),
@@ -34,16 +34,12 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [profile, classes, history, termGrades, reportCards] = data;
-  const open = profile.enrollments.find((e) => e.endDate === null);
-  const current = open && classes.find((c) => c.id === open.classId);
-  // Moving stays within the current Class's Grade and Academic Year (the layer checks it too).
-  const choices = current
-    ? classes.filter(
-        (c) => c.id !== current.id && c.gradeId === current.gradeId && c.academicYearId === current.academicYearId,
-      )
-    : classes;
-  const options = choices.filter((c) => !c.yearClosed).map((c) => ({ id: c.id, name: `${c.name} (${c.grade}, ${c.academicYear})` }));
+  const [profile, choices, history, termGrades, reportCards] = data;
+  const moving = choices.mode === "move";
+  const options = choices.classes.map((c) => ({
+    id: c.id,
+    name: t("enrollment.classOption", { class: c.name, grade: c.grade, year: c.academicYear }),
+  }));
 
   return (
     <main className="page">
@@ -56,15 +52,15 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       <PublishedReportCards cards={reportCards} />
       <AssessmentHistory rows={history} />
       <section className="card">
-        <h2>{current ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>
-        {current && <p className="muted">{t("enrollment.moveHint")}</p>}
-        {current && options.length === 0 ? (
+        <h2>{moving ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>
+        {moving && <p className="muted">{t("enrollment.moveHint")}</p>}
+        {moving && options.length === 0 ? (
           <p>{t("enrollment.noMoveTargets")}</p>
         ) : (
           <EnrollmentForm
-            key={current ? "move" : "enroll"}
+            key={choices.mode}
             studentId={profile.id}
-            mode={current ? "move" : "enroll"}
+            mode={choices.mode}
             classes={options}
           />
         )}

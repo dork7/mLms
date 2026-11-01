@@ -2,8 +2,7 @@
 // The Admin's Publish or unpublish button for one Class and Term.
 import { useActionState } from "react";
 import { t } from "@/i18n";
-import { Refusal } from "../../forms";
-import type { FormState } from "../../../setup-actions";
+import { type FormState, Refusal } from "@/app/form-kit";
 import { publishAction, unpublishAction } from "./actions";
 
 export function PublishForm({

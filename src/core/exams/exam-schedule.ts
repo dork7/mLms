@@ -1,10 +1,11 @@
 // A person's own Exam schedule: a Student's is the Exams of the Class they are enrolled
-// in today, and a Teacher's is the Exams of the Class Subjects they teach. The viewer is
-// always the actor, so nobody can ask for someone else's.
-import { and, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+// in today, and a Teacher's is the Exams of the Class Subjects they teach. A Student also
+// has the past Exams of their earlier Enrollments, shown apart. The viewer is always the
+// actor, so nobody can ask for someone else's. `access.ts` says which Exams are whose.
+import { and, eq, inArray, or } from "drizzle-orm";
 import { classSubject, enrollment, user } from "@/db/schema";
 import { t } from "@/i18n";
-import { requireRole } from "../access";
+import { isOwnExam, isOwnPastExam, requireRole } from "../access";
 import type { AssessmentType } from "../assessments/assessments";
 import type { Ctx } from "../context";
 import { clockTime, examRows, startMinute } from "./exams";
@@ -22,29 +23,37 @@ export type ScheduledExam = {
   room: string;
 };
 
-export type ExamSchedule = { name: string; exams: ScheduledExam[] };
+export type ExamSchedule = {
+  name: string;
+  /** Their current Exams, in time order: the schedule itself, and what the .ics file holds. */
+  exams: ScheduledExam[];
+  /** A Student's Exams from their earlier Enrollments, newest first. Read-only history. */
+  pastExams: ScheduledExam[];
+};
 
-/** The acting Student's or Teacher's own Exams, in time order. */
+/** The acting Student's or Teacher's own Exams. */
 export async function myExamSchedule(ctx: Ctx): Promise<ExamSchedule> {
   requireRole(ctx.actor, "student", "teacher");
   const [me] = await ctx.db.select({ name: user.name }).from(user).where(eq(user.id, ctx.actor.userId));
-  const rows = await examRows(ctx.db, ownExams(ctx));
+  const [rows, pastRows] = await Promise.all([
+    examRows(ctx.db, isOwnExam(ctx)),
+    examRows(ctx.db, isOwnPastExam(ctx)),
+  ]);
+  return { name: me.name, exams: rows.map(scheduled), pastExams: pastRows.reverse().map(scheduled) };
+}
+
+function scheduled(r: Awaited<ReturnType<typeof examRows>>[number]): ScheduledExam {
+  const start = startMinute(r.startTime);
   return {
-    name: me.name,
-    exams: rows.map((r) => {
-      const start = startMinute(r.startTime);
-      return {
-        id: r.id,
-        date: r.date,
-        startTime: clockTime(start),
-        endTime: clockTime(start + r.durationMinutes),
-        durationMinutes: r.durationMinutes,
-        subject: r.subject,
-        type: r.type,
-        class: r.class,
-        room: r.room,
-      };
-    }),
+    id: r.id,
+    date: r.date,
+    startTime: clockTime(start),
+    endTime: clockTime(start + r.durationMinutes),
+    durationMinutes: r.durationMinutes,
+    subject: r.subject,
+    type: r.type,
+    class: r.class,
+    room: r.room,
   };
 }
 
@@ -70,24 +79,5 @@ export async function myExamCalendar(ctx: Ctx): Promise<string> {
         location: e.room,
       };
     }),
-  );
-}
-
-function ownExams(ctx: Ctx) {
-  const me = ctx.actor.userId;
-  if (ctx.actor.role === "teacher") return eq(classSubject.teacherId, me);
-  const today = ctx.clock.today();
-  return inArray(
-    classSubject.classId,
-    ctx.db
-      .select({ classId: enrollment.classId })
-      .from(enrollment)
-      .where(
-        and(
-          eq(enrollment.studentId, me),
-          lte(enrollment.startDate, today),
-          or(isNull(enrollment.endDate), gte(enrollment.endDate, today)),
-        ),
-      ),
   );
 }

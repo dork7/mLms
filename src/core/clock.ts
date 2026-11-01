@@ -11,6 +11,11 @@ export type Clock = {
 
 const DEFAULT_TIME_ZONE = "Asia/Dubai";
 
+/** The school's time zone: the one place that reads SCHOOL_TIME_ZONE and its default. */
+export function schoolTimeZone(): string {
+  return process.env.SCHOOL_TIME_ZONE ?? DEFAULT_TIME_ZONE;
+}
+
 function dateIn(timeZone: string, instant: Date): string {
   // en-CA formats as YYYY-MM-DD.
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(instant);
@@ -41,7 +46,7 @@ function instantIn(timeZone: string, date: string, minutes: number): Date {
   return new Date(wall - offsetAt(timeZone, guess));
 }
 
-export function systemClock(timeZone = process.env.SCHOOL_TIME_ZONE ?? DEFAULT_TIME_ZONE): Clock {
+export function systemClock(timeZone = schoolTimeZone()): Clock {
   return {
     now: () => new Date(),
     today: () => dateIn(timeZone, new Date()),

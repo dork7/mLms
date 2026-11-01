@@ -1,8 +1,8 @@
 // How a Mark and an Assessment's statistics read in the UI.
-import type { MarkStats } from "@/core/assessments/mark-values";
+import type { MarkStats, MarkValue } from "@/core/assessments/mark-values";
 import { t } from "@/i18n";
 
-export function markText(mark: number | "absent" | "exempt" | null, maxMarks: number, percent: number | null): string {
+export function markText(mark: MarkValue, maxMarks: number, percent: number | null): string {
   if (mark === null) return t("marks.notEntered");
   if (mark === "absent") return t("marks.absent");
   if (mark === "exempt") return t("marks.exempt");

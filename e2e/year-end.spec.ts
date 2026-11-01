@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// This spec owns years 2095-2096 and 2096-2097, Grades 21 and 22, and these names:
+// This spec owns years 2095-2096 and 2096-2097, Grades 21, 22 and "Grade After 22", and their orders, and these names:
 // e2e specs share one database and run in parallel.
 async function open(page: Page, path: string) {
   await page.goto(path);
@@ -24,6 +24,18 @@ async function addGrade(page: Page, name: string) {
   await page.getByLabel("Grade name").first().fill(name);
   await page.getByRole("button", { name: "Add" }).click();
   await expect(page.getByLabel("Grade name").first()).toHaveValue("");
+}
+
+async function setGradeOrder(page: Page, name: string, order: string) {
+  await open(page, "/admin/grades");
+  const row = page.getByRole("listitem").filter({ has: page.locator(`input[name="name"][value="${name}"]`) });
+  await row.getByLabel(`Order of ${name}`).fill(order);
+  // The field shows what was typed either way, so wait for the save before reloading to check it.
+  const saved = page.waitForResponse((response) => response.request().method() === "POST");
+  await row.getByRole("button", { name: "Set order" }).click();
+  await saved;
+  await open(page, "/admin/grades");
+  await expect(row.getByLabel(`Order of ${name}`)).toHaveValue(order);
 }
 
 async function addClass(page: Page, year: string, grade: string, name: string) {
@@ -66,6 +78,10 @@ test("an Admin promotes a Class with Repeating and Leaving Students, then Closes
   await addYear(page, "2096-2097", "2096-09-01", "2097-06-30");
   await addGrade(page, "Grade 21");
   await addGrade(page, "Grade 22");
+  await addGrade(page, "Grade After 22");
+  await setGradeOrder(page, "Grade 21", "21");
+  await setGradeOrder(page, "Grade 22", "22");
+  await setGradeOrder(page, "Grade After 22", "23");
   await open(page, "/admin/teachers");
   await page.getByLabel("Name").fill("Tariq Yearend");
   await page.getByLabel("Email").fill("tariq.yearend@school.test");
@@ -75,6 +91,7 @@ test("an Admin promotes a Class with Repeating and Leaving Students, then Closes
   await addClass(page, "2095-2096", "Grade 21", "21-A");
   await addClass(page, "2096-2097", "Grade 21", "21-R");
   await addClass(page, "2096-2097", "Grade 22", "22-A");
+  await addClass(page, "2096-2097", "Grade After 22", "23-A");
   const start = "2095-09-01";
   await addStudent(page, "Promoted Pat", "YE-1", "21-A (Grade 21, 2095-2096)", start);
   await addStudent(page, "Repeating Rana", "YE-2", "21-A (Grade 21, 2095-2096)", start);
@@ -90,7 +107,12 @@ test("an Admin promotes a Class with Repeating and Leaving Students, then Closes
   await year.getByRole("link", { name: "Promote 21-A" }).click();
   await expect(page.getByRole("heading", { name: "Promote 21-A" })).toBeVisible();
   await page.waitForLoadState("networkidle");
-  await page.getByRole("combobox", { name: "Promote into" }).selectOption({ label: "22-A" });
+  // Only the next Grade's Classes are offered: not the same Grade's, and not the Grade after next.
+  const promoteInto = page.getByRole("combobox", { name: "Promote into" });
+  await expect(promoteInto.getByRole("option", { name: "22-A" })).toHaveCount(1);
+  await expect(promoteInto.getByRole("option", { name: "23-A" })).toHaveCount(0);
+  await expect(promoteInto.getByRole("option", { name: "21-R" })).toHaveCount(0);
+  await promoteInto.selectOption({ label: "22-A" });
   await page.getByRole("group", { name: "Repeating Rana" }).getByLabel("Repeating").check();
   await page.getByRole("combobox", { name: "New Class for Repeating Rana" }).selectOption({ label: "21-R" });
   await page.getByRole("group", { name: "Leaving Layla" }).getByLabel("Leaving").check();

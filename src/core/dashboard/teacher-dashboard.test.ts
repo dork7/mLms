@@ -8,9 +8,8 @@ import { AccessDenied } from "../errors";
 import { logLesson } from "../lessons/lessons";
 import { publishReportCards } from "../report-cards/publish";
 import { setPeriodsPerDay } from "../school/periods";
-import { createAcademicYear } from "../school/academic-year";
+import { createAcademicYear, listAcademicYears } from "../school/academic-year";
 import { closeAcademicYear, promoteClass } from "../year-end/year-end";
-import { yearTerms } from "../grading/term-grades";
 import { getTeacherDashboard } from "./teacher-dashboard";
 
 /** Today 2026-10-20. Aisha and Bilal are in 7-A. Sara teaches Math in 7-A and 7-B, Huda Science in 7-B. */
@@ -160,7 +159,7 @@ describe("Assessments that still need Marks on the Teacher dashboard", () => {
   it("leaves out Marks that a Published Report Card freezes, since they can't be entered", async () => {
     const s = await teacherSchool();
     await createAssessment(s.asSara, quiz(s.math7A.id));
-    const [term1] = await yearTerms(s.app.deps.db, s.year.id);
+    const [{ terms: [term1] }] = await listAcademicYears(s.asAdmin);
     expect(await needing(s)).toHaveLength(1);
 
     await publishReportCards(s.asAdmin, { classId: s.class7A.id, termId: term1.id });
@@ -171,7 +170,7 @@ describe("Assessments that still need Marks on the Teacher dashboard", () => {
   it("counts only the Marks still open when another Class's Publication freezes one Student", async () => {
     const s = await teacherSchool();
     const assessment = await createAssessment(s.asSara, quiz(s.math7A.id));
-    const [term1] = await yearTerms(s.app.deps.db, s.year.id);
+    const [{ terms: [term1] }] = await listAcademicYears(s.asAdmin);
     // Aisha's Report Card is 7-B's, so Publishing 7-B freezes her Mark on 7-A's quiz, not Bilal's.
     await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
     await publishReportCards(s.asAdmin, { classId: s.class7B.id, termId: term1.id });

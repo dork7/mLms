@@ -2,7 +2,7 @@
 // midterm or final), with a date, maximum marks and weight. Its Term is worked out
 // from its date and never stored. Who may create, change and see them is decided in
 // ../access.ts, always from the Class Subject.
-import { and, desc, eq, gte, inArray, isNull, lte, max, or, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, max, or, type SQL, sql } from "drizzle-orm";
 import { academicYear, assessment, classSubject, enrollment, mark, schoolClass, subject, term } from "@/db/schema";
 import {
   requireCanActOnAssessment,
@@ -10,6 +10,7 @@ import {
   requireCanSeeAssessment,
   requireCanSeeClassSubject,
 } from "../access";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import type { Ctx } from "../context";
 import { isCalendarDate } from "../dates";
 import type { Tx } from "../enrollment/enrollment";
@@ -26,8 +27,7 @@ import { hasAtMostTwoDecimals, markStats, type MarkStats, type MarkValue, toValu
 const markStudentOnRoster = and(
   eq(enrollment.studentId, mark.studentId),
   eq(enrollment.classId, classSubject.classId),
-  lte(enrollment.startDate, assessment.date),
-  or(isNull(enrollment.endDate), gte(enrollment.endDate, assessment.date)),
+  enrollmentCovers(assessment.date),
 );
 
 export const ASSESSMENT_TYPES = ["quiz", "assignment", "midterm", "final"] as const;

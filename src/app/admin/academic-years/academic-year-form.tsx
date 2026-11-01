@@ -4,7 +4,8 @@
 import { useActionState, useState } from "react";
 import type { AcademicYear } from "@/core/school/academic-year";
 import { t } from "@/i18n";
-import { type FormState, saveAcademicYear } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
+import { saveAcademicYear } from "../setup-actions";
 
 type TermRow = { name: string; startDate: string; endDate: string };
 

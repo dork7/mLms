@@ -2,9 +2,10 @@
 // zero) or Exempt (left out). The grid for an Assessment is exactly its Class's roster
 // on the Assessment's date, whatever Class those Students are in today. Saving the
 // grid is one batch upsert in one transaction.
-import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { assessment, classSubject, enrollment, mark, schoolClass, subject, term } from "@/db/schema";
-import { canSeeClassSubjectMarks, requireCanActOnAssessment, requireCanSeeStudentMarks } from "../access";
+import { canSeeInStudentHistory, requireCanActOnAssessment, requireCanSeeStudentMarks } from "../access";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
 import { AccessDenied, InvalidInput, NotFound } from "../errors";
@@ -88,7 +89,6 @@ export type HistoryRow = {
  */
 export async function studentAssessmentHistory(ctx: Ctx, input: { studentId: string }): Promise<HistoryRow[]> {
   await requireCanSeeStudentMarks(ctx, input.studentId);
-  const visible = ctx.actor.role === "student" ? sql<boolean>`true` : canSeeClassSubjectMarks(ctx.actor);
   const rows = await ctx.db
     .select({
       assessmentId: assessment.id,
@@ -112,8 +112,7 @@ export async function studentAssessmentHistory(ctx: Ctx, input: { studentId: str
       and(
         eq(enrollment.classId, schoolClass.id),
         eq(enrollment.studentId, input.studentId),
-        lte(enrollment.startDate, assessment.date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, assessment.date)),
+        enrollmentCovers(assessment.date),
       ),
     )
     .leftJoin(
@@ -125,7 +124,7 @@ export async function studentAssessmentHistory(ctx: Ctx, input: { studentId: str
       ),
     )
     .leftJoin(mark, and(eq(mark.assessmentId, assessment.id), eq(mark.studentId, input.studentId)))
-    .where(visible)
+    .where(canSeeInStudentHistory(ctx.actor))
     .orderBy(desc(assessment.date), desc(assessment.id));
   return rows.map(({ score, status, ...r }) => {
     const value = toValue({ score, status });

@@ -11,7 +11,7 @@ The school year that all Classes, Enrollments and Assessments belong to. Past ye
 A division of an Academic Year that grades are reported on.
 
 **Grade**:
-A year level, such as Grade 7.
+A year level, such as Grade 7. The Admin sets the order of Grades. The next Grade is the next one in that order, and a Grade with no order has no next Grade.
 _Avoid_: Level, year (for the year level)
 
 **Class**:
@@ -29,10 +29,10 @@ _Avoid_: Course
 A Student's membership of a Class for a date range. A Student who changes Class mid-year has two Enrollments.
 
 **Promotion**:
-Moving a Class's Students into the next Grade's Class for the new Academic Year. Individual Students can instead be Repeating (they stay in the same Grade) or Leaving (their Enrollment ends).
+Moving a Class's Students into a Class of the next Grade for the new Academic Year. Individual Students can instead be Repeating (they stay in the same Grade) or Leaving (their Enrollment ends).
 
 **Closing** (an Academic Year):
-Making an Academic Year read-only once Promotion is done.
+Making an Academic Year read-only once Promotion is done. It also keeps each Grade's Grading Scale as it stands then, for that year's Term Grades.
 
 **Room**:
 A named place in the school where an Exam can be held.
@@ -80,7 +80,7 @@ Anything graded with Marks for one Class Subject: a quiz, assignment, midterm or
 _Avoid_: Test (as the umbrella term)
 
 **Exam**:
-An Assessment that also has a scheduled sitting, with a date, time, room and invigilator. A grade-wide exam is one Exam per Class Subject.
+An Assessment that also has a scheduled sitting, with a date, time, room and invigilator. A grade-wide Exam is one Exam per Class Subject, each with its own Assessment and Room, added together or not at all.
 
 **Mark**:
 A Student's score on one Assessment, or a status of Absent or Exempt instead.
@@ -93,7 +93,7 @@ A Mark status meaning the Student missed the Assessment. It counts as zero.
 A Mark status meaning the Assessment doesn't count for that Student. An excused absence becomes Exempt.
 
 **Grading Scale**:
-A Grade's mapping from percentage to a letter or descriptor, plus the pass mark.
+A Grade's mapping from percentage to a letter or descriptor, plus the pass mark. Open years use the current Scale. A Closed year uses the Scale as it stood at Closing.
 
 **Term Grade**:
 A Student's weighted result in one Subject for one Term, combining every Assessment in that Subject across all their Enrollments.

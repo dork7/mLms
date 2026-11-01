@@ -34,7 +34,8 @@ export default async function YearEndPage() {
         <section className="card" key={year.id} aria-labelledby={`year-${year.id}`}>
           <h2 id={`year-${year.id}`}>{year.name}</h2>
           <p className="muted">
-            {t("setup.dateRange", { start: year.startDate, end: year.endDate })} ·{" "}
+            {t("setup.dateRange", { start: year.startDate, end: year.endDate })}
+            {t("common.separator")}
             {year.closed ? t("yearEnd.closed") : t("yearEnd.open")}
           </p>
           {year.classes.length === 0 ? (
@@ -49,7 +50,8 @@ export default async function YearEndPage() {
                     <Link href={`/admin/classes/${c.id}`}>{t("yearEnd.viewLink", { name: c.name })}</Link>
                   )}
                   <div className="muted">
-                    {c.grade} ·{" "}
+                    {c.grade}
+                    {t("common.separator")}
                     {c.awaitingPromotion > 0
                       ? t("yearEnd.waiting", { count: c.awaitingPromotion })
                       : t("yearEnd.nothingWaiting")}

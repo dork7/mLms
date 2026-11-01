@@ -117,10 +117,20 @@ export const term = pgTable("term", {
   endDate: date("end_date", { mode: "string" }).notNull(),
 });
 
-export const grade = pgTable("grade", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-});
+/**
+ * `sortOrder` is the Admin-set order of Grades: the next Grade is the one with the next
+ * higher number, so gaps are fine. Null until the Admin sets it. A Grade with none can't
+ * be promoted from or into.
+ */
+export const grade = pgTable(
+  "grade",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    sortOrder: integer("sort_order"),
+  },
+  (t) => [unique("grade_sort_order_unique").on(t.sortOrder), check("grade_sort_order_positive", sql`${t.sortOrder} > 0`)],
+);
 
 export const subject = pgTable("subject", {
   id: serial("id").primaryKey(),
@@ -344,6 +354,27 @@ export const gradingBand = pgTable(
     primaryKey({ columns: [t.gradeId, t.minPercent] }),
     check("grading_band_min_percent_range", sql`${t.minPercent} between 0 and 100`),
   ],
+);
+
+/**
+ * A Grade's Grading Scale as it stood when an Academic Year was Closed. Term Grades of a
+ * Closed year read this and never the live Scale, so later edits can't relabel them.
+ * Bands are highest first. A Grade with no Scale at Closing has no row, and its Term
+ * Grades have no label.
+ */
+export const closedYearScale = pgTable(
+  "closed_year_scale",
+  {
+    academicYearId: integer("academic_year_id")
+      .notNull()
+      .references(() => academicYear.id),
+    gradeId: integer("grade_id")
+      .notNull()
+      .references(() => grade.id),
+    passMark: numeric("pass_mark", { precision: 5, scale: 2, mode: "number" }).notNull(),
+    bands: jsonb("bands").$type<{ minPercent: number; label: string }[]>().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.academicYearId, t.gradeId] })],
 );
 
 // ---- Exams (ticket 13) ----

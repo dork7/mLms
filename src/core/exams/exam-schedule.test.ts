@@ -5,6 +5,8 @@ import { enrollStudent, moveStudent } from "../enrollment/enrollment";
 import { AccessDenied } from "../errors";
 import { createRoom } from "../school/catalogue";
 import { registerStudent } from "../students/register-student";
+import { yearEndSchool } from "../year-end/test-year-end";
+import { closeAcademicYear, promoteClass } from "../year-end/year-end";
 import { addExam } from "./exams";
 import { myExamCalendar, myExamSchedule } from "./exam-schedule";
 
@@ -64,6 +66,7 @@ describe("a Student's Exam schedule", () => {
           room: "Hall",
         },
       ],
+      pastExams: [],
     });
   });
 
@@ -102,6 +105,111 @@ describe("a Student's Exam schedule", () => {
     await addExam(s.asAdmin, final(s.math7A.id, s.hall.id));
 
     expect((await myExamSchedule(asCara)).exams).toEqual([]);
+  });
+});
+
+describe("a Student's past Exams", () => {
+  it("are the Exams from an earlier Enrollment, sat while they were enrolled, apart from the main schedule", async () => {
+    const s = await examSchool();
+    const sat = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id)); // 7-A's, but after she left
+    await addExam(s.asAdmin, final(s.math7B.id, s.lab.id));
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
+
+    const schedule = await myExamSchedule(s.asAisha);
+
+    expect(schedule.exams.map((e) => e.class)).toEqual(["7-B"]);
+    expect(schedule.pastExams).toEqual([
+      {
+        id: sat.id,
+        date: "2026-09-25",
+        startTime: "09:00",
+        endTime: "10:30",
+        durationMinutes: 90,
+        subject: "Math",
+        type: "final",
+        class: "7-A",
+        room: "Hall",
+      },
+    ]);
+  });
+
+  it("are newest first", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-20" }));
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
+
+    expect((await myExamSchedule(s.asAisha)).pastExams.map((e) => e.date)).toEqual(["2026-09-25", "2026-09-20"]);
+  });
+
+  it("are empty while the Student is still in their first Class, whose past-dated Exams stay on the main schedule", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+
+    const schedule = await myExamSchedule(s.asAisha);
+
+    expect(schedule.exams.map((e) => e.date)).toEqual(["2026-09-25"]);
+    expect(schedule.pastExams).toEqual([]);
+  });
+
+  it("don't repeat an Exam on the main schedule when the Student came back to the Class", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+    const in7B = await addExam(s.asAdmin, final(s.math7B.id, s.lab.id, { date: "2026-10-05" }));
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7A.id, date: "2026-10-10" });
+
+    const schedule = await myExamSchedule(s.asAisha);
+
+    expect(schedule.exams.map((e) => e.date)).toEqual(["2026-09-25"]);
+    expect(schedule.pastExams.map((e) => e.id)).toEqual([in7B.id]);
+  });
+
+  it("only ever show the Student's own Enrollments", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
+
+    const asBilal = s.app.as({ role: "student", userId: s.bilal });
+
+    expect((await myExamSchedule(asBilal)).pastExams).toEqual([]);
+  });
+
+  it("stay viewable after the year is Closed, and a Leaving Student keeps theirs", async () => {
+    const s = await yearEndSchool();
+    const hall = await createRoom(s.asAdmin, { name: "Hall" });
+    await addExam(s.asAdmin, final(s.math7A.id, hall.id, { date: "2026-11-10" }));
+    await promoteClass(s.asAdmin, { classId: s.class7A.id, toClassId: s.class8A.id, leaving: [{ studentId: s.bilal }] });
+    await closeAcademicYear(s.asAdmin, { academicYearId: s.year.id });
+    s.app.clock.set("2027-10-01T08:00:00+04:00");
+
+    const promoted = await myExamSchedule(s.app.as({ role: "student", userId: s.aisha }));
+    const left = await myExamSchedule(s.app.as({ role: "student", userId: s.bilal }));
+
+    expect(promoted.exams).toEqual([]);
+    expect(promoted.pastExams.map((e) => e.class)).toEqual(["7-A"]);
+    expect(left.exams).toEqual([]);
+    expect(left.pastExams.map((e) => e.class)).toEqual(["7-A"]);
+  });
+
+  it("stay out of the .ics export", async () => {
+    const s = await examSchool();
+    const past = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+    const current = await addExam(s.asAdmin, final(s.math7B.id, s.lab.id));
+    await moveStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7B.id, date: "2026-10-01" });
+
+    const calendar = await myExamCalendar(s.asAisha);
+
+    expect(calendar).toContain(`exam-${current.id}@school-lms`);
+    expect(calendar).not.toContain(`exam-${past.id}@school-lms`);
+  });
+
+  it("don't apply to a Teacher", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-09-25" }));
+
+    expect((await myExamSchedule(s.asSara)).pastExams).toEqual([]);
   });
 });
 

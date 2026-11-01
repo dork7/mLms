@@ -1,10 +1,10 @@
 // Grades, Subjects and Rooms: named lists the Admin maintains. Names are
 // trimmed and unique within each list. Staff can read the lists.
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { grade, room, subject } from "@/db/schema";
-import { requireAdmin, requireRole } from "../access";
+import { requireAdmin, requireId, requireRole } from "../access";
 import type { Ctx } from "../context";
-import { isUniqueViolation, NameTaken, NotFound } from "../errors";
+import { InvalidInput, isUniqueViolation, NameTaken, NotFound } from "../errors";
 
 export type Named = { id: number; name: string };
 
@@ -47,6 +47,45 @@ async function refuseDuplicate<T>(write: () => Promise<T>): Promise<T> {
     if (isUniqueViolation(err)) throw new NameTaken();
     throw err;
   }
+}
+
+/** How high a Grade's order can go. Far more than a school has Grades, and it fits the column. */
+const MAX_GRADE_ORDER = 1000;
+
+export type GradeInOrder = Named & { order: number | null };
+
+/**
+ * Sets a Grade's place in the Admin's order of Grades, which Promotion follows, or clears
+ * it with null. Whole numbers from 1, each used by one Grade; the next Grade is the next
+ * higher number, so gaps are fine. Admin only.
+ */
+export async function setGradeOrder(ctx: Ctx, input: { gradeId: number; order: number | null }): Promise<void> {
+  requireAdmin(ctx.actor);
+  requireId(input.gradeId);
+  const { order } = input;
+  if (order !== null && (!Number.isInteger(order) || order < 1 || order > MAX_GRADE_ORDER)) {
+    throw new InvalidInput("errors.gradeOrderInvalid");
+  }
+  try {
+    const rows = await ctx.db
+      .update(grade)
+      .set({ sortOrder: order })
+      .where(eq(grade.id, input.gradeId))
+      .returning({ id: grade.id });
+    if (rows.length === 0) throw new NotFound();
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new InvalidInput("errors.gradeOrderTaken");
+    throw err;
+  }
+}
+
+/** Every Grade in the Admin's order, then those with no order yet by name. Staff can read it. */
+export async function listGradesInOrder(ctx: Ctx): Promise<GradeInOrder[]> {
+  requireRole(ctx.actor, "admin", "teacher");
+  return ctx.db
+    .select({ id: grade.id, name: grade.name, order: grade.sortOrder })
+    .from(grade)
+    .orderBy(sql`${grade.sortOrder} asc nulls last`, asc(grade.name));
 }
 
 const grades = namedList(grade);

@@ -181,4 +181,36 @@ test("Students and Teachers see, print and export only their own Exams", async (
   const laylaCalendar = await downloadCalendar(page);
   expect(laylaCalendar).toContain("SUMMARY:Geology Final (Sched-1)");
   expect(laylaCalendar).not.toContain("Sched-2");
+
+  // Once the Student moves Class, the old Class's Exam is a past Exam: shown apart and read-only.
+  await page.context().clearCookies();
+  await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
+  await expect(page).toHaveURL(/\/admin$/);
+  await open(page, "/admin/students");
+  await page.getByRole("listitem").filter({ hasText: "Mona Schedule" }).getByRole("link", { name: "Profile" }).click();
+  await expect(page.getByRole("button", { name: "Move" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "Sched-2 (Grade Schedule, 2005-2006)" });
+  await page.getByLabel("From").fill("2006-01-01");
+  await page.getByRole("button", { name: "Move" }).click();
+  await expect(page.getByText("From 2006-01-01 · Current")).toBeVisible();
+
+  await page.context().clearCookies();
+  await logIn(page, "E2E-1401", PASSWORD);
+  await expect(page).toHaveURL(/\/student$/);
+  await page.getByRole("link", { name: "My Exams" }).click();
+  await expect(monaSchedule.getByText("Geology, Final, Sched-2")).toBeVisible();
+  await expect(monaSchedule.getByRole("listitem")).toHaveCount(1);
+  const past = page.getByRole("region", { name: "Past Exams" });
+  await expect(past.getByText("Geology, Final, Sched-1")).toBeVisible();
+  await expect(past.getByText("Room: Schedule Hall")).toBeVisible();
+  await expect(past.getByRole("link")).toHaveCount(0);
+  await expect(past.getByRole("button")).toHaveCount(0);
+  await expectNoSidewaysScroll(page);
+  await page.emulateMedia({ media: "print" });
+  await expect(past).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+  const movedCalendar = await downloadCalendar(page);
+  expect(movedCalendar).toContain("SUMMARY:Geology Final (Sched-2)");
+  expect(movedCalendar).not.toContain("Sched-1");
 });

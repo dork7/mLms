@@ -3,6 +3,7 @@
 import { and, asc, count, countDistinct, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { academicYear, enrollment, reportCardPublication, schoolClass, term, user } from "@/db/schema";
 import { requireAdmin } from "../access";
+import { enrollmentCovers } from "../enrollment/roster-condition";
 import type { Ctx } from "../context";
 
 export type WaitingReportCards = {
@@ -89,8 +90,7 @@ function reportCardsWaiting(ctx: Ctx, today: string): Promise<WaitingReportCards
       enrollment,
       and(
         eq(enrollment.classId, schoolClass.id),
-        lte(enrollment.startDate, term.endDate),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, term.endDate)),
+        enrollmentCovers(term.endDate),
       ),
     )
     .leftJoin(

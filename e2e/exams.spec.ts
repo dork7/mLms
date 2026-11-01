@@ -144,12 +144,37 @@ test("the Admin builds a Term's exam timetable, and the Subject Teacher enters E
   await add.getByRole("button", { name: "Add Exam" }).click();
   await expect(add.getByRole("alert").filter({ hasText: "This Class already has an Exam" })).toBeVisible();
 
-  // Back-to-back in the same Room is allowed.
+  // A refusal keeps the choices, so only the time needs changing. Back-to-back in the same Room is allowed.
+  await expect(classSubject).not.toHaveValue("");
+  await expect(room).not.toHaveValue("");
   await add.getByLabel("Start time").fill("10:30");
   await add.getByRole("button", { name: "Add Exam" }).click();
   await expect(
     timetable.getByRole("region", { name: "Grade 12 Astronomy, Final, 2061-11-10, 10:30 to 12:00" }),
   ).toBeVisible();
+
+  // A grade-wide Exam: one Room per Class. A clash refuses the whole add and keeps what was typed.
+  const gradeWide = page.getByRole("region", { name: "Add a grade-wide Exam" });
+  await gradeWide.getByRole("combobox", { name: "Grade and Subject" }).selectOption({ label: "Grade 12 Astronomy" });
+  await gradeWide.getByRole("combobox", { name: "Room for 12-X" }).selectOption({ label: "Exam Hall" });
+  await gradeWide.getByRole("combobox", { name: "Room for 12-Y" }).selectOption({ label: "Exam Hall" });
+  await gradeWide.getByRole("combobox", { name: "Type" }).selectOption({ label: "Midterm" });
+  await gradeWide.getByLabel("Date").fill("2061-12-01");
+  await gradeWide.getByLabel("Start time").fill("09:00");
+  await gradeWide.getByLabel("Duration (minutes)").fill("60");
+  await gradeWide.getByLabel("Maximum marks").fill("50");
+  await gradeWide.getByLabel("Weight").fill("2");
+  await gradeWide.getByRole("button", { name: "Add grade-wide Exam" }).click();
+  await expect(gradeWide.getByRole("alert").filter({ hasText: "This Room already has an Exam" })).toBeVisible();
+  await expect(timetable.getByRole("region", { name: /Midterm/ })).toHaveCount(0);
+
+  await gradeWide.getByRole("combobox", { name: "Room for 12-Y" }).selectOption({ label: "Exam Lab" });
+  await gradeWide.getByRole("button", { name: "Add grade-wide Exam" }).click();
+  await expect(gradeWide.getByRole("status").filter({ hasText: "Grade-wide Exam added." })).toBeVisible();
+  const midterm = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, 2061-12-01, 09:00 to 10:00" });
+  await expect(midterm.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
+  await expect(midterm.getByText("12-Y in Exam Lab (Noura Exams)")).toBeVisible();
+  await expectNoSidewaysScroll(page);
 
   // The Subject Teacher finds the Exam's Assessment in the normal list and enters a Mark.
   await page.context().clearCookies();

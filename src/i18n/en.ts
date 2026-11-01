@@ -1,6 +1,11 @@
 // English UI text. Every string shown in the UI lives here under a key.
 // Add Arabic later as ar.ts with the same shape (the Messages type enforces it).
 export const en = {
+  common: {
+    separator: " · ",
+    labelSeparator: ": ",
+  },
+
   app: {
     name: "School LMS",
   },
@@ -68,7 +73,11 @@ export const en = {
     summary: "{grade}, {year}. New Academic Year: {next}.",
     noNextYear: "Create the next Academic Year and its Classes first.",
     noStudents: "This Class has no Students left to promote.",
-    needsTargets: "The next Academic Year has no Class in another Grade yet.",
+    noTargets: {
+      gradeHasNoOrder: "This Grade has no order yet, so it has no next Grade. Set the order on the Grades page.",
+      lastGrade: "This is the last Grade in the order on the Grades page, so its Students can only be Repeating or Leaving.",
+      noClassInNextGrade: "The next Academic Year has no Class in the next Grade yet.",
+    },
     needsRepeatTargets: "The next Academic Year has no Class in this Grade yet.",
     toClass: "Promote into",
     outcome: {
@@ -92,7 +101,14 @@ export const en = {
     groupTitle: "{grade} {subject}, {type}, {date}, {start} to {end}",
     line: "{class} in {room} ({teacher})",
     addTitle: "Add an Exam",
-    addHint: "Each Exam is for one Class. For a grade-wide Exam, add one per Class at the same time.",
+    addHint: "An Exam for one Class. For a whole Grade, use the grade-wide form below.",
+    gradeWideTitle: "Add a grade-wide Exam",
+    gradeWideHint: "One Exam for each Class with this Subject, at the same time, each in its own Room. If anything clashes, none of them is added.",
+    gradeAndSubject: "Grade and Subject",
+    gradeAndSubjectOption: "{grade} {subject}",
+    roomFor: "Room for {class}",
+    addGradeWide: "Add grade-wide Exam",
+    gradeWideAdded: "Grade-wide Exam added.",
     needsSetup: "Add Class Subjects for this Academic Year and at least one Room first.",
     classSubject: "Class Subject",
     room: "Room",
@@ -114,6 +130,8 @@ export const en = {
     print: "Print",
     calendar: "Add to calendar (.ics)",
     eventSummary: "{subject} {type} ({class})",
+    pastTitle: "Past Exams",
+    pastHint: "Exams from your earlier Classes.",
   },
   adminDashboard: {
     title: "Admin dashboard",
@@ -396,6 +414,7 @@ export const en = {
     historyTitle: "Enrollment history",
     noHistory: "Not enrolled in any Class yet.",
     historyLine: "{class} ({grade}, {year})",
+    classOption: "{class} ({grade}, {year})",
     from: "From {start}",
     fromTo: "{start} to {end}",
     current: "Current",
@@ -449,7 +468,14 @@ export const en = {
       removeTerm: "Remove Term {n}",
       termLine: "{name}: {start} to {end}",
     },
-    grades: { title: "Grades", name: "Grade name", empty: "No Grades yet." },
+    grades: {
+      title: "Grades",
+      name: "Grade name",
+      empty: "No Grades yet.",
+      orderHint: "Promotion moves a Class to the next Grade in this order, the next higher number. A Grade with no order can't be promoted from or into until you set one.",
+      orderOf: "Order of {name}",
+      setOrder: "Set order",
+    },
     subjects: { title: "Subjects", name: "Subject name", empty: "No Subjects yet." },
     rooms: { title: "Rooms", name: "Room name", empty: "No Rooms yet." },
     periods: {
@@ -512,6 +538,8 @@ export const en = {
     gradingBandsMustStartAtZero: "The lowest band must start at 0, so every percentage gets a label.",
     examClashForClass: "This Class already has an Exam at an overlapping time.",
     examClashForRoom: "This Room already has an Exam at an overlapping time.",
+    gradeExamNoClassSubjects: "No Class of this Grade has this Subject in this Academic Year.",
+    gradeExamRoomsMismatch: "Choose one Room for each Class sitting this Exam.",
     examStartTimeInvalid: "Enter a valid start time.",
     examDurationInvalid: "Duration must be a whole number of minutes, and the Exam must end by midnight.",
     remarkTooLong: "A remark can be at most 1000 characters.",
@@ -523,6 +551,9 @@ export const en = {
     promotionNotDone: "Some Students in this Academic Year are still waiting for Promotion.",
     promotionNeedsNextYear: "The new Class must be in the next Academic Year.",
     promotionNeedsNextGrade: "The new Class must be in the next Grade. For a Student staying in this Grade, choose Repeating.",
+    promotionNeedsGradeOrder: "Set the order of both Grades on the Grades page first.",
+    gradeOrderInvalid: "A Grade's order must be a whole number from 1 to 1000.",
+    gradeOrderTaken: "Another Grade already has that order.",
     promotionRepeatNeedsSameGrade: "A Repeating Student's new Class must be in the same Grade.",
     promotionStudentNotInClass: "One of those Students is no longer enrolled in this Class.",
     promotionStudentTwice: "A Student can't be both Repeating and Leaving.",

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createClass } from "../classes/classes";
 import { AccessDenied, AlreadyEnrolled, InvalidInput, NotEnrolled, NotFound } from "../errors";
+import { createAcademicYear } from "../school/academic-year";
 import { createGrade } from "../school/catalogue";
-import { classRoster, enrollStudent, moveStudent } from "./enrollment";
+import { closeAcademicYear } from "../year-end/year-end";
+import { classRoster, enrollmentChoices, enrollStudent, moveStudent } from "./enrollment";
 import { enrollmentSchool, names } from "./test-enrollment";
 
 describe("Enrollment", () => {
@@ -101,5 +103,52 @@ describe("Enrollment", () => {
     expect(names(await classRoster(s.asAdmin, { classId: s.class7A.id, date: "2026-09-07" }))).toEqual([
       "Aisha Rahman",
     ]);
+  });
+});
+
+describe("which Classes the Admin can put a Student in", () => {
+  it("a Student with no open Enrollment can enroll in any Class, except a Closed year's", async () => {
+    const s = await enrollmentSchool();
+    const past = await createAcademicYear(s.asAdmin, {
+      name: "2001-2002",
+      startDate: "2001-09-01",
+      endDate: "2002-06-30",
+      terms: [{ name: "Whole year", startDate: "2001-09-01", endDate: "2002-06-30" }],
+    });
+    await createClass(s.asAdmin, {
+      academicYearId: past.id,
+      gradeId: s.grade7.id,
+      name: "7-Old",
+      classTeacherId: s.omar.userId,
+    });
+    await closeAcademicYear(s.asAdmin, { academicYearId: past.id });
+
+    const choices = await enrollmentChoices(s.asAdmin, { studentId: s.aisha });
+
+    expect(choices.mode).toBe("enroll");
+    expect(names(choices.classes)).toEqual(["7-A", "7-B"]);
+  });
+
+  it("a Student with an open Enrollment can only move, within the same Grade and Academic Year", async () => {
+    const s = await enrollmentSchool();
+    const grade8 = await createGrade(s.asAdmin, { name: "Grade 8" });
+    await createClass(s.asAdmin, {
+      academicYearId: s.year.id,
+      gradeId: grade8.id,
+      name: "8-A",
+      classTeacherId: s.omar.userId,
+    });
+    await enrollStudent(s.asAdmin, { studentId: s.aisha, classId: s.class7A.id, startDate: "2026-09-01" });
+
+    const choices = await enrollmentChoices(s.asAdmin, { studentId: s.aisha });
+
+    expect(choices.mode).toBe("move");
+    expect(names(choices.classes)).toEqual(["7-B"]);
+  });
+
+  it("is for the Admin only", async () => {
+    const s = await enrollmentSchool();
+
+    await expect(enrollmentChoices(s.app.as(s.huda), { studentId: s.aisha })).rejects.toThrow(AccessDenied);
   });
 });
