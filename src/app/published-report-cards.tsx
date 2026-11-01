@@ -12,6 +12,10 @@ export function PublishedReportCards({ cards }: { cards: StudentReportCard[] }) 
       </h2>
       <p className="muted">{t("publish.issuedBy", { class: card.issuingClass.name, grade: card.issuingClass.grade })}</p>
       <ReportCardBody card={card} rankShown={card.rankShown} />
+      {/* A plain link: next/link would try to route to a file. */}
+      <a href={`/students/${card.studentId}/report-cards/${card.publicationId}/pdf`} download>
+        {t("reportCardPdf.download")}
+      </a>
     </section>
   ));
 }

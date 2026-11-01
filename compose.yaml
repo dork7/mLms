@@ -21,6 +21,10 @@ services:
 
   app:
     build: .
+    # Chromium renders PDFs in this container (src/web/pdf.ts). It keeps pages in /dev/shm, whose
+    # 64 MB default is too small for a whole Class, and `init` reaps the processes it leaves.
+    shm_size: 256m
+    init: true
     depends_on:
       db:
         condition: service_healthy
