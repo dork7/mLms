@@ -4,12 +4,12 @@
 
 **Blocked by:** 06 (Enrollment)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Admin defines a Fee with its name, amount in AED and due date
-- [ ] Applying a Fee to a Grade or to specific Students creates Fee Assignments
-- [ ] The Admin logs a Payment Record with its amount, date, method (cash, bank transfer or cheque) and reference
-- [ ] Fee Status is worked out, never stored: Waived if waived, otherwise Paid if payments ≥ the amount, Partially Paid if payments > 0, otherwise Unpaid
-- [ ] The Admin can waive a Fee Assignment
-- [ ] A Student sees their own Fee Assignments and Payment Records
-- [ ] Teachers, including Class Teachers, are refused all Fee data
+- [x] The Admin defines a Fee with its name, amount in AED and due date
+- [x] Applying a Fee to a Grade or to specific Students creates Fee Assignments
+- [x] The Admin logs a Payment Record with its amount, date, method (cash, bank transfer or cheque) and reference
+- [x] Fee Status is worked out, never stored: Waived if waived, otherwise Paid if payments ≥ the amount, Partially Paid if payments > 0, otherwise Unpaid
+- [x] The Admin can waive a Fee Assignment
+- [x] A Student sees their own Fee Assignments and Payment Records
+- [x] Teachers, including Class Teachers, are refused all Fee data

@@ -500,6 +500,65 @@ export const publishedReportCard = pgTable(
   ],
 );
 
+// ---- Fees (ticket 18) ----
+// Money is whole fils (AED × 100) in `integer` columns, never floats. Fee Status is
+// worked out from the Payment Records when read, never stored. Fees belong to no
+// Academic Year, so the Closed-year guard doesn't apply to them.
+
+/** Something the school charges, such as "Term 1 Tuition". */
+export const fee = pgTable(
+  "fee",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    amountFils: integer("amount_fils").notNull(),
+    dueDate: date("due_date", { mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [check("fee_amount_positive", sql`${t.amountFils} > 0`)],
+);
+
+/** One Student owing one Fee. Waived by the Admin when `waivedAt` is set. */
+export const feeAssignment = pgTable(
+  "fee_assignment",
+  {
+    id: serial("id").primaryKey(),
+    feeId: integer("fee_id")
+      .notNull()
+      .references(() => fee.id),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.userId),
+    waivedAt: timestamp("waived_at", { withTimezone: true }),
+    waivedBy: text("waived_by").references(() => user.id),
+  },
+  (t) => [unique("fee_assignment_fee_student").on(t.feeId, t.studentId), index("fee_assignment_student_idx").on(t.studentId)],
+);
+
+export const paymentMethodEnum = pgEnum("payment_method", ["cash", "bank_transfer", "cheque"]);
+
+/** One logged payment against a Fee Assignment. */
+export const paymentRecord = pgTable(
+  "payment_record",
+  {
+    id: serial("id").primaryKey(),
+    feeAssignmentId: integer("fee_assignment_id")
+      .notNull()
+      .references(() => feeAssignment.id),
+    amountFils: integer("amount_fils").notNull(),
+    paidOn: date("paid_on", { mode: "string" }).notNull(),
+    method: paymentMethodEnum("method").notNull(),
+    reference: text("reference").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => user.id),
+  },
+  (t) => [
+    index("payment_record_assignment_idx").on(t.feeAssignmentId),
+    check("payment_record_amount_positive", sql`${t.amountFils} > 0`),
+  ],
+);
 // ---- Leave (ticket 23) ----
 // One Leave Request table for both requesters. The requester is a `user`: a Teacher's
 // request is theirs, and a Student's (ticket 22) is keyed by the Student's `user.id` too.

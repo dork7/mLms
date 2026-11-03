@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { enrollmentChoices } from "@/core/enrollment/enrollment";
+import { studentFeeAlert } from "@/core/fees/fee-alert";
+import { studentFeeAssignments } from "@/core/fees/fee-assignments";
 import { studentTermGrades } from "@/core/grading/term-grades";
 import { studentReportCards } from "@/core/report-cards/publish";
 import { getStudentProfile } from "@/core/students/student-profile";
@@ -8,6 +10,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { AssessmentHistory } from "../../../assessment-history";
+import { FeeAlert } from "../../../fee-alert";
+import { FeeAssignments } from "../../../fee-assignments";
 import { PublishedReportCards } from "../../../published-report-cards";
 import { StudentProfileCard } from "../../../student-profile-card";
 import { TermGrades } from "../../../term-grades";
@@ -25,6 +29,8 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
         studentAssessmentHistory(ctx, { studentId: id }),
         studentTermGrades(ctx, { studentId: id }),
         studentReportCards(ctx, { studentId: id }),
+        studentFeeAssignments(ctx, { studentId: id }),
+        studentFeeAlert(ctx, { studentId: id }),
       ]),
     );
   } catch (err) {
@@ -34,7 +40,7 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
       </main>
     );
   }
-  const [profile, choices, history, termGrades, reportCards] = data;
+  const [profile, choices, history, termGrades, reportCards, fees, feeAlert] = data;
   const moving = choices.mode === "move";
   const options = choices.classes.map((c) => ({
     id: c.id,
@@ -47,10 +53,12 @@ export default async function AdminStudentPage({ params }: { params: Promise<{ i
         <h1>{t("studentProfile.title")}</h1>
         <Link href="/admin/students">{t("students.backToList")}</Link>
       </header>
+      <FeeAlert alert={feeAlert} viewer="admin" />
       <StudentProfileCard profile={profile} />
       <TermGrades terms={termGrades} />
       <PublishedReportCards cards={reportCards} />
       <AssessmentHistory rows={history} />
+      <FeeAssignments assignments={fees} linkForAdmin />
       <section className="card">
         <h2>{moving ? t("enrollment.moveTitle") : t("enrollment.enrollTitle")}</h2>
         {moving && <p className="muted">{t("enrollment.moveHint")}</p>}

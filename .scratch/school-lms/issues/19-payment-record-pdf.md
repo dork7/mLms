@@ -4,8 +4,8 @@
 
 **Blocked by:** 12 (Report Card PDF), 18 (Fees and Payment Records)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Student can download only their own Payment Records
-- [ ] The Admin can download any Payment Record
-- [ ] Uses the same PDF rendering as Report Cards
+- [x] A Student can download only their own Payment Records
+- [x] The Admin can download any Payment Record
+- [x] Uses the same PDF rendering as Report Cards
