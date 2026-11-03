@@ -20,3 +20,11 @@ export function t(key: MessageKey, params: Record<string, string | number> = {})
     .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], messages);
   return String(template).replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));
 }
+
+/** Whether `key` names a message, for a key that arrives as text (e.g. in a URL). */
+export function isMessageKey(key: string): key is MessageKey {
+  const found = key
+    .split(".")
+    .reduce<unknown>((node, part) => (node && typeof node === "object" ? (node as Record<string, unknown>)[part] : undefined), messages);
+  return typeof found === "string";
+}

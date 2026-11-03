@@ -8,10 +8,13 @@ import { whenText } from "./when-text";
 export function LeaveRequestItem({
   request,
   showRequester,
+  requesterClass,
   children,
 }: {
   request: LeaveRequestRow;
   showRequester: boolean;
+  /** A Student requester's Class today, for the Class Teacher's list. */
+  requesterClass?: string;
   /** Actions for whoever may decide it. */
   children?: ReactNode;
 }) {
@@ -21,6 +24,7 @@ export function LeaveRequestItem({
     <li className="leave-request" aria-label={leaveLabel(request, showRequester)}>
       <div>
         {showRequester && <strong>{request.requester}</strong>}
+        {requesterClass && <div className="muted">{requesterClass}</div>}
         <div>
           {startDate === endDate
             ? t("leave.oneDay", { date: startDate })

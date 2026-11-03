@@ -224,3 +224,14 @@ export class InvalidPeriodsPerDay extends Error {
     this.name = "InvalidPeriodsPerDay";
   }
 }
+
+// ---- Leave ----
+
+/** The Admin has decided this Student's Leave Request, so the Class Teacher can't change it. */
+export class LeaveDecidedByAdmin extends Error {
+  readonly messageKey = "errors.leaveDecidedByAdmin";
+  constructor() {
+    super("the Admin has decided this Leave Request");
+    this.name = "LeaveDecidedByAdmin";
+  }
+}

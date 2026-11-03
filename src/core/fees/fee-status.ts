@@ -12,10 +12,11 @@ export function feeStatus(a: { amountFils: number; paidFils: number; waived: boo
 }
 
 /**
- * Overdue: past the due date (the due day itself isn't Overdue yet) and not Paid or Waived.
- * Defined here for Fee Reminders (ticket 21); ticket 20 (Fee Alert) defines Overdue too, and
- * the two are to be merged into one.
+ * Overdue: the one rule for it. Past the due date by the Clock (the day after the due
+ * date at the earliest; the due date itself isn't Overdue) and not Paid or Waived, so
+ * Unpaid or Partially Paid. Worked out on every read like the Fee Status, never stored.
+ * `today` is `clock.today()`.
  */
-export function isOverdueOn(today: string, a: { dueDate: string; status: FeeStatus }): boolean {
-  return a.dueDate < today && a.status !== "paid" && a.status !== "waived";
+export function isOverdue(a: { dueDate: string; status: FeeStatus }, today: string): boolean {
+  return a.dueDate < today && (a.status === "unpaid" || a.status === "partiallyPaid");
 }

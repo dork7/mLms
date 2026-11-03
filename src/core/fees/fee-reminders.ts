@@ -18,7 +18,7 @@ import type { Ctx, Deps } from "../context";
 import { InvalidInput } from "../errors";
 import { addDays } from "../dates";
 import { type FeeAssignmentView, feeAssignmentViews, getFee } from "./fee-assignments";
-import { isOverdueOn } from "./fee-status";
+import { isOverdue } from "./fee-status";
 import { formatAed } from "./money";
 
 export type FeeReminderSettings = { leadDays: number; intervalDays: number };
@@ -38,7 +38,7 @@ export async function sendDailyFeeReminders(deps: Deps): Promise<FeeReminderResu
   const today = deps.clock.today();
   const settings = await feeReminderSettings(deps.db);
   const candidates = await feeAssignmentViews(
-    deps.db,
+    deps,
     and(isNull(feeAssignment.waivedAt), lte(fee.dueDate, addDays(today, settings.leadDays))),
   );
   const outstanding = candidates.filter(isOutstanding);
@@ -144,7 +144,7 @@ async function send(deps: Deps, due: FeeAssignmentView[], sentBy: string | null)
       result.noEmail++;
       continue;
     }
-    const overdue = isOverdueOn(today, { dueDate: a.fee.dueDate, status: a.status });
+    const overdue = isOverdue({ dueDate: a.fee.dueDate, status: a.status }, today);
     try {
       const outcome = await deps.db.transaction(async (tx) => {
         const claimed = await tx
@@ -231,7 +231,7 @@ export async function noEmailReport(ctx: Ctx): Promise<NoEmailRow[]> {
     .where(isNull(student.email))
     .orderBy(asc(user.name), asc(student.studentNumber));
   const owing = new Set(
-    (await feeAssignmentViews(ctx.db, and(isNull(student.email), isNull(feeAssignment.waivedAt))))
+    (await feeAssignmentViews(ctx, and(isNull(student.email), isNull(feeAssignment.waivedAt))))
       .filter(isOutstanding)
       .map((a) => a.studentId),
   );

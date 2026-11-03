@@ -1,5 +1,5 @@
 {
-  "id": "e83b6841-a2b0-4e99-8677-efafac8d05ed",
+  "id": "514dcd73-d0bd-49c2-b34d-4cd2c8aa659b",
   "prevId": "db179d31-b0a1-46ee-8da4-be875424470d",
   "version": "7",
   "dialect": "postgresql",
@@ -847,98 +847,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.fee_reminder": {
-      "name": "fee_reminder",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "fee_assignment_id": {
-          "name": "fee_assignment_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "fee_reminder_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sent_on": {
-          "name": "sent_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sent_to": {
-          "name": "sent_to",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sent_by": {
-          "name": "sent_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "fee_reminder_fee_assignment_id_fee_assignment_id_fk": {
-          "name": "fee_reminder_fee_assignment_id_fee_assignment_id_fk",
-          "tableFrom": "fee_reminder",
-          "tableTo": "fee_assignment",
-          "columnsFrom": [
-            "fee_assignment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fee_reminder_sent_by_user_id_fk": {
-          "name": "fee_reminder_sent_by_user_id_fk",
-          "tableFrom": "fee_reminder",
-          "tableTo": "user",
-          "columnsFrom": [
-            "sent_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "fee_reminder_one_a_day": {
-          "name": "fee_reminder_one_a_day",
-          "nullsNotDistinct": false,
-          "columns": [
-            "fee_assignment_id",
-            "sent_on"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.grade": {
       "name": "grade",
       "schema": "",
@@ -1138,6 +1046,90 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.leave_excused_mark": {
+      "name": "leave_excused_mark",
+      "schema": "",
+      "columns": {
+        "assessment_id": {
+          "name": "assessment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "leave_request_id": {
+          "name": "leave_request_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "leave_excused_mark_request_idx": {
+          "name": "leave_excused_mark_request_idx",
+          "columns": [
+            {
+              "expression": "leave_request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "leave_excused_mark_leave_request_id_leave_request_id_fk": {
+          "name": "leave_excused_mark_leave_request_id_leave_request_id_fk",
+          "tableFrom": "leave_excused_mark",
+          "tableTo": "leave_request",
+          "columnsFrom": [
+            "leave_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "leave_excused_mark_mark_fk": {
+          "name": "leave_excused_mark_mark_fk",
+          "tableFrom": "leave_excused_mark",
+          "tableTo": "mark",
+          "columnsFrom": [
+            "assessment_id",
+            "student_id"
+          ],
+          "columnsTo": [
+            "assessment_id",
+            "student_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "leave_excused_mark_assessment_id_student_id_pk": {
+          "name": "leave_excused_mark_assessment_id_student_id_pk",
+          "columns": [
+            "assessment_id",
+            "student_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -2049,20 +2041,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "fee_reminder_lead_days": {
-          "name": "fee_reminder_lead_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 7
-        },
-        "fee_reminder_interval_days": {
-          "name": "fee_reminder_interval_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 7
         }
       },
       "indexes": {},
@@ -2625,14 +2603,6 @@
         "assignment",
         "midterm",
         "final"
-      ]
-    },
-    "public.fee_reminder_kind": {
-      "name": "fee_reminder_kind",
-      "schema": "public",
-      "values": [
-        "upcoming",
-        "overdue"
       ]
     },
     "public.leave_status": {

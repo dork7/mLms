@@ -65,7 +65,8 @@ test("a Teacher requests leave with an attachment, the Admin approves it, and th
   await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
   await expect(page).toHaveURL(/\/admin$/);
   await open(page, "Leave Requests");
-  const waiting = page
+  const teachers = page.getByRole("region", { name: "Teachers", exact: true });
+  const waiting = teachers
     .getByRole("region", { name: "Waiting for a decision" })
     .getByRole("listitem", { name: "Hessa Leave: 2031-03-02 to 2031-03-04" });
   await expect(waiting).toContainText("My sister's wedding in Al Ain");
@@ -77,7 +78,7 @@ test("a Teacher requests leave with an attachment, the Admin approves it, and th
   expect(await readFile((await download.path())!)).toEqual(PDF);
 
   await waiting.getByRole("button", { name: "Approve" }).click();
-  const decided = page
+  const decided = teachers
     .getByRole("region", { name: "Decided" })
     .getByRole("listitem", { name: "Hessa Leave: 2031-03-02 to 2031-03-04" });
   await expect(decided).toContainText(/Approved by /);

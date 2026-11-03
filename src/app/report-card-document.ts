@@ -3,6 +3,7 @@
 // using the same text helpers. Everything from the database goes through `escaped`.
 import type { PrintableReportCard } from "@/core/report-cards/export";
 import { dir, locale, t } from "@/i18n";
+import { escaped } from "./escaped";
 import { overallText } from "./report-card-text";
 import { termGradeNotes, termGradeText } from "./term-grade-text";
 import { whenText } from "./when-text";
@@ -44,15 +45,6 @@ function gradeRow(grade: PrintableReportCard["card"]["grades"][number]): string 
 
 function remarkText(teacher: string, remark: string | null): string {
   return remark === null ? t("reportCards.remarkNone") : t("reportCards.remarkFrom", { teacher, remark });
-}
-
-function escaped(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }
 
 // Logical properties only, like globals.css. Nothing loads from outside the document.

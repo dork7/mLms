@@ -9,6 +9,7 @@ import { AcademicYearClosed, AccessDenied, InvalidInput, NotFound, PromotionNotD
 import { addExam, examTimetable } from "../exams/exams";
 import { getGradingScale, setGradingScale } from "../grading/grading-scales";
 import { classSubjectTermGrades, studentTermGrades } from "../grading/term-grades";
+import { decideLeaveRequest, myLeaveRequests, submitLeaveRequest } from "../leave/leave-requests";
 import { lessonFormDefaults, listClassLessons, logLesson } from "../lessons/lessons";
 import { listAcademicYears, updateAcademicYear } from "../school/academic-year";
 import { createGrade, createRoom, setGradeOrder } from "../school/catalogue";
@@ -660,6 +661,30 @@ describe("a Closed Academic Year refuses every write dated in it", () => {
       saveMarks(s.asSara, { assessmentId: s.assessmentId, marks: [{ studentId: s.aisha, mark: 9 }] }),
     ).rejects.toThrow(AcademicYearClosed);
     expect((await marksGrid(s.asSara, { assessmentId: s.assessmentId })).rows[0].mark).toBe(8);
+  });
+
+  test("an approved Student leave skips its Marks there, and the decision stands", async () => {
+    const s = await yearEndSchool();
+    const { id: closedQuiz } = await createAssessment(s.asSara, quiz(s.math7A.id));
+    await saveMarks(s.asSara, { assessmentId: closedQuiz, marks: [{ studentId: s.bilal, mark: "absent" }] });
+    await promoteAndClose(s);
+    const math8A = await createClassSubject(s.asAdmin, { classId: s.class8A.id, subjectId: s.math.id, teacherId: s.sara.userId });
+    const { id: openQuiz } = await createAssessment(s.asSara, quiz(math8A.id, { date: "2027-09-05" }));
+    await saveMarks(s.asSara, { assessmentId: openQuiz, marks: [{ studentId: s.bilal, mark: "absent" }] });
+    const asBilal = s.app.as({ role: "student", userId: s.bilal });
+    const { id } = await submitLeaveRequest(asBilal, { startDate: "2026-09-20", endDate: "2027-09-05", reason: "Surgery" });
+
+    expect(await decideLeaveRequest(s.asAdmin, { leaveRequestId: id, decision: "approved" })).toEqual({
+      marksExempted: 1,
+      marksRestored: 0,
+      marksFrozen: 1,
+    });
+    expect(await myLeaveRequests(asBilal)).toMatchObject([{ status: "approved" }]);
+    const marks = await studentAssessmentHistory(s.asAdmin, { studentId: s.bilal });
+    expect(marks.map((r) => [r.date, r.mark])).toEqual([
+      ["2027-09-05", "exempt"],
+      ["2026-09-20", "absent"],
+    ]);
   });
 
   test("Publish and unpublish, while Published Report Cards stay readable", async () => {

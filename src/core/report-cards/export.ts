@@ -6,6 +6,7 @@
 import { requireId } from "../access";
 import type { Ctx } from "../context";
 import { NotFound } from "../errors";
+import { pdfFileName } from "../file-name";
 import { studentReportCards } from "./publish";
 import { classReportCards, type PublishedCard } from "./report-cards";
 
@@ -34,7 +35,7 @@ export async function studentReportCardExport(
   if (!found) throw new NotFound();
   const { publicationId: _id, term, rankShown, publishedAt, ...card } = found;
   return {
-    fileName: fileNameOf("report-card", card.studentNumber, term.endDate),
+    fileName: pdfFileName("report-card", card.studentNumber, term.endDate),
     cards: [{ card, term: { name: term.name, academicYear: term.academicYear }, rankShown, publishedAt }],
   };
 }
@@ -57,8 +58,8 @@ export async function classReportCardExport(
   return {
     fileName:
       input.studentId === undefined
-        ? fileNameOf("report-cards", page.class, page.term.endDate)
-        : fileNameOf("report-card", chosen[0].studentNumber, page.term.endDate),
+        ? pdfFileName("report-cards", page.class, page.term.endDate)
+        : pdfFileName("report-card", chosen[0].studentNumber, page.term.endDate),
     cards: chosen.map(({ flags: _flags, ...card }) => ({
       card,
       term,
@@ -66,10 +67,4 @@ export async function classReportCardExport(
       publishedAt: publication?.publishedAt ?? null,
     })),
   };
-}
-
-/** Names and Student Numbers can hold anything, so only their plain ASCII reaches the header. */
-function fileNameOf(kind: string, who: string, termLastDay: string): string {
-  const plain = who.replace(/[^A-Za-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-  return `${[kind, plain, termLastDay].filter(Boolean).join("-")}.pdf`;
 }

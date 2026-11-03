@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AccessDenied } from "../errors";
+import { feeAlerts, studentFeeAlert } from "./fee-alert";
 import {
   applyFeeToGrade,
   applyFeeToStudents,
@@ -63,7 +64,13 @@ describe("Who sees Fees", () => {
         () => waiveFeeAssignment(ctx, { feeAssignmentId }),
         () => unwaiveFeeAssignment(ctx, { feeAssignmentId }),
       ];
-      if (ctx.actor.role === "teacher") refused.push(() => studentFeeAssignments(ctx, { studentId: s.aisha }));
+      if (ctx.actor.role === "teacher") {
+        refused.push(
+          () => studentFeeAssignments(ctx, { studentId: s.aisha }),
+          () => studentFeeAlert(ctx, { studentId: s.aisha }),
+          () => feeAlerts(ctx, { studentIds: [s.aisha] }),
+        );
+      }
       for (const call of refused) await expect(call()).rejects.toThrow(AccessDenied);
     }
     expect((await getFee(s.asAdmin, { feeId })).assignments).toEqual([

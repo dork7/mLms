@@ -6,7 +6,7 @@ import { formatAed } from "@/core/fees/money";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import { paidText } from "../../../fee-assignments";
+import { FeeStatusLabel, paidText } from "../../../fee-assignments";
 import { ApplyToGradeForm, ApplyToStudentsForm, SendRemindersNowForm } from "../forms";
 
 export default async function FeePage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,7 +56,9 @@ export default async function FeePage({ params }: { params: Promise<{ id: string
                   <div className="muted">{a.studentNumber}</div>
                   <div className="muted">{paidText(a)}</div>
                 </div>
-                <strong>{t(`fees.status.${a.status}`)}</strong>
+                <div>
+                  <FeeStatusLabel assignment={a} />
+                </div>
               </li>
             ))}
           </ul>

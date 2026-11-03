@@ -4,10 +4,10 @@
 
 **Blocked by:** 15 (Dashboards), 18 (Fees and Payment Records)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Overdue means past the due date (by the Clock) and not Paid or Waived
-- [ ] The Fee Alert appears on the Student's profile, the Student's dashboard and the Report Card screen, for both the Admin and the Student
-- [ ] Teachers never see the Fee Alert
-- [ ] An Overdue Fee never blocks login, Exams or Report Cards
-- [ ] The alert appears and disappears as the Clock moves and payments are recorded
+- [x] Overdue means past the due date (by the Clock) and not Paid or Waived
+- [x] The Fee Alert appears on the Student's profile, the Student's dashboard and the Report Card screen, for both the Admin and the Student
+- [x] Teachers never see the Fee Alert
+- [x] An Overdue Fee never blocks login, Exams or Report Cards
+- [x] The alert appears and disappears as the Clock moves and payments are recorded

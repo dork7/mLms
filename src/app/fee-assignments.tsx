@@ -1,9 +1,10 @@
 // A Student's Fee Assignments with their Fee Status and Payment Records. Shown to the
-// Student on /student/fees and to the Admin on the Student's profile.
+// Student on /student/fees and to the Admin on the Student's profile. Each Payment Record
+// links to its PDF.
 import Link from "next/link";
 import type { FeeAssignmentView, PaymentRecordRow } from "@/core/fees/fee-assignments";
-import { formatAed } from "@/core/fees/money";
 import { t } from "@/i18n";
+import { paidText, paymentText } from "./fee-text";
 
 export function FeeAssignments({
   assignments,
@@ -30,7 +31,7 @@ export function FeeAssignments({
                   <div>{paidText(a)}</div>
                 </div>
                 <div>
-                  <strong>{t(`fees.status.${a.status}`)}</strong>
+                  <FeeStatusLabel assignment={a} />
                   {linkForAdmin && (
                     <div>
                       <Link href={`/admin/fees/assignments/${a.id}`}>{t("fees.open")}</Link>
@@ -47,27 +48,36 @@ export function FeeAssignments({
   );
 }
 
+/** The Fee Status, followed by "Overdue" while it is. */
+export function FeeStatusLabel({ assignment }: { assignment: Pick<FeeAssignmentView, "status" | "overdue"> }) {
+  return (
+    <>
+      <strong>{t(`fees.status.${assignment.status}`)}</strong>
+      {assignment.overdue && (
+        <>
+          {t("common.separator")}
+          <span className="fee-overdue">{t("fees.overdue")}</span>
+        </>
+      )}
+    </>
+  );
+}
+
 export function PaymentRecords({ payments }: { payments: PaymentRecordRow[] }) {
   if (payments.length === 0) return null;
   return (
     <ul className="list payment-records" aria-label={t("fees.paymentRecordsTitle")}>
       {payments.map((p) => (
         <li key={p.id} className="muted">
-          {paymentText(p)}
+          <span>{paymentText(p)}</span>{" "}
+          {/* A plain link: next/link would try to route to a file. */}
+          <a href={`/payment-records/${p.id}/pdf`} download>
+            {t("paymentRecordPdf.download")}
+          </a>
         </li>
       ))}
     </ul>
   );
 }
 
-/** "AED 400.00 paid of AED 1,000.00". */
-export function paidText(a: { paidFils: number; fee: { amountFils: number } }): string {
-  return t("fees.paidOf", { paid: formatAed(a.paidFils), amount: formatAed(a.fee.amountFils) });
-}
-
-/** "AED 400.00 on 2026-09-28 · Bank transfer · TRX-77". */
-export function paymentText(p: PaymentRecordRow): string {
-  return [t("fees.paymentLine", { amount: formatAed(p.amountFils), date: p.paidOn }), t(`fees.methods.${p.method}`), p.reference]
-    .filter(Boolean)
-    .join(t("common.separator"));
-}
+export { paidText, paymentText };
