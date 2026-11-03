@@ -63,6 +63,9 @@ export default async function StudentDashboardPage() {
             <Link href="/student/report-cards">{t("nav.myReportCards")}</Link>
           </li>
           <li>
+            <Link href="/student/fees">{t("nav.myFees")}</Link>
+          </li>
+          <li>
             <Link href="/student/profile">{t("studentProfile.myTitle")}</Link>
           </li>
         </ul>

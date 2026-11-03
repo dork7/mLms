@@ -445,3 +445,10 @@ code {
     break-inside: avoid;
   }
 }
+
+/* A Fee Assignment's Payment Records, under its line. */
+.payment-records {
+  margin-block-start: 0.5rem;
+  padding-inline-start: 1rem;
+  gap: 0.25rem;
+}
