@@ -4,8 +4,8 @@
 
 **Blocked by:** 02 (Staff accounts)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Teacher submits a Leave Request with a date range, a reason and an optional attachment
-- [ ] Only an Admin can approve or reject it
-- [ ] The Teacher sees the request's status
+- [x] A Teacher submits a Leave Request with a date range, a reason and an optional attachment
+- [x] Only an Admin can approve or reject it
+- [x] The Teacher sees the request's status
