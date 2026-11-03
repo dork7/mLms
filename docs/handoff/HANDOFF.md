@@ -1,4 +1,4 @@
-# Handoff: School LMS build (P1 complete)
+# Handoff: School LMS build (P1 and P2 complete)
 
 Repo: `https://github.com/dork7/mLms.git`. The main checkout is at `/Users/dork/repos/mLms` (on `main`), and `integration/school-lms-p1` is checked out in the worktree `/Users/dork/orca/workspaces/mLms/gannet`.
 
@@ -14,12 +14,13 @@ Repo: `https://github.com/dork7/mLms.git`. The main checkout is at `/Users/dork/
 ## Where the build stands
 - **P1 (tickets 01–17) is resolved** and merged on `integration/school-lms-p1`, including the code review fixes (branch `review/p1-fixes`). The last run, on `3cf7a06`, was green: the typecheck, 483 Vitest tests and 21 Playwright tests.
 - **Dark mode** (`76a4450`) is also on the integration branch. It came from outside the implement-spec run and has no ticket.
-- **P2 (tickets 18–23) isn't started**; all are still `ready-for-agent`. The user chose P1 only for the last run, so ask before starting them. Every blocker is resolved except 18, so 18, 22 and 23 are ready now, and 19, 20 and 21 follow 18.
-- **Migrations** run 0000–0014.
-- **Local branches kept:** `ticket/08` to `ticket/16` and `review/p1-fixes`, all merged. The implementer worktrees are gone.
+- **P2 (tickets 18–23) is resolved** and merged on `integration/school-lms-p1` (tip `a82ea4b`). The order was 23, 18, 19, 20, 22, 21. The last run, on the ticket 21 merge, was green: the typecheck, 562 Vitest tests and 27 Playwright tests. P2 has had no code review yet.
+- **Migrations** run 0000–0018. P2 added `0015_leave_requests`, `0016_fees`, `0017_student_leave` and `0018_fee_reminders`. Parallel tickets clashed on numbers, and each later one was regenerated on top; the SQL was identical each time.
+- **Local branches kept:** `ticket/08` to `ticket/23` and `review/p1-fixes`, all merged. The P2 worktrees `/Users/dork/orca/workspaces/mLms/p2-18` … `p2-23` still exist and can be removed with `git worktree remove`.
+- **New production pieces from P2:** a `fee-reminders` Compose service that runs the daily Fee Reminder pass (`docs/fee-reminders.md`), and a `SCHOOL_NAME` setting used on Payment Record PDFs.
 
 ## Not done yet
-- **The PR:** `integration/school-lms-p1` is pushed and a PR into `main` is open (`gh pr view integration/school-lms-p1`). `main` is still at `e68a933` until it merges.
+- **The PR:** PR #2 (`integration/school-lms-p1` into `main`) is open. The P2 merges are local only until the branch is pushed, which also adds them to PR #2. `main` is still at `e68a933`.
 - **GitHub Issues:** `AGENTS.md` and `docs/agents/issue-tracker.md` point at GitHub Issues on `dork7/mLms`, but tickets are still local files and GitHub has none. `gh` is logged in now. The plan, which the user hasn't yet asked to run:
   - create the triage labels
   - create the spec as a parent issue
@@ -37,6 +38,13 @@ Repo: `https://github.com/dork7/mLms.git`. The main checkout is at `/Users/dork/
    - The preview lists Students with no Report Card.
    - A Leaving Student can have an earlier last day.
 4. **Do Exams need editing?** They can't be edited, moved or deleted yet, so an Admin can't fix a mistake. It needs its own ticket.
+5. **Fees and Payment Records can't be edited or deleted** (ticket 18), so a wrong Payment Record can't be corrected. Its own ticket?
+6. **Applying a Fee to a Grade** includes Students whose Enrollment hasn't ended, even one that starts later. Should it be only those enrolled today?
+7. **Overpaying** is allowed and reads Paid (the spec's "payments ≥ the amount"). Refuse it to catch typos?
+8. **The school name** is a deployment setting (`SCHOOL_NAME`). Should the Admin edit it in the app (a migration)?
+9. **A Student's email can't be edited after registration**, so the no-email report can't be cleared from the UI.
+10. **Student leave:** an Absent Mark entered inside the leave dates after approval stays Absent unless the request is approved again. Should it become Exempt automatically?
+11. **Unrequested P2 behaviour that was kept:** "Undo waiver" for Fee Assignments; a decided Leave Request can be decided again; once the Admin decides a Student's request, the Class Teacher can't change it; "Send reminders now" ignores the timing rule except for anyone reminded today; the no-email report shows the guardian contact.
 
 ## Decisions made in conversation (not recorded elsewhere)
 - **Tickets are tracked as local files for now**, resolved by ticking the boxes and setting `**Status:** resolved`.
@@ -70,13 +78,12 @@ Repo: `https://github.com/dork7/mLms.git`. The main checkout is at `/Users/dork/
 
 ## Next steps
 1. Get answers to the questions above.
-2. Review and merge the PR into `main` when the user asks.
-3. Migrate the tickets to GitHub Issues if the user wants that.
-4. Start P2 if the user wants it, working from the frontier above.
+2. Run `code-review` on the P2 work, with `ca6de2d` (the P1 tip) as the fixed point.
+3. Push `integration/school-lms-p1` when the user asks, update PR #2's description for P2, and merge into `main` when the user asks.
+4. Migrate the tickets to GitHub Issues if the user wants that.
 
 ## Suggested skills
-- `implement-spec`: continue with P2 from the current frontier.
 - `tdd`: implementers call this for each ticket.
-- `code-review`: run on the integration branch after P2. The P1 review used `e68a933` as its fixed point.
+- `code-review`: run on the integration branch for P2, from `ca6de2d`. The P1 review used `e68a933` as its fixed point.
 - `domain-modeling`: if new terms come up, update `GLOSSARY.md`.
 - `pr`: for any later PR, such as P2.
