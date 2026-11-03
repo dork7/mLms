@@ -498,3 +498,47 @@ export const publishedReportCard = pgTable(
     index("published_report_card_student_idx").on(t.studentId),
   ],
 );
+
+// ---- Leave (ticket 23) ----
+// One Leave Request table for both requesters. The requester is a `user`: a Teacher's
+// request is theirs, and a Student's (ticket 22) is keyed by the Student's `user.id` too.
+// Which approval path applies follows from the requester's role.
+
+export const leaveStatusEnum = pgEnum("leave_status", ["pending", "approved", "rejected"]);
+
+export const leaveRequest = pgTable(
+  "leave_request",
+  {
+    id: serial("id").primaryKey(),
+    requesterId: text("requester_id")
+      .notNull()
+      .references(() => user.id),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    reason: text("reason").notNull(),
+    status: leaveStatusEnum("status").notNull().default("pending"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull(),
+    decidedBy: text("decided_by").references(() => user.id),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("leave_request_requester_idx").on(t.requesterId),
+    index("leave_request_status_idx").on(t.status),
+    check("leave_request_dates_in_order", sql`${t.endDate} >= ${t.startDate}`),
+    // Pending means undecided; a decision always says who and when.
+    check(
+      "leave_request_decision",
+      sql`(${t.status} = 'pending') = (${t.decidedBy} is null) and (${t.decidedBy} is null) = (${t.decidedAt} is null)`,
+    ),
+  ],
+);
+
+/** A Leave Request's optional attachment, kept apart so listing requests never loads its bytes. */
+export const leaveAttachment = pgTable("leave_attachment", {
+  leaveRequestId: integer("leave_request_id")
+    .primaryKey()
+    .references(() => leaveRequest.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+});
