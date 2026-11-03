@@ -6,7 +6,7 @@ import { formatAed } from "@/core/fees/money";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import { PaymentRecords } from "../../../../fee-assignments";
+import { FeeStatusLabel, PaymentRecords } from "../../../../fee-assignments";
 import { setWaived } from "../../actions";
 import { PaymentRecordForm } from "../../forms";
 
@@ -56,7 +56,7 @@ export default async function FeeAssignmentPage({ params }: { params: Promise<{ 
           <div>
             <dt>{t("fees.statusLabel")}</dt>
             <dd>
-              <strong>{t(`fees.status.${assignment.status}`)}</strong>
+              <FeeStatusLabel assignment={assignment} />
             </dd>
           </div>
         </dl>

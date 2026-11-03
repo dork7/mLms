@@ -2,10 +2,12 @@
 // Class it is, with their Term Grades, remarks, overall percentage, rank if it's on, and
 // what's still missing. It's also where the Admin Publishes and unpublishes them.
 import Link from "next/link";
+import { feeAlerts } from "@/core/fees/fee-alert";
 import { classReportCards } from "@/core/report-cards/report-cards";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+import { FeeAlert } from "../../../../fee-alert";
 import { ReportCardBody } from "../../../../report-card-body";
 import { flagText } from "../../../../report-card-text";
 import { TermPicker, termIdFrom } from "../../../../term-picker";
@@ -22,8 +24,12 @@ export default async function ReportCardPreviewPage({
   const classId = Number((await params).id);
   const { termId } = await searchParams;
   let page;
+  let alerts;
   try {
-    page = await asCurrentActor((ctx) => classReportCards(ctx, { classId, termId: termIdFrom(termId) }));
+    [page, alerts] = await asCurrentActor(async (ctx) => {
+      const found = await classReportCards(ctx, { classId, termId: termIdFrom(termId) });
+      return [found, await feeAlerts(ctx, { studentIds: found.cards.map((card) => card.studentId) })] as const;
+    });
   } catch (err) {
     return (
       <main className="page">
@@ -110,6 +116,7 @@ export default async function ReportCardPreviewPage({
           <h2 id={`card-${card.studentId}`}>
             {t("termGrades.studentLine", { name: card.name, studentNumber: card.studentNumber })}
           </h2>
+          <FeeAlert alert={alerts.find((alert) => alert.studentId === card.studentId)} viewer="admin" />
           <ReportCardBody card={card} rankShown={page.rankEnabled} />
           <p>
             <a href={`${pdfPath}?termId=${page.term.id}&studentId=${encodeURIComponent(card.studentId)}`} download>

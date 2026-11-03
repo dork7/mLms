@@ -30,7 +30,7 @@ export function FeeAssignments({
                   <div>{paidText(a)}</div>
                 </div>
                 <div>
-                  <strong>{t(`fees.status.${a.status}`)}</strong>
+                  <FeeStatusLabel assignment={a} />
                   {linkForAdmin && (
                     <div>
                       <Link href={`/admin/fees/assignments/${a.id}`}>{t("fees.open")}</Link>
@@ -44,6 +44,21 @@ export function FeeAssignments({
         </ul>
       )}
     </section>
+  );
+}
+
+/** The Fee Status, followed by "Overdue" while it is. */
+export function FeeStatusLabel({ assignment }: { assignment: Pick<FeeAssignmentView, "status" | "overdue"> }) {
+  return (
+    <>
+      <strong>{t(`fees.status.${assignment.status}`)}</strong>
+      {assignment.overdue && (
+        <>
+          {t("common.separator")}
+          <span className="fee-overdue">{t("fees.overdue")}</span>
+        </>
+      )}
+    </>
   );
 }
 
