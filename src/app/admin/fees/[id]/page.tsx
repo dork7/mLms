@@ -7,7 +7,7 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { paidText } from "../../../fee-assignments";
-import { ApplyToGradeForm, ApplyToStudentsForm } from "../forms";
+import { ApplyToGradeForm, ApplyToStudentsForm, SendRemindersNowForm } from "../forms";
 
 export default async function FeePage({ params }: { params: Promise<{ id: string }> }) {
   const feeId = Number((await params).id);
@@ -61,6 +61,10 @@ export default async function FeePage({ params }: { params: Promise<{ id: string
             ))}
           </ul>
         )}
+      </section>
+      <section className="card" aria-labelledby="send-reminders">
+        <h2 id="send-reminders">{t("feeReminders.sendNowTitle")}</h2>
+        <SendRemindersNowForm feeId={fee.id} />
       </section>
       <section className="card">
         <h2>{t("fees.applyToGrade")}</h2>

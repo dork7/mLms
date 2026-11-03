@@ -491,3 +491,24 @@ code {
   padding-inline-start: 1rem;
   gap: 0.25rem;
 }
+
+/* ---- Fee Reminders (ticket 21): the no-email report. ---- */
+
+.report-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+
+.report-table th,
+.report-table td {
+  text-align: start;
+  vertical-align: top;
+  padding-block: 0.5rem;
+  padding-inline: 0 0.75rem;
+  border-block-end: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.report-table tbody th {
+  font-weight: normal;
+}

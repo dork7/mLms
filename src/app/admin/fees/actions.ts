@@ -9,6 +9,11 @@ import {
   unwaiveFeeAssignment,
   waiveFeeAssignment,
 } from "@/core/fees/fee-assignments";
+import {
+  type FeeReminderResult,
+  sendFeeRemindersNow,
+  setFeeReminderSettings,
+} from "@/core/fees/fee-reminders";
 import { createFee } from "@/core/fees/fees";
 import { logPaymentRecord } from "@/core/fees/payment-records";
 import { asCurrentActor } from "@/web/as-current-actor";
@@ -70,4 +75,29 @@ export async function setWaived(form: FormData): Promise<void> {
   const waive = form.get("waive") === "true";
   await asCurrentActor((ctx) => (waive ? waiveFeeAssignment : unwaiveFeeAssignment)(ctx, { feeAssignmentId }));
   revalidatePath(`/admin/fees/assignments/${feeAssignmentId}`);
+}
+
+export type RemindState = FormState & { result?: FeeReminderResult };
+
+export async function saveReminderSettings(prev: FormState, form: FormData): Promise<FormState> {
+  // An empty or non-numeric field becomes NaN or 0, which the layer refuses.
+  const input = { leadDays: Number(form.get("leadDays")), intervalDays: Number(form.get("intervalDays")) };
+  try {
+    await asCurrentActor((ctx) => setFeeReminderSettings(ctx, input));
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  revalidatePath("/admin/fees");
+  return { saved: prev.saved + 1 };
+}
+
+export async function sendRemindersNow(prev: RemindState, form: FormData): Promise<RemindState> {
+  const feeId = Number(form.get("feeId"));
+  let result: FeeReminderResult;
+  try {
+    result = await asCurrentActor((ctx) => sendFeeRemindersNow(ctx, { feeId }));
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  return { saved: prev.saved + 1, result };
 }

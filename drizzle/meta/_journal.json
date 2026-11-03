@@ -120,6 +120,13 @@
       "when": 1793711787888,
       "tag": "0016_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793712095485,
+      "tag": "0017_fee_reminders",
+      "breakpoints": true
     }
   ]
 }

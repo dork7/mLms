@@ -8,7 +8,8 @@ export function isCalendarDate(value: string): boolean {
   return parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d;
 }
 
-function addDays(date: string, days: number): string {
+/** "2026-10-15", -7 -> "2026-10-08". */
+export function addDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
