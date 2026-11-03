@@ -264,6 +264,45 @@ code {
   resize: vertical;
 }
 
+/* A Leave Request: its details, then the decider's buttons, which wrap below on a phone. */
+.leave-request {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-block-end: 0.75rem;
+  border-block-end: 1px solid var(--border);
+}
+
+.leave-request > div:first-child {
+  overflow-wrap: anywhere;
+  flex: 1 1 14rem;
+  min-inline-size: 0;
+}
+
+.leave-request .remark {
+  margin-block: 0.25rem;
+}
+
+.leave-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.leave-status {
+  font-weight: 600;
+}
+
+.leave-status-approved {
+  color: var(--success);
+}
+
+.leave-status-rejected {
+  color: var(--danger);
+}
+
 .success {
   color: var(--success);
   margin-block: 0 1rem;

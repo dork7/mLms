@@ -1,5 +1,5 @@
 {
-  "id": "af236260-8501-4a39-92bf-94390e4f34f9",
+  "id": "b58a0ee6-e06d-407f-9331-0e0bacfb026c",
   "prevId": "e71c7952-62bf-4b22-824e-cc417b662c5b",
   "version": "7",
   "dialect": "postgresql",
@@ -691,162 +691,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.fee": {
-      "name": "fee",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount_fils": {
-          "name": "amount_fils",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "due_date": {
-          "name": "due_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "fee_amount_positive": {
-          "name": "fee_amount_positive",
-          "value": "\"fee\".\"amount_fils\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.fee_assignment": {
-      "name": "fee_assignment",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "fee_id": {
-          "name": "fee_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "waived_at": {
-          "name": "waived_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "waived_by": {
-          "name": "waived_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "fee_assignment_student_idx": {
-          "name": "fee_assignment_student_idx",
-          "columns": [
-            {
-              "expression": "student_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "fee_assignment_fee_id_fee_id_fk": {
-          "name": "fee_assignment_fee_id_fee_id_fk",
-          "tableFrom": "fee_assignment",
-          "tableTo": "fee",
-          "columnsFrom": [
-            "fee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fee_assignment_student_id_student_user_id_fk": {
-          "name": "fee_assignment_student_id_student_user_id_fk",
-          "tableFrom": "fee_assignment",
-          "tableTo": "student",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fee_assignment_waived_by_user_id_fk": {
-          "name": "fee_assignment_waived_by_user_id_fk",
-          "tableFrom": "fee_assignment",
-          "tableTo": "user",
-          "columnsFrom": [
-            "waived_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "fee_assignment_fee_student": {
-          "name": "fee_assignment_fee_student",
-          "nullsNotDistinct": false,
-          "columns": [
-            "fee_id",
-            "student_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.grade": {
       "name": "grade",
       "schema": "",
@@ -996,6 +840,193 @@
         "grading_scale_pass_mark_range": {
           "name": "grading_scale_pass_mark_range",
           "value": "\"grading_scale\".\"pass_mark\" between 0 and 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.leave_attachment": {
+      "name": "leave_attachment",
+      "schema": "",
+      "columns": {
+        "leave_request_id": {
+          "name": "leave_request_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "leave_attachment_leave_request_id_leave_request_id_fk": {
+          "name": "leave_attachment_leave_request_id_leave_request_id_fk",
+          "tableFrom": "leave_attachment",
+          "tableTo": "leave_request",
+          "columnsFrom": [
+            "leave_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.leave_request": {
+      "name": "leave_request",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "leave_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "leave_request_requester_idx": {
+          "name": "leave_request_requester_idx",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leave_request_status_idx": {
+          "name": "leave_request_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "leave_request_requester_id_user_id_fk": {
+          "name": "leave_request_requester_id_user_id_fk",
+          "tableFrom": "leave_request",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requester_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "leave_request_decided_by_user_id_fk": {
+          "name": "leave_request_decided_by_user_id_fk",
+          "tableFrom": "leave_request",
+          "tableTo": "user",
+          "columnsFrom": [
+            "decided_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "leave_request_dates_in_order": {
+          "name": "leave_request_dates_in_order",
+          "value": "\"leave_request\".\"end_date\" >= \"leave_request\".\"start_date\""
+        },
+        "leave_request_decision": {
+          "name": "leave_request_decision",
+          "value": "(\"leave_request\".\"status\" = 'pending') = (\"leave_request\".\"decided_by\" is null) and (\"leave_request\".\"decided_by\" is null) = (\"leave_request\".\"decided_at\" is null)"
         }
       },
       "isRLSEnabled": false
@@ -1286,116 +1317,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.payment_record": {
-      "name": "payment_record",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "fee_assignment_id": {
-          "name": "fee_assignment_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount_fils": {
-          "name": "amount_fils",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "paid_on": {
-          "name": "paid_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "method": {
-          "name": "method",
-          "type": "payment_method",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reference": {
-          "name": "reference",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recorded_at": {
-          "name": "recorded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recorded_by": {
-          "name": "recorded_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "payment_record_assignment_idx": {
-          "name": "payment_record_assignment_idx",
-          "columns": [
-            {
-              "expression": "fee_assignment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "payment_record_fee_assignment_id_fee_assignment_id_fk": {
-          "name": "payment_record_fee_assignment_id_fee_assignment_id_fk",
-          "tableFrom": "payment_record",
-          "tableTo": "fee_assignment",
-          "columnsFrom": [
-            "fee_assignment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "payment_record_recorded_by_user_id_fk": {
-          "name": "payment_record_recorded_by_user_id_fk",
-          "tableFrom": "payment_record",
-          "tableTo": "user",
-          "columnsFrom": [
-            "recorded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "payment_record_amount_positive": {
-          "name": "payment_record_amount_positive",
-          "value": "\"payment_record\".\"amount_fils\" > 0"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.published_report_card": {
@@ -2334,21 +2255,21 @@
         "final"
       ]
     },
+    "public.leave_status": {
+      "name": "leave_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
     "public.mark_status": {
       "name": "mark_status",
       "schema": "public",
       "values": [
         "absent",
         "exempt"
-      ]
-    },
-    "public.payment_method": {
-      "name": "payment_method",
-      "schema": "public",
-      "values": [
-        "cash",
-        "bank_transfer",
-        "cheque"
       ]
     },
     "public.role": {
