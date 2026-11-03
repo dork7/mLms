@@ -4,7 +4,15 @@
 import { useActionState, useState } from "react";
 import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
 import { t } from "@/i18n";
-import { type ApplyState, applyFee, defineFee, logPayment } from "./actions";
+import {
+  type ApplyState,
+  applyFee,
+  defineFee,
+  logPayment,
+  type RemindState,
+  saveReminderSettings,
+  sendRemindersNow,
+} from "./actions";
 
 export function DefineFeeForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(defineFee, { saved: 0 });
@@ -145,6 +153,71 @@ export function PaymentRecordForm({ feeAssignmentId, methods }: { feeAssignmentI
       </div>
       <button className="button" type="submit" disabled={pending}>
         {t("fees.logPayment")}
+      </button>
+    </form>
+  );
+}
+
+export function FeeReminderSettingsForm({ leadDays, intervalDays }: { leadDays: number; intervalDays: number }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(saveReminderSettings, { saved: 0 });
+  const [lead, setLead] = useState(String(leadDays));
+  const [interval, setIntervalDays] = useState(String(intervalDays));
+
+  return (
+    <form action={action}>
+      <Refusal error={state.error} />
+      {state.saved > 0 && !state.error && (
+        <p className="success" role="status">
+          {t("feeReminders.saved")}
+        </p>
+      )}
+      <div className="row">
+        <label className="field">
+          {t("feeReminders.leadDays")}
+          <input name="leadDays" type="number" min={1} max={365} step={1} value={lead} onChange={(e) => setLead(e.target.value)} required />
+        </label>
+        <label className="field">
+          {t("feeReminders.intervalDays")}
+          <input
+            name="intervalDays"
+            type="number"
+            min={1}
+            max={365}
+            step={1}
+            value={interval}
+            onChange={(e) => setIntervalDays(e.target.value)}
+            required
+          />
+        </label>
+      </div>
+      <button className="button" type="submit" disabled={pending}>
+        {t("feeReminders.save")}
+      </button>
+    </form>
+  );
+}
+
+export function SendRemindersNowForm({ feeId }: { feeId: number }) {
+  const [state, action, pending] = useActionState<RemindState, FormData>(sendRemindersNow, { saved: 0 });
+  const result = state.result;
+
+  return (
+    <form action={action}>
+      <Refusal error={state.error} />
+      {result && !state.error && (
+        <p className="success" role="status">
+          {t("feeReminders.sendNowResult", {
+            sent: result.sent,
+            noEmail: result.noEmail,
+            alreadySentToday: result.alreadySentToday,
+          })}
+          {result.failed > 0 && ` ${t("feeReminders.sendNowFailed", { failed: result.failed })}`}
+        </p>
+      )}
+      <p className="muted">{t("feeReminders.sendNowHint")}</p>
+      <input type="hidden" name="feeId" value={feeId} />
+      <button className="button" type="submit" disabled={pending}>
+        {t("feeReminders.sendNow")}
       </button>
     </form>
   );

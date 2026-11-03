@@ -149,6 +149,10 @@ export const schoolSettings = pgTable("school_settings", {
   periodsPerDay: integer("periods_per_day"),
   /** Whether Report Cards show a rank within the Issuing Class. Off until the Admin turns it on. */
   rankEnabled: boolean("rank_enabled").notNull().default(false),
+  /** Fee Reminders: the first one goes this many days before the due date (ticket 21). */
+  feeReminderLeadDays: integer("fee_reminder_lead_days").notNull().default(7),
+  /** Fee Reminders: while Overdue, another one goes every this many days (ticket 21). */
+  feeReminderIntervalDays: integer("fee_reminder_interval_days").notNull().default(7),
 });
 
 // ---- Classes (ticket 04) ----
@@ -559,6 +563,32 @@ export const paymentRecord = pgTable(
     check("payment_record_amount_positive", sql`${t.amountFils} > 0`),
   ],
 );
+// ---- Fee Reminders (ticket 21) ----
+
+export const feeReminderKindEnum = pgEnum("fee_reminder_kind", ["upcoming", "overdue"]);
+
+/**
+ * The log of Fee Reminders sent. The timing rule reads it to decide what's due, and the
+ * unique (assignment, school date) means a Fee Assignment gets at most one reminder a day,
+ * however often the daily job or "Send reminders now" runs. `sentBy` is the Admin for
+ * "Send reminders now", null for the daily job.
+ */
+export const feeReminder = pgTable(
+  "fee_reminder",
+  {
+    id: serial("id").primaryKey(),
+    feeAssignmentId: integer("fee_assignment_id")
+      .notNull()
+      .references(() => feeAssignment.id),
+    kind: feeReminderKindEnum("kind").notNull(),
+    sentOn: date("sent_on", { mode: "string" }).notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    sentTo: text("sent_to").notNull(),
+    sentBy: text("sent_by").references(() => user.id),
+  },
+  (t) => [unique("fee_reminder_one_a_day").on(t.feeAssignmentId, t.sentOn)],
+);
+
 // ---- Leave (ticket 23) ----
 // One Leave Request table for both requesters. The requester is a `user`: a Teacher's
 // request is theirs, and a Student's (ticket 22) is keyed by the Student's `user.id` too.

@@ -127,6 +127,13 @@
       "when": 1793712535089,
       "tag": "0017_student_leave",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793712672497,
+      "tag": "0018_fee_reminders",
+      "breakpoints": true
     }
   ]
 }

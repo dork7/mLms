@@ -32,3 +32,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `docker compose up --build`: the full stack (app and Postgres). Set `APP_URL` to the public URL (used in password reset emails).
 - `npm run db:generate`: writes a migration into `drizzle/` after editing `src/db/schema.ts`.
 - `npm run test:backup`: backup/restore test for `ops/backup/` (needs Docker). The Compose `backup` service dumps the database daily and keeps 30 days. The backup and restore procedure is in `docs/backups.md`.
+- `npm run fee-reminders`: runs the daily Fee Reminders job once against `DATABASE_URL` (safe to repeat: at most one reminder per Fee Assignment per day). The Compose `fee-reminders` service runs it daily. See `docs/fee-reminders.md`.
