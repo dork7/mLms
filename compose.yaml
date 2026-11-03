@@ -31,6 +31,7 @@ services:
     environment:
       DATABASE_URL: postgres://lms:lms@db:5432/lms
       APP_URL: ${APP_URL:-http://localhost:3000}
+      SCHOOL_NAME: ${SCHOOL_NAME:-}
       ADMIN_NAME: ${ADMIN_NAME:-School Admin}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@school.test}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password}
