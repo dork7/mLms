@@ -14,6 +14,11 @@
 //     the Student's profile and photo, as do the Admin and the Student.
 //
 // Assessments and Marks (ticket 08): from the Class Subject, see the guards below.
+//
+// Fees (ticket 18): Fee data (Fees, Fee Assignments, Fee Status, Payment Records) is
+// the Admin's and the Student concerned's only. Teachers, Class Teachers included, see
+// none of it. Every Fee command is Admin-only (`requireAdmin`); a Student's own Fee
+// Assignments go through `requireCanSeeFees`.
 import { and, eq, exists, inArray, lt, not, or, type SQL, sql } from "drizzle-orm";
 import { assessment, classSubject, enrollment, leaveRequest, schoolClass, user } from "@/db/schema";
 import type { Actor, Ctx, Role } from "./context";
@@ -188,6 +193,16 @@ export function requireCanSeeReportCards(actor: Actor, studentId: string): void 
   if (actor.role === "admin") return;
   if (actor.role === "student" && actor.userId === studentId) return;
   throw new AccessDenied("only the Admin and the Student see a Report Card");
+}
+
+/**
+ * See a Student's Fee Assignments and Payment Records: the Admin and the Student
+ * themselves. Never a Teacher, not even the Student's Class Teacher (spec story 77).
+ */
+export function requireCanSeeFees(actor: Actor, studentId: string): void {
+  if (actor.role === "admin") return;
+  if (actor.role === "student" && actor.userId === studentId) return;
+  throw new AccessDenied("only the Admin and the Student see a Student's Fees");
 }
 
 /** Act for a whole Class (write its overall remarks): only its Class Teacher, not the Admin. */

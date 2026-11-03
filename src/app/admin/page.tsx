@@ -91,6 +91,9 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/report-cards">{t("nav.reportCards")}</Link>
         </p>
         <p>
+          <Link href="/admin/fees">{t("nav.fees")}</Link>
+        </p>
+        <p>
           <Link href="/admin/year-end">{t("nav.yearEnd")}</Link>
         </p>
         <p>
