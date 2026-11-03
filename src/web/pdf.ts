@@ -1,5 +1,5 @@
 // Turning HTML into a PDF with Playwright, and sending it. Server-only. Any PDF the app makes
-// goes through here: Report Cards now, Payment Records next.
+// goes through here: Report Cards and Payment Records.
 import "server-only";
 import { type Browser, chromium } from "playwright";
 
