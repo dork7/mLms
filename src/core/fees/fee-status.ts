@@ -10,3 +10,13 @@ export function feeStatus(a: { amountFils: number; paidFils: number; waived: boo
   if (a.paidFils > 0) return "partiallyPaid";
   return "unpaid";
 }
+
+/**
+ * Overdue: the one rule for it. Past the due date by the Clock (the day after the due
+ * date at the earliest; the due date itself isn't Overdue) and not Paid or Waived, so
+ * Unpaid or Partially Paid. Worked out on every read like the Fee Status, never stored.
+ * `today` is `clock.today()`.
+ */
+export function isOverdue(a: { dueDate: string; status: FeeStatus }, today: string): boolean {
+  return a.dueDate < today && (a.status === "unpaid" || a.status === "partiallyPaid");
+}

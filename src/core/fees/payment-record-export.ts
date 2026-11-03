@@ -40,7 +40,7 @@ export async function paymentRecordExport(
   if (!found) throw new NotFound("no such Payment Record");
   requireCanSeeFees(ctx.actor, found.studentId);
 
-  const [view] = await feeAssignmentViews(ctx.db, eq(feeAssignment.id, found.feeAssignmentId));
+  const [view] = await feeAssignmentViews(ctx, eq(feeAssignment.id, found.feeAssignmentId));
   const payment = view.payments.find((p) => p.id === input.paymentRecordId)!;
   return {
     fileName: pdfFileName("payment-record", view.studentNumber, String(payment.id)),

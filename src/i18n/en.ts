@@ -590,11 +590,21 @@ export const en = {
       paid: "Paid",
       waived: "Waived",
     },
+    overdue: "Overdue",
     methods: {
       cash: "Cash",
       bank_transfer: "Bank transfer",
       cheque: "Cheque",
     },
+  },
+  feeAlert: {
+    title: "Fee Alert",
+    student: "You have an Overdue Fee. Please contact the school office.",
+    studentMany: "You have {count} Overdue Fees. Please contact the school office.",
+    admin: "{name} has an Overdue Fee.",
+    adminMany: "{name} has {count} Overdue Fees.",
+    item: "{fee}: due {date}, {paid}",
+    seeFees: "See My Fees",
   },
   errors: {
     accessDenied: "You don't have access to this page.",

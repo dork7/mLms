@@ -14,10 +14,10 @@ import {
 } from "@/db/schema";
 import type { Db } from "@/db/client";
 import { requireAdmin, requireCanSeeFees, requireId } from "../access";
-import type { Ctx } from "../context";
+import type { Ctx, Deps } from "../context";
 import { NotFound } from "../errors";
 import { type GradeInOrder, listGradesInOrder } from "../school/catalogue";
-import { type FeeStatus, feeStatus } from "./fee-status";
+import { type FeeStatus, feeStatus, isOverdue } from "./fee-status";
 import type { FeeRow } from "./fees";
 
 export const PAYMENT_METHODS = paymentMethodEnum.enumValues;
@@ -40,6 +40,8 @@ export type FeeAssignmentView = {
   waived: boolean;
   paidFils: number;
   status: FeeStatus;
+  /** Past the due date by the Clock and not Paid or Waived (`isOverdue`). Never stored. */
+  overdue: boolean;
   /** Oldest first. */
   payments: PaymentRecordRow[];
 };
@@ -119,14 +121,14 @@ async function setWaived(
  */
 export async function studentFeeAssignments(ctx: Ctx, input: { studentId: string }): Promise<FeeAssignmentView[]> {
   requireCanSeeFees(ctx.actor, input.studentId);
-  return feeAssignmentViews(ctx.db, eq(feeAssignment.studentId, input.studentId));
+  return feeAssignmentViews(ctx, eq(feeAssignment.studentId, input.studentId));
 }
 
 /** One Fee Assignment, for the Admin to log Payment Records against or waive. */
 export async function getFeeAssignment(ctx: Ctx, input: { feeAssignmentId: number }): Promise<FeeAssignmentView> {
   requireAdmin(ctx.actor);
   requireId(input.feeAssignmentId);
-  const [found] = await feeAssignmentViews(ctx.db, eq(feeAssignment.id, input.feeAssignmentId));
+  const [found] = await feeAssignmentViews(ctx, eq(feeAssignment.id, input.feeAssignmentId));
   if (!found) throw new NotFound("no such Fee Assignment");
   return found;
 }
@@ -155,15 +157,19 @@ export async function feeApplyChoices(
 export async function getFee(ctx: Ctx, input: { feeId: number }): Promise<FeeRow & { assignments: FeeAssignmentView[] }> {
   requireAdmin(ctx.actor);
   const found = await requireFee(ctx.db, input.feeId);
-  return { ...found, assignments: await feeAssignmentViews(ctx.db, eq(feeAssignment.feeId, input.feeId)) };
+  return { ...found, assignments: await feeAssignmentViews(ctx, eq(feeAssignment.feeId, input.feeId)) };
 }
 
 /**
  * The Fee Assignments matching `where` (a condition over `feeAssignment`, `fee` or the
- * Student's `user`), each with its Payment Records and Fee Status, by Student name and
- * then due date. No access check: callers guard first.
+ * Student's `user`), each with its Payment Records, Fee Status and whether it's Overdue
+ * today by the Clock, by Student name and then due date. No access check: callers guard
+ * first. Takes a `Ctx` or, for a job with no acting person, `Deps`.
  */
-export async function feeAssignmentViews(db: Db, where: SQL | undefined): Promise<FeeAssignmentView[]> {
+export async function feeAssignmentViews(
+  { db, clock }: Pick<Deps, "db" | "clock">,
+  where: SQL | undefined,
+): Promise<FeeAssignmentView[]> {
   const rows = await db
     .select({
       id: feeAssignment.id,
@@ -193,11 +199,14 @@ export async function feeAssignmentViews(db: Db, where: SQL | undefined): Promis
         .where(inArray(paymentRecord.feeAssignmentId, rows.map((r) => r.id)))
         .orderBy(asc(paymentRecord.paidOn), asc(paymentRecord.id))
     : [];
+  const today = clock.today();
   return rows.map(({ waivedAt, ...row }) => {
     const own = payments.filter((p) => p.feeAssignmentId === row.id).map(({ feeAssignmentId: _, ...p }) => p);
     const paidFils = own.reduce((sum, p) => sum + p.amountFils, 0);
     const waived = waivedAt !== null;
-    return { ...row, waived, paidFils, status: feeStatus({ amountFils: row.fee.amountFils, paidFils, waived }), payments: own };
+    const status = feeStatus({ amountFils: row.fee.amountFils, paidFils, waived });
+    const overdue = isOverdue({ dueDate: row.fee.dueDate, status }, today);
+    return { ...row, waived, paidFils, status, overdue, payments: own };
   });
 }
 
