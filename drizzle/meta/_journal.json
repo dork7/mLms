@@ -113,6 +113,13 @@
       "when": 1793711093422,
       "tag": "0015_leave_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793711939464,
+      "tag": "0016_student_leave",
+      "breakpoints": true
     }
   ]
 }

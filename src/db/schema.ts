@@ -5,6 +5,7 @@ import {
   check,
   customType,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -542,3 +543,30 @@ export const leaveAttachment = pgTable("leave_attachment", {
   contentType: text("content_type").notNull(),
   data: bytea("data").notNull(),
 });
+
+/**
+ * A Mark an approved Student leave turned from Absent into Exempt (ticket 22), so that
+ * overriding the approval with a rejection puts exactly those Marks back to Absent. A Mark
+ * is excused by at most one Leave Request. Changing the Mark away from Exempt by hand
+ * (`saveMarks`) or deleting it drops the row, so a Mark someone has since edited is left
+ * alone.
+ */
+export const leaveExcusedMark = pgTable(
+  "leave_excused_mark",
+  {
+    assessmentId: integer("assessment_id").notNull(),
+    studentId: text("student_id").notNull(),
+    leaveRequestId: integer("leave_request_id")
+      .notNull()
+      .references(() => leaveRequest.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.assessmentId, t.studentId] }),
+    foreignKey({
+      name: "leave_excused_mark_mark_fk",
+      columns: [t.assessmentId, t.studentId],
+      foreignColumns: [mark.assessmentId, mark.studentId],
+    }).onDelete("cascade"),
+    index("leave_excused_mark_request_idx").on(t.leaveRequestId),
+  ],
+);

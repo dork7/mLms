@@ -9,6 +9,7 @@ import { enrollmentCovers } from "../enrollment/roster-condition";
 import type { Ctx } from "../context";
 import { rosterOn } from "../enrollment/enrollment";
 import { AccessDenied, InvalidInput, NotFound } from "../errors";
+import { forgetExcusedMarks } from "../leave/excused-marks";
 import { frozenMarksOn, requireMarksNotFrozen } from "../report-cards/publications";
 import { requireOpenYear } from "../school/closed-year";
 import { type AssessmentRow, type AssessmentType, getAssessment } from "./assessments";
@@ -173,7 +174,7 @@ export async function saveMarks(ctx: Ctx, input: SaveMarksInput): Promise<{ save
       entries.map(([studentId]) => studentId),
     );
 
-    const onRoster =new Set((await rosterOn(tx, found.classId, found.date)).map((r) => r.studentId));
+    const onRoster = new Set((await rosterOn(tx, found.classId, found.date)).map((r) => r.studentId));
     for (const [studentId, value] of entries) {
       if (!onRoster.has(studentId)) throw new InvalidInput("errors.markStudentNotOnRoster");
       requireValidMark(value, found.maxMarks);
@@ -201,6 +202,13 @@ export async function saveMarks(ctx: Ctx, input: SaveMarksInput): Promise<{ save
           set: { score: sql`excluded.score`, status: sql`excluded.status` },
         });
     }
+    // A Mark changed by hand away from Exempt is no longer an approved leave's to put back
+    // (a cleared Mark's record goes with it).
+    await forgetExcusedMarks(
+      tx,
+      input.assessmentId,
+      written.filter((w) => w.status !== "exempt").map((w) => w.studentId),
+    );
     return { saved: entries.length };
   });
 }

@@ -26,5 +26,6 @@ export async function submitLeaveAction(prev: FormState, form: FormData): Promis
     return { error: refusalKey(err), saved: prev.saved };
   }
   revalidatePath("/teacher/leave");
+  revalidatePath("/student/leave");
   return { saved: prev.saved + 1 };
 }
