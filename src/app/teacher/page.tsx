@@ -99,6 +99,9 @@ export default async function TeacherDashboardPage() {
         <section className="card" aria-labelledby="my-classes">
           <h2 id="my-classes">{t("teacherDashboard.myClasses")}</h2>
           <p className="muted">{t("teacherDashboard.myClassesHint")}</p>
+          <p>
+            <Link href="/teacher/leave/students">{t("nav.studentLeave")}</Link>
+          </p>
           <ul className="list">
             {classes.map((c) => (
               <li key={c.id}>

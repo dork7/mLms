@@ -120,6 +120,13 @@
       "when": 1793711787888,
       "tag": "0016_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793712535089,
+      "tag": "0017_student_leave",
+      "breakpoints": true
     }
   ]
 }

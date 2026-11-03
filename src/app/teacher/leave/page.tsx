@@ -5,7 +5,7 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { LeaveRequestItem } from "../../leave-request-item";
-import { LeaveRequestForm } from "./leave-request-form";
+import { LeaveRequestForm } from "../../leave-request-form";
 
 export default async function TeacherLeavePage() {
   let requests;
@@ -27,7 +27,7 @@ export default async function TeacherLeavePage() {
       </header>
       <section className="card" aria-labelledby="new-leave">
         <h2 id="new-leave">{t("leave.newTitle")}</h2>
-        <LeaveRequestForm />
+        <LeaveRequestForm submitted="leave.submitted" />
       </section>
       <section className="card" aria-labelledby="my-leave">
         <h2 id="my-leave">{t("leave.mine")}</h2>

@@ -20,10 +20,11 @@
 // none of it. Every Fee command is Admin-only (`requireAdmin`); a Student's own Fee
 // Assignments go through `requireCanSeeFees`.
 import { and, eq, exists, inArray, lt, not, or, type SQL, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { assessment, classSubject, enrollment, leaveRequest, schoolClass, user } from "@/db/schema";
 import type { Actor, Ctx, Role } from "./context";
 import { enrollmentCovers } from "./enrollment/roster-condition";
-import { AccessDenied, NotFound } from "./errors";
+import { AccessDenied, LeaveDecidedByAdmin, NotFound } from "./errors";
 
 export function requireRole(actor: Actor, ...roles: Role[]): void {
   if (!roles.includes(actor.role)) throw new AccessDenied(`requires role ${roles.join(" or ")}`);
@@ -296,16 +297,16 @@ export async function requireCanSeeStudent(ctx: Ctx, studentId: string): Promise
   throw new AccessDenied("may not see this Student");
 }
 
-// Leave Requests (ticket 23). One concept for both requesters: the requester's role
-// decides who may decide it.
+// Leave Requests (tickets 23 and 22). One concept for both requesters: the requester's
+// role decides who may decide it.
 //   - A Teacher's request: only the Admin decides it.
-//   - A Student's request (ticket 22): their current Class Teacher decides it, and the
-//     Admin can override. Add the Student branches to the guards below.
+//   - A Student's request: their current Class Teacher (of the Class they're enrolled in
+//     today) decides it, and the Admin can override.
 //   - The requester and the deciders may see a request and its attachment.
 
-/** Ask for leave for oneself: Teachers (Students from ticket 22). The Admin doesn't. */
+/** Ask for leave for oneself: Teachers and Students. The Admin doesn't. */
 export function requireCanRequestLeave(actor: Actor): void {
-  requireRole(actor, "teacher");
+  requireRole(actor, "teacher", "student");
 }
 
 /**
@@ -315,32 +316,66 @@ export function requireCanRequestLeave(actor: Actor): void {
 export async function requireCanSeeLeaveRequest(ctx: Ctx, leaveRequestId: number): Promise<void> {
   const request = await leaveRequestParties(ctx, leaveRequestId);
   if (request.requesterId === ctx.actor.userId) return;
-  if (canDecideLeaveRequest(ctx.actor, request)) return;
+  if (await deciderOf(ctx, request)) return;
   throw new AccessDenied("may not see this Leave Request");
 }
 
-/** Approve or reject a Leave Request: for a Teacher's, only the Admin. */
+/**
+ * Approve or reject a Leave Request: a Teacher's by the Admin alone, a Student's by the
+ * Admin or the Student's current Class Teacher. The office has the final say: once the
+ * Admin has decided a Student's request, the Class Teacher can't change it
+ * (`LeaveDecidedByAdmin`), though they still see it.
+ */
 export async function requireCanDecideLeaveRequest(ctx: Ctx, leaveRequestId: number): Promise<void> {
   const request = await leaveRequestParties(ctx, leaveRequestId);
-  if (canDecideLeaveRequest(ctx.actor, request)) return;
+  const as = await deciderOf(ctx, request);
+  if (as === "admin") return;
+  if (as === "classTeacher") {
+    if (request.decidedByRole === "admin") throw new LeaveDecidedByAdmin();
+    return;
+  }
   throw new AccessDenied("may not decide this Leave Request");
 }
 
-type LeaveRequestParties = { requesterId: string; requesterRole: Role };
+/**
+ * A Student's current Class Teacher: over `enrollment` joined to its `schoolClass`, the
+ * Enrollment covers today and the Class's Class Teacher is `teacherId`. One definition for
+ * the guard below and the Class Teacher's list of Leave Requests.
+ */
+export function isCurrentClassTeacher(teacherId: string, today: string): SQL {
+  return and(eq(schoolClass.classTeacherId, teacherId), enrollmentCovers(today))!;
+}
+
+type LeaveRequestParties = { requesterId: string; requesterRole: Role; decidedByRole: Role | null };
+
+const leaveDecider = alias(user, "leave_decider");
 
 async function leaveRequestParties(ctx: Ctx, leaveRequestId: number): Promise<LeaveRequestParties> {
   requireId(leaveRequestId);
   const [found] = await ctx.db
-    .select({ requesterId: leaveRequest.requesterId, requesterRole: user.role })
+    .select({ requesterId: leaveRequest.requesterId, requesterRole: user.role, decidedByRole: leaveDecider.role })
     .from(leaveRequest)
     .innerJoin(user, eq(user.id, leaveRequest.requesterId))
+    .leftJoin(leaveDecider, eq(leaveDecider.id, leaveRequest.decidedBy))
     .where(eq(leaveRequest.id, leaveRequestId));
   if (!found) throw new NotFound();
   return found;
 }
 
-/** A Teacher's request is decided by the Admin alone. Ticket 22 adds a Student's. */
-function canDecideLeaveRequest(actor: Actor, request: LeaveRequestParties): boolean {
-  if (request.requesterRole === "teacher") return actor.role === "admin";
-  return false;
+/** In what part the actor may decide this request: as the Admin, as the Class Teacher, or not at all. */
+async function deciderOf(ctx: Ctx, request: LeaveRequestParties): Promise<"admin" | "classTeacher" | null> {
+  const { actor } = ctx;
+  if (request.requesterRole === "teacher") return actor.role === "admin" ? "admin" : null;
+  if (request.requesterRole !== "student") return null;
+  if (actor.role === "admin") return "admin";
+  if (actor.role !== "teacher") return null;
+  const [found] = await ctx.db
+    .select({ classId: schoolClass.id })
+    .from(enrollment)
+    .innerJoin(schoolClass, eq(schoolClass.id, enrollment.classId))
+    .where(
+      and(eq(enrollment.studentId, request.requesterId), isCurrentClassTeacher(actor.userId, ctx.clock.today())),
+    )
+    .limit(1);
+  return found ? "classTeacher" : null;
 }
