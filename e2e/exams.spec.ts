@@ -50,7 +50,7 @@ async function expectNoSidewaysScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-test("the Admin builds a Term's exam timetable, and the Subject Teacher enters Exam Marks", async ({ page }) => {
+test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam Marks, and the Admin moves and deletes an Exam", async ({ page }) => {
   await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
   await expect(page).toHaveURL(/\/admin$/);
 
@@ -193,4 +193,45 @@ test("the Admin builds a Term's exam timetable, and the Subject Teacher enters E
   await grid.getByRole("button", { name: "Save Marks" }).click();
   await expect(grid.getByRole("status").filter({ hasText: "Marks saved." })).toBeVisible();
   await expectNoSidewaysScroll(page);
+
+  // The Admin moves one Class of the grade-wide midterm. The clash rules still apply.
+  await page.context().clearCookies();
+  await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
+  await expect(page).toHaveURL(/\/admin$/);
+  await open(page, "/admin/exams");
+  await page.getByRole("combobox", { name: "Term", exact: true }).selectOption({ label: "2061-2062: Exam year" });
+  await page.getByRole("button", { name: "Show" }).click();
+  await midterm.getByRole("link", { name: "Change or delete the Exam for 12-Y" }).click();
+  await expect(page.getByRole("heading", { name: "Astronomy Midterm for 12-Y" })).toBeVisible();
+  await settled(page);
+
+  const reschedule = page.getByRole("region", { name: "Reschedule" });
+  await expect(reschedule.getByRole("combobox", { name: "Room" })).toHaveValue(/.+/);
+  await reschedule.getByLabel("Date").fill("2061-11-10");
+  await reschedule.getByLabel("Start time").fill("10:30");
+  await reschedule.getByRole("button", { name: "Save changes" }).click();
+  await expect(reschedule.getByRole("alert").filter({ hasText: "This Room already has an Exam" })).toBeVisible();
+  await expect(reschedule.getByLabel("Start time")).toHaveValue("10:30");
+
+  await reschedule.getByLabel("Date").fill("2061-12-02");
+  await reschedule.getByLabel("Start time").fill("09:00");
+  await reschedule.getByRole("button", { name: "Save changes" }).click();
+  await expect(reschedule.getByRole("status").filter({ hasText: "Exam rescheduled." })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByRole("link", { name: "Back to the timetable" }).click();
+  const moved = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, 2061-12-02, 09:00 to 10:00" });
+  await expect(moved.getByText("12-Y in Exam Lab (Noura Exams)")).toBeVisible();
+  await expect(midterm.getByRole("listitem")).toHaveCount(1);
+
+  // Then deletes it: it has no Marks.
+  await moved.getByRole("link", { name: "Change or delete the Exam for 12-Y" }).click();
+  await expect(page.getByRole("heading", { name: "Astronomy Midterm for 12-Y" })).toBeVisible();
+  await settled(page);
+  const remove = page.getByRole("region", { name: "Delete" });
+  await remove.getByLabel("Yes, delete this Exam").check();
+  await remove.getByRole("button", { name: "Delete Exam" }).click();
+  await expect(page.getByRole("heading", { name: "Exams in Exam year (2061-2062)" })).toBeVisible();
+  await expect(moved).toHaveCount(0);
+  await expect(midterm.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
 });

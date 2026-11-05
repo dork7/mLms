@@ -6,7 +6,7 @@ import { createClassSubject, listClassSubjects, reassignSubjectTeacher } from ".
 import { createClass, getClass } from "../classes/classes";
 import { classRoster, enrollStudent } from "../enrollment/enrollment";
 import { AcademicYearClosed, AccessDenied, InvalidInput, NotFound, PromotionNotDone } from "../errors";
-import { addExam, examTimetable } from "../exams/exams";
+import { addExam, deleteExam, examTimetable, rescheduleExam } from "../exams/exams";
 import { getGradingScale, setGradingScale } from "../grading/grading-scales";
 import { classSubjectTermGrades, studentTermGrades } from "../grading/term-grades";
 import { decideLeaveRequest, myLeaveRequests, submitLeaveRequest } from "../leave/leave-requests";
@@ -661,6 +661,25 @@ describe("a Closed Academic Year refuses every write dated in it", () => {
       saveMarks(s.asSara, { assessmentId: s.assessmentId, marks: [{ studentId: s.aisha, mark: 9 }] }),
     ).rejects.toThrow(AcademicYearClosed);
     expect((await marksGrid(s.asSara, { assessmentId: s.assessmentId })).rows[0].mark).toBe(8);
+  });
+
+  test("Exams, moved or deleted", async () => {
+    const s = await yearEndSchool();
+    const room = await createRoom(s.asAdmin, { name: "Hall" });
+    const sitting = { roomId: room.id, date: "2026-11-10", startTime: "09:00", durationMinutes: 90 };
+    const exam = await addExam(s.asAdmin, {
+      ...sitting,
+      classSubjectId: s.math7A.id,
+      type: "final",
+      maxMarks: 100,
+      weight: 3,
+    });
+    await promoteAndClose(s);
+
+    await expect(rescheduleExam(s.asAdmin, { examId: exam.id, ...sitting, startTime: "10:00" })).rejects.toThrow(
+      AcademicYearClosed,
+    );
+    await expect(deleteExam(s.asAdmin, { examId: exam.id })).rejects.toThrow(AcademicYearClosed);
   });
 
   test("an approved Student leave skips its Marks there, and the decision stands", async () => {

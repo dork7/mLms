@@ -1,9 +1,10 @@
 "use server";
 // Exam server actions: read the form, call one layer command as the current actor,
-// and return the refusal key or revalidate.
+// and return the refusal key, revalidate or move on.
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { AssessmentType } from "@/core/assessments/assessments";
-import { addExam, addGradeWideExam } from "@/core/exams/exams";
+import { addExam, addGradeWideExam, deleteExam, rescheduleExam } from "@/core/exams/exams";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import type { FormState } from "@/app/form-kit";
@@ -53,4 +54,34 @@ export async function addGradeWideExamAction(prev: FormState, form: FormData): P
   }
   revalidatePath("/admin/exams");
   return { saved: prev.saved + 1 };
+}
+
+export async function rescheduleExamAction(prev: FormState, form: FormData): Promise<FormState> {
+  const input = {
+    examId: Number(form.get("examId")),
+    roomId: Number(form.get("roomId")),
+    date: String(form.get("date") ?? ""),
+    startTime: String(form.get("startTime") ?? ""),
+    durationMinutes: Number(form.get("durationMinutes")),
+  };
+  try {
+    await asCurrentActor((ctx) => rescheduleExam(ctx, input));
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  revalidatePath("/admin/exams", "layout");
+  return { saved: prev.saved + 1 };
+}
+
+export async function deleteExamAction(prev: FormState, form: FormData): Promise<FormState> {
+  const examId = Number(form.get("examId"));
+  const termId = Number(form.get("termId"));
+  try {
+    await asCurrentActor((ctx) => deleteExam(ctx, { examId }));
+  } catch (err) {
+    return { error: refusalKey(err), saved: prev.saved };
+  }
+  revalidatePath("/admin/exams", "layout");
+  // Back to the timetable on the Term the Exam was in.
+  redirect(Number.isInteger(termId) && termId > 0 ? `/admin/exams?term=${termId}` : "/admin/exams");
 }

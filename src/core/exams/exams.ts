@@ -2,7 +2,7 @@
 // duration and Room). Adding an Exam creates its Assessment in the same transaction,
 // so Subject Teachers enter Exam Marks in the normal grid. A Term's timetable is worked
 // out from the dates: Exams never store their Term.
-import { and, asc, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, ne, or, type SQL, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import {
   academicYear,
@@ -10,6 +10,7 @@ import {
   classSubject,
   exam,
   grade,
+  mark,
   room,
   schoolClass,
   subject,
@@ -17,15 +18,16 @@ import {
   user,
 } from "@/db/schema";
 import { requireAdmin, requireId } from "../access";
-import { type AssessmentType, insertAssessment } from "../assessments/assessments";
+import { type AssessmentType, insertAssessment, requireAssessmentDate } from "../assessments/assessments";
 import type { Ctx } from "../context";
 import type { Tx } from "../enrollment/enrollment";
 import { ExamClashForClass, ExamClashForRoom, InvalidInput, NotFound } from "../errors";
 import type { Term } from "../school/academic-year";
+import { requireOpenYear } from "../school/closed-year";
 
 const MINUTES_PER_DAY = 24 * 60;
 
-/** Serialises adding Exams: otherwise two overlapping ones could each see no clash. */
+/** Serialises adding and rescheduling Exams: otherwise two overlapping ones could each see no clash. */
 const EXAM_TIMETABLE_LOCK = 13;
 
 export type ExamIds = { id: number; assessmentId: number };
@@ -170,12 +172,35 @@ async function scheduleExam(tx: Tx, input: AddExamInput): Promise<ExamIds> {
     .from(classSubject)
     .where(eq(classSubject.id, input.classSubjectId));
   if (!found) throw new NotFound();
-  const [foundRoom] = await tx.select({ id: room.id }).from(room).where(eq(room.id, input.roomId));
-  if (!foundRoom) throw new NotFound();
+  await requireRoom(tx, input.roomId);
 
   // This also validates the date, so the clash query below only ever sees a real one.
   const { id: assessmentId } = await insertAssessment(tx, input);
 
+  await requireNoClash(tx, { classId: found.classId, roomId: input.roomId, date: input.date, start, end });
+
+  const [row] = await tx
+    .insert(exam)
+    .values({
+      assessmentId,
+      roomId: input.roomId,
+      startTime: input.startTime,
+      durationMinutes: input.durationMinutes,
+    })
+    .returning({ id: exam.id });
+  return { id: row.id, assessmentId };
+}
+
+/**
+ * Refuses a sitting that overlaps another Exam of the same Class or in the same Room on
+ * that date. Ranges are half-open, so an Exam may start the minute another ends. An Exam
+ * being moved is left out, so its old sitting never clashes with its new one. The caller
+ * holds the timetable lock.
+ */
+async function requireNoClash(
+  tx: Tx,
+  at: { classId: number; roomId: number; date: string; start: number; end: number; exceptExamId?: number },
+): Promise<void> {
   const sameDay = await tx
     .select({
       classId: classSubject.classId,
@@ -188,28 +213,182 @@ async function scheduleExam(tx: Tx, input: AddExamInput): Promise<ExamIds> {
     .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
     .where(
       and(
-        eq(assessment.date, input.date),
-        or(eq(classSubject.classId, found.classId), eq(exam.roomId, input.roomId)),
+        eq(assessment.date, at.date),
+        or(eq(classSubject.classId, at.classId), eq(exam.roomId, at.roomId)),
+        at.exceptExamId === undefined ? undefined : ne(exam.id, at.exceptExamId),
       ),
     );
-  // Ranges are half-open, so an Exam may start the minute another ends.
   const overlapping = sameDay.filter((other) => {
     const otherStart = startMinute(other.startTime);
-    return start < otherStart + other.durationMinutes && otherStart < end;
+    return at.start < otherStart + other.durationMinutes && otherStart < at.end;
   });
-  if (overlapping.some((other) => other.classId === found.classId)) throw new ExamClashForClass();
-  if (overlapping.some((other) => other.roomId === input.roomId)) throw new ExamClashForRoom();
+  if (overlapping.some((other) => other.classId === at.classId)) throw new ExamClashForClass();
+  if (overlapping.some((other) => other.roomId === at.roomId)) throw new ExamClashForRoom();
+}
 
-  const [row] = await tx
-    .insert(exam)
-    .values({
-      assessmentId,
+export type RescheduleExamInput = {
+  examId: number;
+  roomId: number;
+  date: string;
+  /** The school's wall-clock time, HH:MM. */
+  startTime: string;
+  durationMinutes: number;
+};
+
+/**
+ * Moves an Exam to a new date, time, duration or Room. Its Assessment, and so its Class
+ * Subject, type, maximum, weight and Marks, stay as they are.
+ */
+export async function rescheduleExam(ctx: Ctx, input: RescheduleExamInput): Promise<void> {
+  requireAdmin(ctx.actor);
+  requireId(input.examId);
+  requireId(input.roomId);
+  requireValidSitting(input);
+  const start = startMinute(input.startTime);
+
+  await ctx.db.transaction(async (tx) => {
+    await lockTimetable(tx);
+    const found = await lockExamAssessment(tx, input.examId);
+    await requireRoom(tx, input.roomId);
+    // The new date must be a real day in the Class's year; the clash query needs one.
+    await requireAssessmentDate(tx, { classSubjectId: found.classSubjectId, date: input.date });
+    if (input.date !== found.date && (await hasMarks(tx, found.assessmentId))) {
+      throw new InvalidInput("errors.examHasMarksDateFixed");
+    }
+    await requireNoClash(tx, {
+      classId: found.classId,
       roomId: input.roomId,
-      startTime: input.startTime,
-      durationMinutes: input.durationMinutes,
+      date: input.date,
+      start,
+      end: start + input.durationMinutes,
+      exceptExamId: input.examId,
+    });
+    await tx.update(assessment).set({ date: input.date }).where(eq(assessment.id, found.assessmentId));
+    await tx
+      .update(exam)
+      .set({ roomId: input.roomId, startTime: input.startTime, durationMinutes: input.durationMinutes })
+      .where(eq(exam.id, input.examId));
+  });
+}
+
+/**
+ * Deletes an Exam and its Assessment. Refused while any Mark is stored for it, so no
+ * Mark is ever lost: the Subject Teacher clears them first. Deleting can't make a clash,
+ * so it doesn't take the timetable lock.
+ */
+export async function deleteExam(ctx: Ctx, input: { examId: number }): Promise<void> {
+  requireAdmin(ctx.actor);
+  requireId(input.examId);
+
+  await ctx.db.transaction(async (tx) => {
+    const found = await lockExamAssessment(tx, input.examId);
+    if (await hasMarks(tx, found.assessmentId)) throw new InvalidInput("errors.examHasMarks");
+    await tx.delete(exam).where(eq(exam.id, input.examId));
+    await tx.delete(assessment).where(eq(assessment.id, found.assessmentId));
+  });
+}
+
+/**
+ * Finds an Exam and locks its Assessment row, as a grid save does, so no Mark arrives
+ * between the caller's check for Marks and its write. The Closed-year guard comes first,
+ * keeping the order `saveMarks` uses: the year row, then the Assessment row.
+ */
+async function lockExamAssessment(tx: Tx, examId: number) {
+  const [found] = await tx.select({ assessmentId: exam.assessmentId }).from(exam).where(eq(exam.id, examId));
+  if (!found) throw new NotFound();
+  await requireOpenYear(tx, { assessmentId: found.assessmentId });
+  const [locked] = await tx
+    .select({
+      assessmentId: assessment.id,
+      classSubjectId: assessment.classSubjectId,
+      classId: classSubject.classId,
+      date: assessment.date,
     })
-    .returning({ id: exam.id });
-  return { id: row.id, assessmentId };
+    .from(assessment)
+    .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
+    .where(eq(assessment.id, found.assessmentId))
+    .for("update", { of: assessment });
+  return locked;
+}
+
+async function requireRoom(tx: Tx, roomId: number): Promise<void> {
+  const [found] = await tx.select({ id: room.id }).from(room).where(eq(room.id, roomId));
+  if (!found) throw new NotFound();
+}
+
+/** Whether any Mark is stored for the Assessment, on its roster or not. */
+async function hasMarks(tx: Tx, assessmentId: number): Promise<boolean> {
+  const [found] = await tx.select({ id: mark.assessmentId }).from(mark).where(eq(mark.assessmentId, assessmentId)).limit(1);
+  return found !== undefined;
+}
+
+export type ExamDetail = {
+  id: number;
+  assessmentId: number;
+  class: string;
+  subject: string;
+  type: AssessmentType;
+  maxMarks: number;
+  weight: number;
+  roomId: number;
+  date: string;
+  /** HH:MM. */
+  startTime: string;
+  durationMinutes: number;
+  /** The Term the date falls in, for the timetable to go back to; null if none does. */
+  termId: number | null;
+  /** The Class's Academic Year: a rescheduled date must stay within it. */
+  academicYear: { id: number; startDate: string; endDate: string; closed: boolean };
+  /** An Exam with Marks keeps its date and can't be deleted. */
+  hasMarks: boolean;
+};
+
+/** One Exam, with what the Admin's page needs to reschedule or delete it. */
+export async function getExam(ctx: Ctx, input: { examId: number }): Promise<ExamDetail> {
+  requireAdmin(ctx.actor);
+  requireId(input.examId);
+  const [found] = await ctx.db
+    .select({
+      id: exam.id,
+      assessmentId: exam.assessmentId,
+      class: schoolClass.name,
+      subject: subject.name,
+      type: assessment.type,
+      maxMarks: assessment.maxMarks,
+      weight: assessment.weight,
+      roomId: exam.roomId,
+      date: assessment.date,
+      startTime: exam.startTime,
+      durationMinutes: exam.durationMinutes,
+      termId: term.id,
+      yearId: academicYear.id,
+      yearStart: academicYear.startDate,
+      yearEnd: academicYear.endDate,
+      yearClosed: sql<boolean>`${academicYear.closedAt} is not null`,
+      hasMarks: sql<boolean>`exists (select 1 from ${mark} where ${mark.assessmentId} = ${assessment.id})`,
+    })
+    .from(exam)
+    .innerJoin(assessment, eq(assessment.id, exam.assessmentId))
+    .innerJoin(classSubject, eq(classSubject.id, assessment.classSubjectId))
+    .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
+    .innerJoin(subject, eq(subject.id, classSubject.subjectId))
+    .innerJoin(academicYear, eq(academicYear.id, schoolClass.academicYearId))
+    .leftJoin(
+      term,
+      and(
+        eq(term.academicYearId, academicYear.id),
+        lte(term.startDate, assessment.date),
+        gte(term.endDate, assessment.date),
+      ),
+    )
+    .where(eq(exam.id, input.examId));
+  if (!found) throw new NotFound();
+  const { yearId, yearStart, yearEnd, yearClosed, startTime, ...detail } = found;
+  return {
+    ...detail,
+    startTime: clockTime(startMinute(startTime)),
+    academicYear: { id: yearId, startDate: yearStart, endDate: yearEnd, closed: yearClosed },
+  };
 }
 
 export type TimetableExam = {

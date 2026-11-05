@@ -1,5 +1,6 @@
 // The Admin's exam timetable for one Term (?term=<id>, by default the Term today falls
-// in), with grade-wide Exams shown together, and the form that adds an Exam.
+// in), with grade-wide Exams shown together, each Exam linking to its page to reschedule
+// or delete it, and the forms that add Exams.
 import Link from "next/link";
 import { ASSESSMENT_TYPES } from "@/core/assessments/assessments";
 import { listYearClassSubjects } from "@/core/classes/class-subjects";
@@ -95,7 +96,10 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
                     <ul className="list">
                       {group.exams.map((exam) => (
                         <li key={exam.id}>
-                          {t("exams.line", { class: exam.class, room: exam.room, teacher: exam.teacher })}
+                          {t("exams.line", { class: exam.class, room: exam.room, teacher: exam.teacher })}{" "}
+                          <Link href={`/admin/exams/${exam.id}`} aria-label={t("exams.changeLabel", { class: exam.class })}>
+                            {t("exams.change")}
+                          </Link>
                         </li>
                       ))}
                     </ul>

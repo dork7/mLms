@@ -56,18 +56,7 @@ export async function insertAssessment(db: Tx, input: CreateAssessmentInput): Pr
   if (!ASSESSMENT_TYPES.includes(input.type)) throw new InvalidInput("errors.assessmentTypeInvalid");
   requireMaxMarks(input.maxMarks);
   requireWeight(input.weight);
-  if (!isCalendarDate(input.date)) throw new InvalidInput("errors.assessmentDateInvalid");
-  await requireOpenYear(db, { classSubjectId: input.classSubjectId });
-
-  const [year] = await db
-    .select({ startDate: academicYear.startDate, endDate: academicYear.endDate })
-    .from(classSubject)
-    .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
-    .innerJoin(academicYear, eq(academicYear.id, schoolClass.academicYearId))
-    .where(eq(classSubject.id, input.classSubjectId));
-  if (input.date < year.startDate || input.date > year.endDate) {
-    throw new InvalidInput("errors.assessmentDateOutsideYear");
-  }
+  await requireAssessmentDate(db, input);
 
   const [row] = await db
     .insert(assessment)
@@ -80,6 +69,25 @@ export async function insertAssessment(db: Tx, input: CreateAssessmentInput): Pr
     })
     .returning({ id: assessment.id });
   return row;
+}
+
+/**
+ * An Assessment's date must be a real day within its Class's Academic Year, and that year
+ * must be open. Holds the Closed-year guard's lock until the caller's transaction ends.
+ */
+export async function requireAssessmentDate(db: Tx, at: { classSubjectId: number; date: string }): Promise<void> {
+  if (!isCalendarDate(at.date)) throw new InvalidInput("errors.assessmentDateInvalid");
+  await requireOpenYear(db, { classSubjectId: at.classSubjectId });
+
+  const [year] = await db
+    .select({ startDate: academicYear.startDate, endDate: academicYear.endDate })
+    .from(classSubject)
+    .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
+    .innerJoin(academicYear, eq(academicYear.id, schoolClass.academicYearId))
+    .where(eq(classSubject.id, at.classSubjectId));
+  if (at.date < year.startDate || at.date > year.endDate) {
+    throw new InvalidInput("errors.assessmentDateOutsideYear");
+  }
 }
 
 function requireMaxMarks(value: number): void {
