@@ -54,6 +54,7 @@ test("an Admin registers a Student with a photo; the Student logs in by Student 
   await changePassword(page, initialPassword, "aisha's own password");
 
   await expect(page).toHaveURL(/\/student$/);
+  await page.getByRole("link", { name: "My profile" }).click();
   await expect(page.getByRole("heading", { name: "My profile" })).toBeVisible();
   await expect(page.getByText("784-2013-1234567-1")).toBeVisible();
   const photo = page.getByRole("img", { name: "Photo of Aisha Rahman" });

@@ -54,6 +54,9 @@ export default async function TeacherClassPage({
         <p>
           <Link href={`/teacher/classes/${classId}/lessons`}>{t("lessons.summaryLink")}</Link>
         </p>
+        <p>
+          <Link href={`/teacher/classes/${classId}/remarks`}>{t("remarks.overallLink")}</Link>
+        </p>
         <h2>{t("classes.classSubjects")}</h2>
         {classSubjects.length === 0 ? (
           <p>{t("classes.noClassSubjects")}</p>

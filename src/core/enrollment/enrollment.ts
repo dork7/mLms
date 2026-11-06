@@ -2,11 +2,16 @@
 // ends; an open Enrollment has no end date). A Student has at most one open
 // Enrollment. Moving Class ends the open one the day before the move date and
 // starts the next on it, so the two never overlap.
-import { and, asc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { academicYear, enrollment, grade, schoolClass, student, user } from "@/db/schema";
 import { requireAdmin, requireCanSeeClassRoster } from "../access";
+import { enrollmentCovers } from "./roster-condition";
+import { type ClassRow, listClasses } from "../classes/classes";
 import type { Ctx } from "../context";
+import { dayBefore } from "../dates";
 import { AlreadyEnrolled, InvalidInput, isUniqueViolation, NotEnrolled, NotFound } from "../errors";
+import { requireEnrollmentNotFrozen } from "../report-cards/publications";
+import { requireOpenYear } from "../school/closed-year";
 
 export type RosterRow = {
   studentId: string;
@@ -31,11 +36,15 @@ export async function enrollStudent(
     .where(eq(student.userId, input.studentId));
   if (!found) throw new NotFound("no such Student");
   try {
-    const [row] = await ctx.db
-      .insert(enrollment)
-      .values({ studentId: input.studentId, classId: input.classId, startDate: input.startDate })
-      .returning({ id: enrollment.id });
-    return row;
+    return await ctx.db.transaction(async (tx) => {
+      await requireOpenYear(tx, { academicYearId: target.academicYearId });
+      await requireEnrollmentNotFrozen(tx, [input.classId], dayBefore(input.startDate));
+      const [row] = await tx
+        .insert(enrollment)
+        .values({ studentId: input.studentId, classId: input.classId, startDate: input.startDate })
+        .returning({ id: enrollment.id });
+      return row;
+    });
   } catch (err) {
     if (isUniqueViolation(err)) throw new AlreadyEnrolled();
     throw err;
@@ -68,6 +77,8 @@ export async function moveStudent(
     if (!isDate(input.date) || input.date <= open.startDate || input.date > to.yearEnd) {
       throw new InvalidInput("errors.moveDateInvalid");
     }
+    await requireOpenYear(tx, { academicYearId: to.academicYearId });
+    await requireEnrollmentNotFrozen(tx, [from.id, to.id], dayBefore(input.date));
     await tx.update(enrollment).set({ endDate: dayBefore(input.date) }).where(eq(enrollment.id, open.id));
     const [row] = await tx
       .insert(enrollment)
@@ -77,7 +88,31 @@ export async function moveStudent(
   });
 }
 
-type Tx = Parameters<Parameters<Ctx["db"]["transaction"]>[0]>[0];
+export type EnrollmentChoices = { mode: "enroll" | "move"; classes: ClassRow[] };
+
+/**
+ * Which Classes the Admin can put a Student in right now. With an open Enrollment they
+ * can only move: another Class of the same Grade and Academic Year. Otherwise they can
+ * enroll in any Class. Closed years are left out either way.
+ */
+export async function enrollmentChoices(ctx: Ctx, input: { studentId: string }): Promise<EnrollmentChoices> {
+  requireAdmin(ctx.actor);
+  const classes = (await listClasses(ctx)).filter((c) => !c.yearClosed);
+  const [open] = await ctx.db
+    .select({ classId: enrollment.classId, gradeId: schoolClass.gradeId, academicYearId: schoolClass.academicYearId })
+    .from(enrollment)
+    .innerJoin(schoolClass, eq(schoolClass.id, enrollment.classId))
+    .where(and(eq(enrollment.studentId, input.studentId), isNull(enrollment.endDate)));
+  if (!open) return { mode: "enroll", classes };
+  return {
+    mode: "move",
+    classes: classes.filter(
+      (c) => c.id !== open.classId && c.gradeId === open.gradeId && c.academicYearId === open.academicYearId,
+    ),
+  };
+}
+
+export type Tx = Parameters<Parameters<Ctx["db"]["transaction"]>[0]>[0];
 
 /** A Class with its Grade and Academic Year dates, or NotFound. */
 async function classYear(db: Ctx["db"] | Tx, classId: number) {
@@ -101,13 +136,6 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isDate(value: string): boolean {
   return ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
-}
-
-/** The calendar day before a YYYY-MM-DD date. */
-function dayBefore(date: string): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
 }
 
 export type EnrollmentRow = {
@@ -148,7 +176,15 @@ export async function classRoster(ctx: Ctx, input: { classId: number; date?: str
   await requireCanSeeClassRoster(ctx, input.classId);
   const date = input.date ?? ctx.clock.today();
   if (!isDate(date)) throw new InvalidInput("errors.dateInvalid");
-  return ctx.db
+  return rosterOn(ctx.db, input.classId, date);
+}
+
+/**
+ * The roster of a Class on a date, by name. No access check: callers (the roster
+ * page, the marks grid) check their own guard first.
+ */
+export function rosterOn(db: Ctx["db"] | Tx, classId: number, date: string): Promise<RosterRow[]> {
+  return db
     .select({
       studentId: student.userId,
       name: user.name,
@@ -161,9 +197,8 @@ export async function classRoster(ctx: Ctx, input: { classId: number; date?: str
     .innerJoin(user, eq(user.id, student.userId))
     .where(
       and(
-        eq(enrollment.classId, input.classId),
-        lte(enrollment.startDate, date),
-        or(isNull(enrollment.endDate), gte(enrollment.endDate, date)),
+        eq(enrollment.classId, classId),
+        enrollmentCovers(date),
       ),
     )
     .orderBy(asc(user.name), asc(user.id));

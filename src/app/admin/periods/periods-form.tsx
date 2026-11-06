@@ -1,7 +1,8 @@
 "use client";
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type FormState, savePeriodsPerDay } from "../setup-actions";
+import type { FormState } from "@/app/form-kit";
+import { savePeriodsPerDay } from "../setup-actions";
 
 export function PeriodsForm({ current }: { current: number | null }) {
   const [state, action, pending] = useActionState<FormState, FormData>(savePeriodsPerDay, { saved: 0 });

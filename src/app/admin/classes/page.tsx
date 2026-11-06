@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { listTeachers } from "@/core/accounts/list-teachers";
 import { listClasses } from "@/core/classes/classes";
+import { listOpenAcademicYears } from "@/core/school/academic-year";
 import { getSchoolSetup } from "@/core/school/school-setup";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
@@ -12,7 +13,9 @@ import { AddClassForm } from "./forms";
 export default async function ClassesPage() {
   let data;
   try {
-    data = await asCurrentActor((ctx) => Promise.all([listClasses(ctx), getSchoolSetup(ctx), listTeachers(ctx)]));
+    data = await asCurrentActor((ctx) =>
+      Promise.all([listClasses(ctx), getSchoolSetup(ctx), listTeachers(ctx), listOpenAcademicYears(ctx)]),
+    );
   } catch (err) {
     return (
       <main className="page">
@@ -20,9 +23,9 @@ export default async function ClassesPage() {
       </main>
     );
   }
-  const [classes, setup, allTeachers] = data;
+  const [classes, setup, allTeachers, openYears] = data;
   const teachers = allTeachers.filter((teacher) => !teacher.disabled);
-  const ready = setup.academicYears.length > 0 && setup.grades.length > 0 && teachers.length > 0;
+  const ready = openYears.length > 0 && setup.grades.length > 0 && teachers.length > 0;
 
   return (
     <main className="page">
@@ -49,7 +52,7 @@ export default async function ClassesPage() {
       <section className="card">
         <h2>{t("classes.addTitle")}</h2>
         {ready ? (
-          <AddClassForm academicYears={setup.academicYears} grades={setup.grades} teachers={teachers} />
+          <AddClassForm academicYears={openYears} grades={setup.grades} teachers={teachers} />
         ) : (
           <p>{t("classes.needsSetup")}</p>
         )}

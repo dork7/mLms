@@ -38,6 +38,7 @@ test("an Admin enrolls a Student and moves them; rosters and the Enrollment hist
   const initialPassword = (await page.getByRole("status").locator("code").textContent())!;
 
   await page.goto("/admin/classes");
+  await page.waitForLoadState("networkidle"); // a <select> chosen before hydration is reset
   for (const name of ["9-A", "9-B"]) {
     await page.getByRole("combobox", { name: "Academic Year" }).selectOption({ label: "2041-2042" });
     await page.getByRole("combobox", { name: "Grade", exact: true }).selectOption({ label: "Grade 9" });

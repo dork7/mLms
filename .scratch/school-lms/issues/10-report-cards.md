@@ -4,11 +4,11 @@
 
 **Blocked by:** 09 (Grading Scales and Term Grades)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Issuing Class is the Student's Class on the Term's last day
-- [ ] A Subject Teacher writes one remark per Student for their Subject's Term Grade
-- [ ] The Issuing Class's Class Teacher writes one overall remark per Student
-- [ ] The overall percentage is the plain average of the Term Grade percentages
-- [ ] Rank is calculated within the Issuing Class, tied Students share a rank, and it's switched on or off school-wide
-- [ ] The Admin's preview flags missing Marks and missing remarks
+- [x] The Issuing Class is the Student's Class on the Term's last day
+- [x] A Subject Teacher writes one remark per Student for their Subject's Term Grade
+- [x] The Issuing Class's Class Teacher writes one overall remark per Student
+- [x] The overall percentage is the plain average of the Term Grade percentages
+- [x] Rank is calculated within the Issuing Class, tied Students share a rank, and it's switched on or off school-wide
+- [x] The Admin's preview flags missing Marks and missing remarks

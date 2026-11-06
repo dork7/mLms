@@ -36,7 +36,7 @@ export default async function TeachersPage() {
               <li key={teacher.id} className="list-item">
                 <div>
                   <strong>{teacher.name}</strong>
-                  <div className="muted">{[teacher.email, teacher.phone].filter(Boolean).join(" · ")}</div>
+                  <div className="muted">{[teacher.email, teacher.phone].filter(Boolean).join(t("common.separator"))}</div>
                   {teacher.disabled && <div className="muted">{t("teachers.disabled")}</div>}
                 </div>
                 <form action={setLoginEnabled}>

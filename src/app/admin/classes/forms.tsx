@@ -2,59 +2,9 @@
 // The Admin's Class and Class Subject forms. Selects are controlled so the
 // choices survive a refusal; a create form clears itself after a save.
 import { useActionState, useState } from "react";
-import { type MessageKey, t } from "@/i18n";
-import type { FormState } from "../setup-actions";
+import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
+import { t } from "@/i18n";
 import { addClass, addClassSubject, reassignTeacher } from "./actions";
-
-export type Option = { id: number | string; name: string };
-
-export function Select({
-  label,
-  name,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  options: Option[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="field">
-      {label}
-      <select name={name} value={value} onChange={(e) => onChange(e.target.value)} required>
-        <option value="" disabled>
-          {t("classes.choose")}
-        </option>
-        {options.map((o) => (
-          <option key={o.id} value={String(o.id)}>
-            {o.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export function Refusal({ error }: { error?: MessageKey }) {
-  if (!error) return null;
-  return (
-    <p className="error" role="alert">
-      {t(error)}
-    </p>
-  );
-}
-
-/** Calls `reset` once each time `state.saved` goes up. */
-function useOnSaved(state: FormState, reset: () => void) {
-  const [seen, setSeen] = useState(0);
-  if (state.saved !== seen) {
-    setSeen(state.saved);
-    reset();
-  }
-}
 
 export function AddClassForm({
   academicYears,

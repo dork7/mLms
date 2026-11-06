@@ -4,9 +4,9 @@
 
 **Blocked by:** 13 (Exam timetable)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Student sees the Exams for their current Class
-- [ ] A Teacher sees the Exams for their Class Subjects
-- [ ] There's a printable view
-- [ ] There's an .ics export containing only the viewer's own Exams
+- [x] A Student sees the Exams for their current Class
+- [x] A Teacher sees the Exams for their Class Subjects
+- [x] There's a printable view
+- [x] There's an .ics export containing only the viewer's own Exams

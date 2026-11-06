@@ -1,9 +1,10 @@
 // A Teacher's "My Students": the Students enrolled today in the Classes the Teacher
 // teaches (as a Subject Teacher of one of its Class Subjects, or as its Class
 // Teacher), optionally narrowed to one Class or one Class Subject.
-import { and, asc, eq, gte, isNull, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, or, sql, type SQL } from "drizzle-orm";
 import { classSubject, enrollment, schoolClass, student, subject, user } from "@/db/schema";
 import { isTeacherOfClass, requireRole } from "../access";
+import { enrollmentCovers } from "./roster-condition";
 import type { Ctx } from "../context";
 
 export type MyStudentsFilter = { classId?: number; classSubjectId?: number };
@@ -25,8 +26,7 @@ export async function listMyStudents(ctx: Ctx, filter: MyStudentsFilter): Promis
 
   const conditions: (SQL | undefined)[] = [
     isTeacherOfClass(me),
-    lte(enrollment.startDate, today),
-    or(isNull(enrollment.endDate), gte(enrollment.endDate, today)),
+    enrollmentCovers(today),
   ];
   if (filter.classId !== undefined) conditions.push(eq(schoolClass.id, safeId(filter.classId)));
   if (filter.classSubjectId !== undefined) {

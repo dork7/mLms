@@ -4,7 +4,7 @@
 // survive a refusal; topic and homework clear after a save so the next one is quick.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import type { FormState } from "../../../admin/setup-actions";
+import type { FormState } from "@/app/form-kit";
 import { logLessonAction } from "./actions";
 
 export function LessonForm({

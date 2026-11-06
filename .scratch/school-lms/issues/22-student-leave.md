@@ -4,9 +4,9 @@
 
 **Blocked by:** 08 (Assessments and marks grid)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Student submits a Leave Request with a date range, a reason and an optional attachment
-- [ ] The Student's current Class Teacher approves or rejects it. Other Teachers are refused
-- [ ] An Admin can override either decision
-- [ ] When a request is approved, the Student's Absent Marks on Assessments within the leave dates become Exempt
+- [x] A Student submits a Leave Request with a date range, a reason and an optional attachment
+- [x] The Student's current Class Teacher approves or rejects it. Other Teachers are refused
+- [x] An Admin can override either decision
+- [x] When a request is approved, the Student's Absent Marks on Assessments within the leave dates become Exempt

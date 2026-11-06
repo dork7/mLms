@@ -3,7 +3,7 @@
 // date. Inputs are controlled so they survive a refusal, and clear after a save.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type Option, Refusal, Select } from "../../classes/forms";
+import { type Option, Refusal, Select } from "@/app/form-kit";
 import { type EnrollmentFormState, saveEnrollment } from "../actions";
 
 export function EnrollmentForm({

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { logLesson } from "@/core/lessons/lessons";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
-import type { FormState } from "../../../admin/setup-actions";
+import type { FormState } from "@/app/form-kit";
 
 export async function logLessonAction(prev: FormState, form: FormData): Promise<FormState> {
   const input = {

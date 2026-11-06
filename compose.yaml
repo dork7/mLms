@@ -2,6 +2,7 @@
 # applies migrations and seeds the first Admin on start). Open http://localhost:3000.
 # `npm run dev` starts only the `db` service and runs Next.js on the host.
 # `backup` dumps the database daily and keeps 30 days of backups (docs/backups.md).
+# `fee-reminders` sends the daily Fee Reminders (docs/fee-reminders.md).
 services:
   db:
     image: postgres:17-alpine
@@ -21,12 +22,17 @@ services:
 
   app:
     build: .
+    # Chromium renders PDFs in this container (src/web/pdf.ts). It keeps pages in /dev/shm, whose
+    # 64 MB default is too small for a whole Class, and `init` reaps the processes it leaves.
+    shm_size: 256m
+    init: true
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://lms:lms@db:5432/lms
       APP_URL: ${APP_URL:-http://localhost:3000}
+      SCHOOL_NAME: ${SCHOOL_NAME:-}
       ADMIN_NAME: ${ADMIN_NAME:-School Admin}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@school.test}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password}
@@ -54,6 +60,22 @@ services:
       # Named volume by default; set BACKUP_HOST_DIR to an absolute host path to use that instead.
       - ${BACKUP_HOST_DIR:-backups}:/backups
     entrypoint: ["sh", "/ops/backup.sh"]
+    restart: unless-stopped
+
+  fee-reminders:
+    build: .
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://lms:lms@db:5432/lms
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-School LMS <no-reply@localhost>}
+      SCHOOL_TIME_ZONE: ${SCHOOL_TIME_ZONE:-Asia/Dubai}
+      FEE_REMINDERS_INTERVAL_SECONDS: ${FEE_REMINDERS_INTERVAL_SECONDS:-86400}
+      FEE_REMINDERS_RETRY_SECONDS: ${FEE_REMINDERS_RETRY_SECONDS:-300}
+    entrypoint: ["sh", "ops/fee-reminders/run.sh"]
     restart: unless-stopped
 
 volumes:

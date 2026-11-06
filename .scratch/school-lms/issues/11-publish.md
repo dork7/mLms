@@ -4,9 +4,9 @@
 
 **Blocked by:** 10 (Report Cards)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Only an Admin can Publish a Class's Report Cards for a Term
-- [ ] Students can see their Report Card only once it's Published
-- [ ] While Published, any Mark write for that Term's Assessments for Students in that Class is refused
-- [ ] An Admin can unpublish. Who unpublished and when is recorded, and Mark writes are accepted again
+- [x] Only an Admin can Publish a Class's Report Cards for a Term
+- [x] Students can see their Report Card only once it's Published
+- [x] While Published, any Mark write for that Term's Assessments for Students in that Class is refused
+- [x] An Admin can unpublish. Who unpublished and when is recorded, and Mark writes are accepted again

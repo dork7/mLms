@@ -14,7 +14,8 @@
     "test:all": "npm run test && npm run test:e2e",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
-    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
+    "fee-reminders": "tsx --env-file-if-exists=.env scripts/send-fee-reminders.ts"
   },
   "dependencies": {
     "better-auth": "1.7.14",
@@ -22,6 +23,7 @@
     "next": "16.4.3",
     "nodemailer": "10.3.1",
     "pg": "8.23.1",
+    "playwright": "1.64.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1"
@@ -35,6 +37,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "drizzle-kit": "0.31.11",
+    "pdfjs-dist": "6.4.299",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.0.5"

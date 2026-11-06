@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import type { Named } from "@/core/school/catalogue";
 import { type MessageKey, t } from "@/i18n";
-import { type FormState, type NamedKind, saveNamed } from "./setup-actions";
+import type { FormState } from "@/app/form-kit";
+import { type NamedKind, saveNamed } from "./setup-actions";
 
 export function NamedForm({ kind, item, label }: { kind: NamedKind; item?: Named; label: MessageKey }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveNamed.bind(null, kind), {

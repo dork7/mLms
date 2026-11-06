@@ -10,7 +10,13 @@ export default async function EditAcademicYearPage({ params }: { params: Promise
         const year = setup.academicYears.find((y) => y.id === Number(id));
         return (
           <section className="card">
-            {year ? <AcademicYearForm year={year} /> : <p className="error">{t("errors.notFound")}</p>}
+            {!year ? (
+              <p className="error">{t("errors.notFound")}</p>
+            ) : year.closed ? (
+              <p>{t("yearEnd.closedNotice")}</p>
+            ) : (
+              <AcademicYearForm year={year} />
+            )}
           </section>
         );
       }}
