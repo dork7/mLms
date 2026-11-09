@@ -2,7 +2,7 @@
 // The Admin's Publish or unpublish button for one Class and Term.
 import { useActionState } from "react";
 import { t } from "@/i18n";
-import { type FormState, Refusal } from "@/app/form-kit";
+import { type FormState, Refusal, useResultFocus } from "@/app/form-kit";
 import { publishAction, unpublishAction } from "./actions";
 
 export function PublishForm({
@@ -18,9 +18,10 @@ export function PublishForm({
     published ? unpublishAction : publishAction,
     { saved: 0 },
   );
+  const formRef = useResultFocus(state);
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="classId" value={classId} />
       <input type="hidden" name="termId" value={termId} />

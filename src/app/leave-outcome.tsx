@@ -1,6 +1,7 @@
 // What the last decision on a decider's page did, read from the query `decideFromForm`
 // leaves: the decision and, for a Student's request, how many Marks changed and how many
-// were skipped because they're frozen. Or why it was refused.
+// were skipped because they're frozen. Or why it was refused. It takes focus when shown.
+import { Flash } from "@/app/form-kit";
 import { isMessageKey, t } from "@/i18n";
 
 export type LeaveOutcomeQuery = {
@@ -20,11 +21,7 @@ const count = (v: string | string[] | undefined) => {
 export function LeaveOutcome({ query }: { query: LeaveOutcomeQuery }) {
   const refused = one(query.refused);
   if (refused) {
-    return (
-      <p className="error" role="alert">
-        {t(isMessageKey(refused) ? refused : "errors.accessDenied")}
-      </p>
-    );
+    return <Flash kind="error">{t(isMessageKey(refused) ? refused : "errors.accessDenied")}</Flash>;
   }
   const decision = one(query.decision);
   if (decision !== "approved" && decision !== "rejected") return null;
@@ -35,9 +32,5 @@ export function LeaveOutcome({ query }: { query: LeaveOutcomeQuery }) {
   if (decision === "approved" && exempted !== null) lines.push(t("leave.outcome.exempted", { count: exempted }));
   if (decision === "rejected" && restored !== null) lines.push(t("leave.outcome.restored", { count: restored }));
   if (frozen) lines.push(t("leave.outcome.frozen", { count: frozen }));
-  return (
-    <p className="success" role="status">
-      {lines.join(" ")}
-    </p>
-  );
+  return <Flash kind="success">{lines.join(" ")}</Flash>;
 }

@@ -1,5 +1,6 @@
 // A Subject Teacher's remarks for one Term: each Student whose remark falls to this Class
 // Subject, with their whole Term Grade across Classes.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { subjectRemarkSheet } from "@/core/report-cards/remarks";
 import { t } from "@/i18n";
@@ -9,6 +10,8 @@ import { termGradeNotes, termGradeText } from "../../../../term-grade-text";
 import { TermPicker, termIdFrom } from "../../../../term-picker";
 import { saveSubjectRemarkAction } from "../../../remark-actions";
 import { RemarkForm } from "../../../remark-form";
+
+export const metadata: Metadata = { title: t("pageTitles.subjectRemarks") };
 
 export default async function SubjectRemarksPage({
   params,

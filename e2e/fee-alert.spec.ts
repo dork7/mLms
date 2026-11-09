@@ -91,7 +91,7 @@ test("the Admin and the Student see the Fee Alert for an Overdue Fee, and a Teac
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "51-A (Grade 51, 2131-2132)" });
   await page.getByLabel("From").fill("2131-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2131-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2131 · Current")).toBeVisible();
   await expect(feeAlert(page)).toHaveCount(0);
 
   // A Fee due long ago, owed by Hana alone: Overdue at once.
@@ -113,7 +113,7 @@ test("the Admin and the Student see the Fee Alert for an Overdue Fee, and a Teac
   // The Admin sees the alert on her profile and on her Class's Report Card screen.
   await open(page, profilePath);
   await expect(feeAlert(page)).toContainText("Hana Alert has an Overdue Fee.");
-  await expect(feeAlert(page)).toContainText("Fee Alert Spec Tuition: due 2020-01-15, AED 0.00 paid of AED 2,000.00");
+  await expect(feeAlert(page)).toContainText("Fee Alert Spec Tuition: due Jan 15, 2020, AED 0.00 paid of AED 2,000.00");
   await expect(page.getByRole("region", { name: "Fees", exact: true }).getByText("Overdue")).toBeVisible();
   await open(page, `${classPath}/report-cards`);
   await expect(page.getByRole("region", { name: /Hana Alert/ }).getByRole("alert")).toContainText("Fee Alert");

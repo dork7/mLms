@@ -3,7 +3,7 @@
 // date. Inputs are controlled so they survive a refusal, and clear after a save.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type Option, Refusal, Select } from "@/app/form-kit";
+import { type Option, Refusal, Select, useResultFocus } from "@/app/form-kit";
 import { type EnrollmentFormState, saveEnrollment } from "../actions";
 
 export function EnrollmentForm({
@@ -16,6 +16,7 @@ export function EnrollmentForm({
   classes: Option[];
 }) {
   const [state, action, pending] = useActionState<EnrollmentFormState, FormData>(saveEnrollment, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [classId, setClassId] = useState("");
   const [date, setDate] = useState("");
   const [seen, setSeen] = useState(0);
@@ -26,7 +27,7 @@ export function EnrollmentForm({
   }
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="mode" value={mode} />

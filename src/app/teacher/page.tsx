@@ -1,12 +1,16 @@
 // The Teacher's landing page: what needs Marks, their own Class Subjects, what was last
 // taught in them, and the Classes they are Class Teacher of.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { listMyClasses } from "@/core/classes/classes";
 import { getTeacherDashboard } from "@/core/dashboard/teacher-dashboard";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { logout } from "../actions";
+
+export const metadata: Metadata = { title: t("pageTitles.teacherDashboard") };
 
 export default async function TeacherDashboardPage() {
   let data;
@@ -47,7 +51,7 @@ export default async function TeacherDashboardPage() {
                     subject: a.subject,
                     class: a.class,
                     type: t(`assessments.types.${a.type}`),
-                    date: a.date,
+                    date: dateText(a.date),
                   })}
                 </Link>
                 <div className="muted">{t("teacherDashboard.marksToEnter", { count: a.missingMarks })}</div>
@@ -83,7 +87,7 @@ export default async function TeacherDashboardPage() {
               <li key={lesson.id}>
                 <div className="muted">
                   {t("teacherDashboard.lessonLine", {
-                    date: lesson.date,
+                    date: dateText(lesson.date),
                     period: lesson.period,
                     subject: lesson.subject,
                     class: lesson.class,

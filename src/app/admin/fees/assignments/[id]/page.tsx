@@ -1,6 +1,8 @@
 // One Fee Assignment: its Fee Status, its Payment Records, the form to log another, and
 // waiving (or undoing a waiver).
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { getFeeAssignment, PAYMENT_METHODS } from "@/core/fees/fee-assignments";
 import { formatAed } from "@/core/fees/money";
 import { t } from "@/i18n";
@@ -9,6 +11,8 @@ import { refusalKey } from "@/web/refusal";
 import { FeeStatusLabel, PaymentRecords } from "../../../../fee-assignments";
 import { setWaived } from "../../actions";
 import { PaymentRecordForm } from "../../forms";
+
+export const metadata: Metadata = { title: t("pageTitles.feeAssignment") };
 
 export default async function FeeAssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const feeAssignmentId = Number((await params).id);
@@ -46,7 +50,7 @@ export default async function FeeAssignmentPage({ params }: { params: Promise<{ 
               {t("common.separator")}
               {formatAed(fee.amountFils)}
               {t("common.separator")}
-              {t("fees.due", { date: fee.dueDate })}
+              {t("fees.due", { date: dateText(fee.dueDate) })}
             </dd>
           </div>
           <div>

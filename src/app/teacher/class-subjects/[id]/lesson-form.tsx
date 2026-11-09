@@ -4,7 +4,7 @@
 // survive a refusal; topic and homework clear after a save so the next one is quick.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import type { FormState } from "@/app/form-kit";
+import { type FormState, useResultFocus } from "@/app/form-kit";
 import { logLessonAction } from "./actions";
 
 export function LessonForm({
@@ -17,6 +17,7 @@ export function LessonForm({
   periodsPerDay: number;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(logLessonAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [date, setDate] = useState(today);
   const [period, setPeriod] = useState("");
   const [topic, setTopic] = useState("");
@@ -30,14 +31,14 @@ export function LessonForm({
   }
 
   return (
-    <form action={action} className="lesson-form">
+    <form ref={formRef} action={action} className="lesson-form">
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}
       {state.saved > 0 && !state.error && !pending && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("lessons.logged")}
         </p>
       )}

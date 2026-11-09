@@ -1,7 +1,7 @@
 "use client";
 // When an Exam is sat and what it's worth, shared by the single and grade-wide forms. The
 // inputs are controlled and never cleared, so a refusal keeps what was typed and a save
-// keeps the details ready for the next Exam.
+// keeps the details ready for the next Exam. `EndsAt` shows when a sitting would end.
 import { useState } from "react";
 import { type Option, Select } from "@/app/form-kit";
 import { t } from "@/i18n";
@@ -62,6 +62,7 @@ export function ExamSittingFields({
           />
         </label>
       </div>
+      <EndsAt startTime={startTime} duration={duration} />
       <div className="row">
         <Select label={t("exams.type")} name="type" options={types} value={type} onChange={setType} />
         <label className="field">
@@ -92,5 +93,21 @@ export function ExamSittingFields({
         </label>
       </div>
     </>
+  );
+}
+
+/** When a sitting typed so far would end, worked out as the Admin types; nothing until both are filled in. */
+export function EndsAt({ startTime, duration }: { startTime: string; duration: string }) {
+  const match = /^(\d{2}):(\d{2})$/.exec(startTime);
+  const minutes = Number(duration);
+  if (!match || !Number.isInteger(minutes) || minutes <= 0) return null;
+  const end = Number(match[1]) * 60 + Number(match[2]) + minutes;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <p className="muted" aria-live="polite">
+      {end > 24 * 60
+        ? t("exams.endsAfterMidnight")
+        : t("exams.endsAt", { end: `${pad(Math.floor(end / 60))}:${pad(end % 60)}` })}
+    </p>
   );
 }

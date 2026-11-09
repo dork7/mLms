@@ -1,12 +1,15 @@
 // One Term's Term Grades in a Class Subject, for its Subject Teacher or its Class's
 // Class Teacher (the layer decides). A Student who moved mid-Term shows their whole
 // Term Grade, from every Class they were in.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { classSubjectTermGrades } from "@/core/grading/term-grades";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { termGradeNotes, termGradeText } from "../../../../term-grade-text";
+
+export const metadata: Metadata = { title: t("pageTitles.termGrades") };
 
 export default async function ClassSubjectTermGradesPage({
   params,

@@ -1,4 +1,5 @@
 // A Teacher's Leave Requests: the form to request leave and the status of each request.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { myLeaveRequests } from "@/core/leave/leave-requests";
 import { t } from "@/i18n";
@@ -6,6 +7,8 @@ import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { LeaveRequestItem } from "../../leave-request-item";
 import { LeaveRequestForm } from "../../leave-request-form";
+
+export const metadata: Metadata = { title: t("pageTitles.myLeave") };
 
 export default async function TeacherLeavePage() {
   let requests;

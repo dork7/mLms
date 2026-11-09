@@ -3,7 +3,7 @@
 // by Term so another Term's remark doesn't inherit this one's text.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type FormState, Refusal } from "@/app/form-kit";
+import { type FormState, Refusal, useResultFocus } from "@/app/form-kit";
 
 export function RemarkForm({
   action: save,
@@ -18,13 +18,14 @@ export function RemarkForm({
   remark: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(save, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [value, setValue] = useState(remark ?? "");
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       {state.saved > 0 && !state.error && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("remarks.saved")}
         </p>
       )}

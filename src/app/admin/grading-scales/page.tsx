@@ -1,10 +1,13 @@
 // The Admin's Grading Scales: one form per Grade.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listGradingScales } from "@/core/grading/grading-scales";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { GradingScaleForm } from "./grading-scale-form";
+
+export const metadata: Metadata = { title: t("pageTitles.gradingScales") };
 
 export default async function GradingScalesPage() {
   let grades;

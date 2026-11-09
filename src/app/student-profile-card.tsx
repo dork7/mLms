@@ -1,5 +1,6 @@
 // A Student's profile with their Enrollment history, shown to the Admin, the
 // Student's Teachers and the Student themselves.
+import { dateText } from "@/app/date-text";
 import type { StudentProfile } from "@/core/students/student-profile";
 import { t, type MessageKey } from "@/i18n";
 
@@ -44,8 +45,8 @@ export function StudentProfileCard({ profile }: { profile: StudentProfile }) {
               {t("enrollment.historyLine", { class: e.class, grade: e.grade, year: e.academicYear })}
               <div className="muted">
                 {e.endDate
-                  ? t("enrollment.fromTo", { start: e.startDate, end: e.endDate })
-                  : t("enrollment.from", { start: e.startDate }) + t("common.separator") + t("enrollment.current")}
+                  ? t("enrollment.fromTo", { start: dateText(e.startDate), end: dateText(e.endDate) })
+                  : t("enrollment.from", { start: dateText(e.startDate) }) + t("common.separator") + t("enrollment.current")}
               </div>
             </li>
           ))}

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { t } from "@/i18n";
 import { SetupPage } from "../../setup-shell";
 import { AcademicYearForm } from "../academic-year-form";
+
+export const metadata: Metadata = { title: t("pageTitles.academicYear") };
 
 export default async function EditAcademicYearPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

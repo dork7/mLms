@@ -2,7 +2,7 @@
 // The Admin's Class and Class Subject forms. Selects are controlled so the
 // choices survive a refusal; a create form clears itself after a save.
 import { useActionState, useState } from "react";
-import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
+import { type FormState, type Option, Refusal, Select, useOnSaved, useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import { addClass, addClassSubject, reassignTeacher } from "./actions";
 
@@ -16,6 +16,7 @@ export function AddClassForm({
   teachers: Option[];
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addClass, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [academicYearId, setAcademicYearId] = useState("");
   const [gradeId, setGradeId] = useState("");
   const [name, setName] = useState("");
@@ -26,7 +27,7 @@ export function AddClassForm({
   });
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <div className="row">
         <Select
@@ -68,6 +69,7 @@ export function AddClassSubjectForm({
   teachers: Option[];
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addClassSubject, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   useOnSaved(state, () => {
@@ -76,7 +78,7 @@ export function AddClassSubjectForm({
   });
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="classId" value={classId} />
       <div className="row">
@@ -110,10 +112,11 @@ export function ReassignTeacherForm({
   teachers: Option[];
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(reassignTeacher, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [teacherId, setTeacherId] = useState(current);
 
   return (
-    <form action={action} className="inline-form">
+    <form ref={formRef} action={action} className="inline-form">
       <input type="hidden" name="classId" value={classId} />
       <input type="hidden" name="classSubjectId" value={classSubjectId} />
       <Select

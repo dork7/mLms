@@ -3,6 +3,12 @@ import { expect, test, type Page } from "@playwright/test";
 // Names and dates here are unique to this spec: e2e specs share one database and run
 // in parallel. The year (2081-2082) is far in the future so it overlaps no other spec's
 // year; Term Grades go by Assessment dates, not today. The project runs at phone width.
+
+/** A date as the app shows it: "Oct 10, 2081". */
+function shown(date: string) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en", { dateStyle: "medium", timeZone: "UTC" });
+}
+
 async function logIn(page: Page, identifier: string, password: string) {
   await page.goto("/login");
   await settled(page);
@@ -46,7 +52,7 @@ async function quizWithMark(page: Page, classSubject: string, date: string, stud
   await create.getByLabel("Maximum marks").fill("10");
   await create.getByLabel("Weight").fill("1");
   await create.getByRole("button", { name: "Create Assessment" }).click();
-  await expect(page.getByRole("heading", { name: `Quiz on ${date}` })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `Quiz on ${shown(date)}` })).toBeVisible();
   await settled(page);
   const grid = page.getByRole("region", { name: "Marks", exact: true });
   await grid.getByLabel(`Mark for ${student}`).fill(score);
@@ -145,7 +151,7 @@ test("the Admin defines a Grading Scale, and a Student who moved Class mid-Term 
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "3-G (Grade 3, 2081-2082)" });
   await page.getByLabel("From").fill("2081-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2081-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2081 · Current")).toBeVisible();
 
   // Layla marks Noor in 3-G.
   await page.context().clearCookies();
@@ -162,7 +168,7 @@ test("the Admin defines a Grading Scale, and a Student who moved Class mid-Term 
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "3-H (Grade 3, 2081-2082)" });
   await page.getByLabel("From").fill("2081-11-01");
   await page.getByRole("button", { name: "Move" }).click();
-  await expect(page.getByText("From 2081-11-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Nov 1, 2081 · Current")).toBeVisible();
 
   // Layla marks Noor in 3-H. Her Term Grade is (8/10 + 4/10) ÷ 2 = 60%.
   await page.context().clearCookies();

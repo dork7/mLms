@@ -1,22 +1,24 @@
 "use client";
 import Link from "next/link";
 import { useActionState } from "react";
+import { useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import { resetForgottenPassword, type FormState } from "../actions";
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(resetForgottenPassword, {});
+  const formRef = useResultFocus(state);
   if (state.done) {
     return (
-      <p role="status">
+      <p role="status" tabIndex={-1}>
         {t("resetPassword.done")} <Link href="/login">{t("login.submit")}</Link>
       </p>
     );
   }
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}

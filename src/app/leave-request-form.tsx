@@ -4,7 +4,7 @@
 // limit is refused here before it is sent, since a body over the server's limit would fail
 // without a translated message.
 import { useActionState, useState } from "react";
-import { type FormState, Refusal, useOnSaved } from "@/app/form-kit";
+import { type FormState, Refusal, useOnSaved, useResultFocus } from "@/app/form-kit";
 import { MAX_ATTACHMENT_BYTES } from "@/core/leave/attachment";
 import { type MessageKey, t } from "@/i18n";
 import { submitLeaveAction } from "./leave-actions";
@@ -12,6 +12,7 @@ import { submitLeaveAction } from "./leave-actions";
 /** `submitted` says where the request went: the Admin for a Teacher, the Class Teacher for a Student. */
 export function LeaveRequestForm({ submitted }: { submitted: MessageKey }) {
   const [state, action, pending] = useActionState<FormState, FormData>(submitLeaveAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -23,10 +24,10 @@ export function LeaveRequestForm({ submitted }: { submitted: MessageKey }) {
   });
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={fileError ?? state.error} />
       {state.saved > 0 && !state.error && !fileError && !pending && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t(submitted)}
         </p>
       )}

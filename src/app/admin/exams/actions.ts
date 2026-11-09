@@ -4,9 +4,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { AssessmentType } from "@/core/assessments/assessments";
-import { addExam, addGradeWideExam, deleteExam, rescheduleExam } from "@/core/exams/exams";
+import { addExam, addGradeWideExam, deleteExam, rescheduleExam, rescheduleGradeWideExam } from "@/core/exams/exams";
 import { asCurrentActor } from "@/web/as-current-actor";
-import { refusalKey } from "@/web/refusal";
+import { refusal } from "@/web/refusal";
 import type { FormState } from "@/app/form-kit";
 
 function sittingFrom(form: FormData) {
@@ -29,7 +29,7 @@ export async function addExamAction(prev: FormState, form: FormData): Promise<Fo
   try {
     await asCurrentActor((ctx) => addExam(ctx, input));
   } catch (err) {
-    return { error: refusalKey(err), saved: prev.saved };
+    return { ...refusal(err), saved: prev.saved };
   }
   revalidatePath("/admin/exams");
   return { saved: prev.saved + 1 };
@@ -50,7 +50,7 @@ export async function addGradeWideExamAction(prev: FormState, form: FormData): P
   try {
     await asCurrentActor((ctx) => addGradeWideExam(ctx, input));
   } catch (err) {
-    return { error: refusalKey(err), saved: prev.saved };
+    return { ...refusal(err), saved: prev.saved };
   }
   revalidatePath("/admin/exams");
   return { saved: prev.saved + 1 };
@@ -65,9 +65,11 @@ export async function rescheduleExamAction(prev: FormState, form: FormData): Pro
     durationMinutes: Number(form.get("durationMinutes")),
   };
   try {
-    await asCurrentActor((ctx) => rescheduleExam(ctx, input));
+    // A grade-wide Exam moves with its other Classes when the Admin leaves that ticked.
+    const move = form.get("wholeExam") === "on" ? rescheduleGradeWideExam : rescheduleExam;
+    await asCurrentActor((ctx) => move(ctx, input));
   } catch (err) {
-    return { error: refusalKey(err), saved: prev.saved };
+    return { ...refusal(err), saved: prev.saved };
   }
   revalidatePath("/admin/exams", "layout");
   return { saved: prev.saved + 1 };
@@ -79,9 +81,9 @@ export async function deleteExamAction(prev: FormState, form: FormData): Promise
   try {
     await asCurrentActor((ctx) => deleteExam(ctx, { examId }));
   } catch (err) {
-    return { error: refusalKey(err), saved: prev.saved };
+    return { ...refusal(err), saved: prev.saved };
   }
   revalidatePath("/admin/exams", "layout");
-  // Back to the timetable on the Term the Exam was in.
-  redirect(Number.isInteger(termId) && termId > 0 ? `/admin/exams?term=${termId}` : "/admin/exams");
+  // Back to the timetable on the Term the Exam was in, which then says it was deleted.
+  redirect(Number.isInteger(termId) && termId > 0 ? `/admin/exams?term=${termId}&deleted=1` : "/admin/exams?deleted=1");
 }

@@ -1,7 +1,9 @@
 // The Admin's preview of a Class's Report Cards for a Term: each Student whose Issuing
 // Class it is, with their Term Grades, remarks, overall percentage, rank if it's on, and
 // what's still missing. It's also where the Admin Publishes and unpublishes them.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { feeAlerts } from "@/core/fees/fee-alert";
 import { classReportCards } from "@/core/report-cards/report-cards";
 import { t } from "@/i18n";
@@ -13,6 +15,8 @@ import { flagText } from "../../../../report-card-text";
 import { TermPicker, termIdFrom } from "../../../../term-picker";
 import { whenText } from "../../../../when-text";
 import { PublishForm } from "./publish-form";
+
+export const metadata: Metadata = { title: t("pageTitles.classReportCards") };
 
 export default async function ReportCardPreviewPage({
   params,
@@ -145,7 +149,7 @@ export default async function ReportCardPreviewPage({
                 <Link href={`/admin/students/${student.studentId}`}>
                   {t("termGrades.studentLine", { name: student.name, studentNumber: student.studentNumber })}
                 </Link>
-                <div className="muted">{t("reportCards.lastDay", { date: student.lastDay })}</div>
+                <div className="muted">{t("reportCards.lastDay", { date: dateText(student.lastDay) })}</div>
               </li>
             ))}
           </ul>

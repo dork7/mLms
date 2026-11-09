@@ -12,6 +12,7 @@
   --accent: light-dark(#1f5f8b, #85b5d6);
   --on-accent: light-dark(#ffffff, #10222e);
   --danger: light-dark(#b00020, #f2929f);
+  --on-danger: light-dark(#ffffff, #2a0a0e);
   --success: light-dark(#1b6e3a, #7fc99b);
   --border: light-dark(#d8d8d4, rgb(255 255 255 / 0.16));
   font-family: system-ui, sans-serif;
@@ -40,6 +41,32 @@ select:enabled,
 textarea:enabled {
   background: var(--surface-2);
   color: var(--fg);
+}
+
+/* A field that shows a value but can't take a new one: no box to type in. */
+.field input:read-only:not([type="checkbox"], [type="radio"], [type="file"]) {
+  background: var(--bg);
+  border-style: dashed;
+  color: var(--muted);
+}
+
+/* One clear focus ring everywhere, for keyboard users (the browser's own is a thin 1px). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A message that takes focus after a submit needs no ring: it isn't something to act on. */
+[role="alert"]:focus,
+[role="status"]:focus {
+  outline: none;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  vertical-align: middle;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -106,6 +133,20 @@ body {
   color: var(--on-accent);
   font-size: 1rem;
   cursor: pointer;
+}
+
+/* For an action that destroys something, such as deleting an Exam. */
+.button-danger {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+/* A link that is a row's action (change, open): a full tap target on a phone. */
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  padding-inline: 0.5rem;
 }
 
 .button-link {
@@ -533,4 +574,17 @@ code {
 .fee-overdue {
   color: var(--danger);
   font-weight: 600;
+}
+
+/* A folded section (disclosure.tsx): its summary is a full-size tap target. */
+.disclosure > summary {
+  display: list-item;
+  min-block-size: 2.75rem;
+  padding-block: 0.6rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.disclosure[open] > summary {
+  margin-block-end: 0.5rem;
 }

@@ -6,7 +6,7 @@ import { createClassSubject, listClassSubjects, reassignSubjectTeacher } from ".
 import { createClass, getClass } from "../classes/classes";
 import { classRoster, enrollStudent } from "../enrollment/enrollment";
 import { AcademicYearClosed, AccessDenied, InvalidInput, NotFound, PromotionNotDone } from "../errors";
-import { addExam, deleteExam, examTimetable, rescheduleExam } from "../exams/exams";
+import { addExam, deleteExam, examTimetable, rescheduleExam, rescheduleGradeWideExam } from "../exams/exams";
 import { getGradingScale, setGradingScale } from "../grading/grading-scales";
 import { classSubjectTermGrades, studentTermGrades } from "../grading/term-grades";
 import { decideLeaveRequest, myLeaveRequests, submitLeaveRequest } from "../leave/leave-requests";
@@ -679,6 +679,9 @@ describe("a Closed Academic Year refuses every write dated in it", () => {
     await expect(rescheduleExam(s.asAdmin, { examId: exam.id, ...sitting, startTime: "10:00" })).rejects.toThrow(
       AcademicYearClosed,
     );
+    await expect(
+      rescheduleGradeWideExam(s.asAdmin, { examId: exam.id, ...sitting, startTime: "10:00" }),
+    ).rejects.toThrow(AcademicYearClosed);
     await expect(deleteExam(s.asAdmin, { examId: exam.id })).rejects.toThrow(AcademicYearClosed);
   });
 

@@ -1,14 +1,16 @@
 "use client";
 import { useActionState } from "react";
+import { useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import { changeOwnPassword, type FormState } from "../actions";
 
 export function ChangePasswordForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(changeOwnPassword, {});
+  const formRef = useResultFocus(state);
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}

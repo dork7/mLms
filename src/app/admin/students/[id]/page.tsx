@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { enrollmentChoices } from "@/core/enrollment/enrollment";
@@ -18,6 +19,8 @@ import { TermGrades } from "../../../term-grades";
 import { setStudentLoginEnabled } from "../actions";
 import { EnrollmentForm } from "./enrollment-form";
 import { ResetPasswordForm } from "./reset-password-form";
+
+export const metadata: Metadata = { title: t("pageTitles.studentProfile") };
 
 export default async function AdminStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

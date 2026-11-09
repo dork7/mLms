@@ -1,17 +1,18 @@
 "use client";
 // One Grade's place in the Admin's order. Empty clears it.
 import { useActionState, useState } from "react";
-import { type FormState, Refusal } from "@/app/form-kit";
+import { type FormState, Refusal, useResultFocus } from "@/app/form-kit";
 import type { GradeInOrder } from "@/core/school/catalogue";
 import { t } from "@/i18n";
 import { saveGradeOrder } from "../setup-actions";
 
 export function GradeOrderForm({ grade }: { grade: GradeInOrder }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveGradeOrder, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [order, setOrder] = useState(grade.order === null ? "" : String(grade.order));
 
   return (
-    <form action={action} className="inline-form">
+    <form ref={formRef} action={action} className="inline-form">
       <input type="hidden" name="gradeId" value={grade.id} />
       <label className="field">
         {t("setup.grades.orderOf", { name: grade.name })}

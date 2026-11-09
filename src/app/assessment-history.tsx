@@ -1,6 +1,7 @@
 // A Student's Assessment history, newest first. The layer has already left out
 // whatever the viewer may not see. The Student dashboard shows the latest of it under
 // its own title.
+import { dateText } from "@/app/date-text";
 import type { HistoryRow } from "@/core/assessments/marks";
 import { t } from "@/i18n";
 import { markText } from "./mark-text";
@@ -28,7 +29,7 @@ export function AssessmentHistory({
                   subject: r.subject,
                   class: r.class,
                   type: t(`assessments.types.${r.type}`),
-                  date: r.date,
+                  date: dateText(r.date),
                   term: r.term ?? t("assessments.noTerm"),
                 })}
               </div>

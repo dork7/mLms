@@ -1,7 +1,9 @@
 // One Class Subject, for its Subject Teacher or its Class's Class Teacher: its
 // Lessons and Assessments, and (for the Subject Teacher only, as the layer decides)
 // the Lesson and new-Assessment forms.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { assessmentFormDefaults, listAssessments } from "@/core/assessments/assessments";
 import { getClassSubject } from "@/core/classes/class-subjects";
 import { AcademicYearClosed, AccessDenied } from "@/core/errors";
@@ -13,6 +15,8 @@ import { LessonList } from "../../../lesson-list";
 import { statsText } from "../../../mark-text";
 import { CreateAssessmentForm } from "../../assessments/forms";
 import { LessonForm } from "./lesson-form";
+
+export const metadata: Metadata = { title: t("pageTitles.classSubject") };
 
 export default async function ClassSubjectPage({ params }: { params: Promise<{ id: string }> }) {
   const classSubjectId = Number((await params).id);
@@ -83,7 +87,7 @@ export default async function ClassSubjectPage({ params }: { params: Promise<{ i
             {assessments.map((a) => (
               <li key={a.id} className="list-item">
                 <Link href={`/teacher/assessments/${a.id}`}>
-                  {t("assessments.linkName", { type: t(`assessments.types.${a.type}`), date: a.date })}
+                  {t("assessments.linkName", { type: t(`assessments.types.${a.type}`), date: dateText(a.date) })}
                 </Link>
                 <div className="muted">
                   {a.term ?? t("assessments.noTerm")}. {statsText(a.stats)}

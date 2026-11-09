@@ -1,5 +1,6 @@
 // A Class for its Class Teacher: every Class Subject of the Class and who teaches it,
 // and the Class's roster on a date (today by default).
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listClassSubjects } from "@/core/classes/class-subjects";
 import { getClass } from "@/core/classes/classes";
@@ -8,6 +9,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { ClassRoster } from "../../../class-roster";
+
+export const metadata: Metadata = { title: t("pageTitles.class") };
 
 export default async function TeacherClassPage({
   params,

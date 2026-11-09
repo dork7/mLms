@@ -1,5 +1,7 @@
 // Where a Student lands: their next Exam and latest Marks, with the way to everything else.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { getStudentDashboard } from "@/core/dashboard/student-dashboard";
 import { studentFeeAlert } from "@/core/fees/fee-alert";
 import { t } from "@/i18n";
@@ -8,6 +10,8 @@ import { refusalKey } from "@/web/refusal";
 import { logout } from "../actions";
 import { AssessmentHistory } from "../assessment-history";
 import { FeeAlert } from "../fee-alert";
+
+export const metadata: Metadata = { title: t("pageTitles.studentDashboard") };
 
 export default async function StudentDashboardPage() {
   let data;
@@ -47,7 +51,7 @@ export default async function StudentDashboardPage() {
                 class: nextExam.class,
               })}
             </strong>
-            <div>{t("examSchedule.when", { date: nextExam.date, start: nextExam.startTime, end: nextExam.endTime })}</div>
+            <div>{t("examSchedule.when", { date: dateText(nextExam.date), start: nextExam.startTime, end: nextExam.endTime })}</div>
             <div>{t("examSchedule.room", { room: nextExam.room })}</div>
           </>
         ) : (

@@ -89,7 +89,7 @@ test("a Student requests leave, their Class Teacher approves it, and the Student
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "44-L (Grade 44, 2009-2010)" });
   await page.getByLabel("From").fill("2009-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2009-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2009 · Current")).toBeVisible();
 
   // Salem requests leave from his phone.
   await logInFirstTime(page, STUDENT_NUMBER, salemPassword, /\/student$/);
@@ -103,7 +103,7 @@ test("a Student requests leave, their Class Teacher approves it, and the Student
   await expect(
     page.getByRole("status").filter({ hasText: "Your Leave Request was sent to your Class Teacher." }),
   ).toBeVisible();
-  const mine = page.getByRole("region", { name: "Your requests" }).getByRole("listitem", { name: "2032-04-11 to 2032-04-13" });
+  const mine = page.getByRole("region", { name: "Your requests" }).getByRole("listitem", { name: "Apr 11, 2032 to Apr 13, 2032" });
   await expect(mine).toContainText("Pending");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -113,14 +113,14 @@ test("a Student requests leave, their Class Teacher approves it, and the Student
   await follow(page, "Student Leave Requests");
   const waiting = page
     .getByRole("region", { name: "Waiting for a decision" })
-    .getByRole("listitem", { name: "Salem Leave: 2032-04-11 to 2032-04-13" });
+    .getByRole("listitem", { name: "Salem Leave: Apr 11, 2032 to Apr 13, 2032" });
   await expect(waiting).toContainText("44-L");
   await expect(waiting).toContainText("Fever, with a doctor's note");
   await waiting.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Approved. Absent Marks made Exempt: 0." })).toBeVisible();
   const decided = page
     .getByRole("region", { name: "Decided" })
-    .getByRole("listitem", { name: "Salem Leave: 2032-04-11 to 2032-04-13" });
+    .getByRole("listitem", { name: "Salem Leave: Apr 11, 2032 to Apr 13, 2032" });
   await expect(decided).toContainText("Approved by Noura Leave");
   await expect(waiting).toHaveCount(0);
 

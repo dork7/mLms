@@ -1,11 +1,15 @@
 // Year end for the Admin: every Academic Year, the Classes still to promote, and the
 // form that Closes a year once Promotion is done.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { yearEndOverview } from "@/core/year-end/year-end";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { CloseYearForm } from "./forms";
+
+export const metadata: Metadata = { title: t("pageTitles.yearEnd") };
 
 export default async function YearEndPage() {
   let years;
@@ -34,7 +38,7 @@ export default async function YearEndPage() {
         <section className="card" key={year.id} aria-labelledby={`year-${year.id}`}>
           <h2 id={`year-${year.id}`}>{year.name}</h2>
           <p className="muted">
-            {t("setup.dateRange", { start: year.startDate, end: year.endDate })}
+            {t("setup.dateRange", { start: dateText(year.startDate), end: dateText(year.endDate) })}
             {t("common.separator")}
             {year.closed ? t("yearEnd.closed") : t("yearEnd.open")}
           </p>

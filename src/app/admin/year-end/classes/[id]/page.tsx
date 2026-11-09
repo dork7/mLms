@@ -1,10 +1,13 @@
 // Promotion for one Class: its Students still enrolled, each Promoted, Repeating or Leaving.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { promotionForm } from "@/core/year-end/year-end";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { PromotionForm } from "../../forms";
+
+export const metadata: Metadata = { title: t("pageTitles.promoteClass") };
 
 export default async function PromoteClassPage({ params }: { params: Promise<{ id: string }> }) {
   const classId = Number((await params).id);

@@ -2,6 +2,7 @@
 // pass it what `studentFeeAlert`/`feeAlerts` returned: a Teacher's screen never calls them.
 // It informs and never blocks, and it stays off printouts.
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import type { FeeAlert as FeeAlertData } from "@/core/fees/fee-alert";
 import { t } from "@/i18n";
 import { paidText } from "./fee-assignments";
@@ -25,7 +26,7 @@ export function FeeAlert({ alert, viewer }: { alert: FeeAlertData | null | undef
       <p>{summary}</p>
       <ul>
         {alert.overdue.map((a) => {
-          const text = t("feeAlert.item", { fee: a.fee.name, date: a.fee.dueDate, paid: paidText(a) });
+          const text = t("feeAlert.item", { fee: a.fee.name, date: dateText(a.fee.dueDate), paid: paidText(a) });
           return (
             <li key={a.id}>{viewer === "admin" ? <Link href={`/admin/fees/assignments/${a.id}`}>{text}</Link> : text}</li>
           );

@@ -2,7 +2,7 @@
 // The Admin's form for one Exam. Inputs are controlled so a refused Exam keeps what was
 // typed. A save clears only the Class Subject and Room.
 import { useActionState, useState } from "react";
-import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
+import { type FormState, type Option, Refusal, Select, useOnSaved, useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import { addExamAction } from "./actions";
 import { ExamSittingFields } from "./exam-sitting-fields";
@@ -22,6 +22,7 @@ export function AddExamForm({
   lastDay: string;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addExamAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [classSubjectId, setClassSubjectId] = useState("");
   const [roomId, setRoomId] = useState("");
   useOnSaved(state, () => {
@@ -30,10 +31,10 @@ export function AddExamForm({
   });
 
   return (
-    <form action={action}>
-      <Refusal error={state.error} />
+    <form ref={formRef} action={action}>
+      <Refusal error={state.error} params={state.errorParams} />
       {state.saved > 0 && !state.error && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("exams.added")}
         </p>
       )}

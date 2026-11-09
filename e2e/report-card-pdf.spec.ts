@@ -53,7 +53,7 @@ async function registerAndEnroll(page: Page, name: string, number: string): Prom
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "31-P (Grade 31, 2111-2112)" });
   await page.getByLabel("From").fill("2111-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2111-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2111 · Current")).toBeVisible();
   return { initial, profile };
 }
 
@@ -147,7 +147,7 @@ test("Report Cards render to real PDFs for the Student and the Admin, and nobody
   await create.getByLabel("Maximum marks").fill("10");
   await create.getByLabel("Weight").fill("1");
   await create.getByRole("button", { name: "Create Assessment" }).click();
-  await expect(page.getByRole("heading", { name: "Quiz on 2111-10-10" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quiz on Oct 10, 2111" })).toBeVisible();
   await page.waitForLoadState("networkidle");
   const grid = page.getByRole("region", { name: "Marks", exact: true });
   await grid.getByLabel(`Mark for ${REEM.name}`).fill("7");

@@ -93,7 +93,7 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "12-X (Grade 12, 2061-2062)" });
   await page.getByLabel("From").fill("2061-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2061-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2061 · Current")).toBeVisible();
 
   // The Admin opens the timetable from the dashboard and picks the Term.
   await page.goto("/admin");
@@ -119,7 +119,7 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await add.getByRole("button", { name: "Add Exam" }).click();
   await expect(add.getByRole("status").filter({ hasText: "Exam added." })).toBeVisible();
 
-  const finalGroup = timetable.getByRole("region", { name: "Grade 12 Astronomy, Final, 2061-11-10, 09:00 to 10:30" });
+  const finalGroup = timetable.getByRole("region", { name: "Grade 12 Astronomy, Final, Nov 10, 2061, 09:00 to 10:30" });
   await expect(finalGroup.getByRole("listitem")).toHaveCount(1);
   await expect(finalGroup.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
 
@@ -150,7 +150,7 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await add.getByLabel("Start time").fill("10:30");
   await add.getByRole("button", { name: "Add Exam" }).click();
   await expect(
-    timetable.getByRole("region", { name: "Grade 12 Astronomy, Final, 2061-11-10, 10:30 to 12:00" }),
+    timetable.getByRole("region", { name: "Grade 12 Astronomy, Final, Nov 10, 2061, 10:30 to 12:00" }),
   ).toBeVisible();
 
   // A grade-wide Exam: one Room per Class. A clash refuses the whole add and keeps what was typed.
@@ -171,7 +171,7 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await gradeWide.getByRole("combobox", { name: "Room for 12-Y" }).selectOption({ label: "Exam Lab" });
   await gradeWide.getByRole("button", { name: "Add grade-wide Exam" }).click();
   await expect(gradeWide.getByRole("status").filter({ hasText: "Grade-wide Exam added." })).toBeVisible();
-  const midterm = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, 2061-12-01, 09:00 to 10:00" });
+  const midterm = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, Dec 1, 2061, 09:00 to 10:00" });
   await expect(midterm.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
   await expect(midterm.getByText("12-Y in Exam Lab (Noura Exams)")).toBeVisible();
   await expectNoSidewaysScroll(page);
@@ -185,8 +185,8 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
   await page.getByRole("region", { name: "My Class Subjects" }).getByRole("link", { name: "Astronomy for 12-X" }).click();
-  await page.getByRole("region", { name: "Assessments" }).getByRole("link", { name: "Final, 2061-11-10" }).first().click();
-  await expect(page.getByRole("heading", { name: "Final on 2061-11-10" })).toBeVisible();
+  await page.getByRole("region", { name: "Assessments" }).getByRole("link", { name: "Final, Nov 10, 2061" }).first().click();
+  await expect(page.getByRole("heading", { name: "Final on Nov 10, 2061" })).toBeVisible();
 
   const grid = page.getByRole("region", { name: "Marks", exact: true });
   await grid.getByLabel("Mark for Jamal Exams").fill("87");
@@ -194,44 +194,64 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await expect(grid.getByRole("status").filter({ hasText: "Marks saved." })).toBeVisible();
   await expectNoSidewaysScroll(page);
 
-  // The Admin moves one Class of the grade-wide midterm. The clash rules still apply.
+  // The Admin opens one Class of the grade-wide midterm. The page says where it is now and
+  // which other Classes sit it.
   await page.context().clearCookies();
   await logIn(page, process.env.E2E_ADMIN_EMAIL!, process.env.E2E_ADMIN_PASSWORD!);
   await expect(page).toHaveURL(/\/admin$/);
   await open(page, "/admin/exams");
   await page.getByRole("combobox", { name: "Term", exact: true }).selectOption({ label: "2061-2062: Exam year" });
   await page.getByRole("button", { name: "Show" }).click();
-  await midterm.getByRole("link", { name: "Change or delete the Exam for 12-Y" }).click();
+  await expect(page).toHaveTitle("Exam timetable · School LMS");
+  await midterm.getByRole("link", { name: "Change or delete the Midterm for 12-Y on Dec 1, 2061 at 09:00" }).click();
   await expect(page.getByRole("heading", { name: "Astronomy Midterm for 12-Y" })).toBeVisible();
+  await expect(page.getByText("Now: Dec 1, 2061, 09:00 to 10:00 in Exam Lab.")).toBeVisible();
+  const gradeWideExam = page.getByRole("region", { name: "Grade-wide Exam" });
+  await expect(gradeWideExam.getByText("12-X in Exam Hall")).toBeVisible();
   await settled(page);
 
+  // Moving 12-Y alone onto 12-X's Room at that time is refused, naming the Exam in the way,
+  // and focus goes to the refusal.
   const reschedule = page.getByRole("region", { name: "Reschedule" });
   await expect(reschedule.getByRole("combobox", { name: "Room" })).toHaveValue(/.+/);
-  await reschedule.getByLabel("Date").fill("2061-11-10");
+  await reschedule.getByLabel("Move the whole grade-wide Exam (12-X, 12-Y)", { exact: false }).uncheck();
+  await reschedule.getByLabel("Date", { exact: true }).fill("2061-11-10");
   await reschedule.getByLabel("Start time").fill("10:30");
+  await expect(reschedule.getByText("Ends at 11:30.")).toBeVisible();
   await reschedule.getByRole("button", { name: "Save changes" }).click();
-  await expect(reschedule.getByRole("alert").filter({ hasText: "This Room already has an Exam" })).toBeVisible();
+  const refusal = reschedule.getByRole("alert");
+  await expect(refusal).toHaveText(
+    "This Room already has an Exam at an overlapping time: Astronomy for 12-X, 10:30 to 12:00. Choose another Room or time.",
+  );
+  await expect(refusal).toBeFocused();
   await expect(reschedule.getByLabel("Start time")).toHaveValue("10:30");
 
-  await reschedule.getByLabel("Date").fill("2061-12-02");
+  // Moving the whole grade-wide Exam takes both Classes, each keeping its Room.
+  await reschedule.getByLabel("Move the whole grade-wide Exam (12-X, 12-Y)", { exact: false }).check();
+  await reschedule.getByLabel("Date", { exact: true }).fill("2061-12-02");
   await reschedule.getByLabel("Start time").fill("09:00");
   await reschedule.getByRole("button", { name: "Save changes" }).click();
-  await expect(reschedule.getByRole("status").filter({ hasText: "Exam rescheduled." })).toBeVisible();
+  await expect(reschedule.getByRole("status").filter({ hasText: "Exam rescheduled." })).toBeFocused();
+  await expect(page.getByText("Now: Dec 2, 2061, 09:00 to 10:00 in Exam Lab.")).toBeVisible();
   await expectNoSidewaysScroll(page);
 
   await page.getByRole("link", { name: "Back to the timetable" }).click();
-  const moved = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, 2061-12-02, 09:00 to 10:00" });
+  const moved = timetable.getByRole("region", { name: "Grade 12 Astronomy, Midterm, Dec 2, 2061, 09:00 to 10:00" });
+  await expect(moved.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
   await expect(moved.getByText("12-Y in Exam Lab (Noura Exams)")).toBeVisible();
-  await expect(midterm.getByRole("listitem")).toHaveCount(1);
+  await expect(midterm).toHaveCount(0);
 
-  // Then deletes it: it has no Marks.
-  await moved.getByRole("link", { name: "Change or delete the Exam for 12-Y" }).click();
+  // Then deletes 12-Y's: it has no Marks. The timetable confirms it.
+  await moved.getByRole("link", { name: "Change or delete the Midterm for 12-Y on Dec 2, 2061 at 09:00" }).click();
   await expect(page.getByRole("heading", { name: "Astronomy Midterm for 12-Y" })).toBeVisible();
+  await expect(page).toHaveTitle("Change an Exam · School LMS");
   await settled(page);
   const remove = page.getByRole("region", { name: "Delete" });
   await remove.getByLabel("Yes, delete this Exam").check();
   await remove.getByRole("button", { name: "Delete Exam" }).click();
   await expect(page.getByRole("heading", { name: "Exams in Exam year (2061-2062)" })).toBeVisible();
-  await expect(moved).toHaveCount(0);
-  await expect(midterm.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
+  await expect(timetable.getByRole("status").filter({ hasText: "Exam deleted." })).toBeFocused();
+  await expect(page).not.toHaveURL(/deleted=/);
+  await expect(moved.getByRole("listitem")).toHaveCount(1);
+  await expect(moved.getByText("12-X in Exam Hall (Noura Exams)")).toBeVisible();
 });

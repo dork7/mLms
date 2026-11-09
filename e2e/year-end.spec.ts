@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 
 // This spec owns years 2095-2096 and 2096-2097, Grades 21, 22 and "Grade After 22", and their orders, and these names:
 // e2e specs share one database and run in parallel.
+
+/** A date as the app shows it: "Sep 1, 2095". */
+function shown(date: string) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en", { dateStyle: "medium", timeZone: "UTC" });
+}
+
 async function open(page: Page, path: string) {
   await page.goto(path);
   await page.waitForLoadState("networkidle"); // a <select> chosen before hydration is reset
@@ -64,7 +70,7 @@ async function addStudent(page: Page, name: string, studentNumber: string, class
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: classLabel });
   await page.getByLabel("From").fill(start);
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText(`From ${start} · Current`)).toBeVisible();
+  await expect(page.getByText(`From ${shown(start)} · Current`)).toBeVisible();
 }
 
 test("an Admin promotes a Class with Repeating and Leaving Students, then Closes the year", async ({ page }) => {

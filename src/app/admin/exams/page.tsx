@@ -1,7 +1,11 @@
 // The Admin's exam timetable for one Term (?term=<id>, by default the Term today falls
 // in), with grade-wide Exams shown together, each Exam linking to its page to reschedule
-// or delete it, and the forms that add Exams.
+// or delete it, and the forms that add Exams, folded once the Term has Exams.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
+import { Disclosure } from "@/app/disclosure";
+import { Flash } from "@/app/form-kit";
 import { ASSESSMENT_TYPES } from "@/core/assessments/assessments";
 import { listYearClassSubjects } from "@/core/classes/class-subjects";
 import { examTimetable, gradeWideExamChoices } from "@/core/exams/exams";
@@ -12,8 +16,14 @@ import { refusalKey } from "@/web/refusal";
 import { AddExamForm } from "./add-exam-form";
 import { AddGradeWideExamForm } from "./add-grade-wide-exam-form";
 
-export default async function ExamsPage({ searchParams }: { searchParams: Promise<{ term?: string | string[] }> }) {
-  const { term } = await searchParams;
+export const metadata: Metadata = { title: t("pageTitles.examTimetable") };
+
+export default async function ExamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ term?: string | string[]; deleted?: string | string[] }>;
+}) {
+  const { term, deleted } = await searchParams;
   const termId = typeof term === "string" && term !== "" ? Number(term) : undefined;
 
   let data;
@@ -78,6 +88,11 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
             <h2 id="timetable-heading">
               {t("exams.timetableTitle", { term: timetable.term.name, year: timetable.term.academicYear })}
             </h2>
+            {deleted === "1" && (
+              <Flash kind="success" dropParam="deleted">
+                {t("exams.deleted")}
+              </Flash>
+            )}
             {timetable.groups.length === 0 ? (
               <p>{t("exams.none")}</p>
             ) : (
@@ -86,7 +101,7 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
                   grade: group.grade,
                   subject: group.subject,
                   type: t(`assessments.types.${group.type}`),
-                  date: group.date,
+                  date: dateText(group.date),
                   start: group.startTime,
                   end: group.endTime,
                 });
@@ -97,7 +112,16 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
                       {group.exams.map((exam) => (
                         <li key={exam.id}>
                           {t("exams.line", { class: exam.class, room: exam.room, teacher: exam.teacher })}{" "}
-                          <Link href={`/admin/exams/${exam.id}`} aria-label={t("exams.changeLabel", { class: exam.class })}>
+                          <Link
+                            className="row-action"
+                            href={`/admin/exams/${exam.id}`}
+                            aria-label={t("exams.changeLabel", {
+                              type: t(`assessments.types.${group.type}`),
+                              class: exam.class,
+                              date: dateText(group.date),
+                              start: group.startTime,
+                            })}
+                          >
                             {t("exams.change")}
                           </Link>
                         </li>
@@ -115,7 +139,12 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
             ) : !ready ? (
               <p>{t("exams.needsSetup")}</p>
             ) : (
-              <>
+              <Disclosure
+                key={timetable.term.id}
+                show={t("exams.showForm")}
+                hide={t("exams.hideForm")}
+                initiallyOpen={timetable.groups.length === 0}
+              >
                 <p className="muted">{t("exams.addHint")}</p>
                 <AddExamForm
                   key={timetable.term.id}
@@ -128,22 +157,29 @@ export default async function ExamsPage({ searchParams }: { searchParams: Promis
                   firstDay={timetable.term.startDate}
                   lastDay={timetable.term.endDate}
                 />
-              </>
+              </Disclosure>
             )}
           </section>
           {!yearClosed && ready && (
             <section className="card" aria-labelledby="add-grade-wide-exam-heading">
               <h2 id="add-grade-wide-exam-heading">{t("exams.gradeWideTitle")}</h2>
-              <p className="muted">{t("exams.gradeWideHint")}</p>
-              <AddGradeWideExamForm
+              <Disclosure
                 key={timetable.term.id}
-                academicYearId={timetable.term.academicYearId}
-                choices={gradeWideChoices}
-                rooms={setup.rooms}
-                types={types}
-                firstDay={timetable.term.startDate}
-                lastDay={timetable.term.endDate}
-              />
+                show={t("exams.showForm")}
+                hide={t("exams.hideForm")}
+                initiallyOpen={timetable.groups.length === 0}
+              >
+                <p className="muted">{t("exams.gradeWideHint")}</p>
+                <AddGradeWideExamForm
+                  key={timetable.term.id}
+                  academicYearId={timetable.term.academicYearId}
+                  choices={gradeWideChoices}
+                  rooms={setup.rooms}
+                  types={types}
+                  firstDay={timetable.term.startDate}
+                  lastDay={timetable.term.endDate}
+                />
+              </Disclosure>
             </section>
           )}
         </>

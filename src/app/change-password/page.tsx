@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { t } from "@/i18n";
 import { currentSession } from "@/web/as-current-actor";
 import { ChangePasswordForm } from "./change-password-form";
+
+export const metadata: Metadata = { title: t("pageTitles.changePassword") };
 
 export default async function ChangePasswordPage() {
   const session = await currentSession();

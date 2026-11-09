@@ -1,5 +1,6 @@
 // A Class Teacher's overall remarks for one Term: each Student whose Issuing Class this
 // is, with every Term Grade on their Report Card and the overall percentage.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { overallRemarkSheet } from "@/core/report-cards/remarks";
 import { t } from "@/i18n";
@@ -10,6 +11,8 @@ import { termGradeText } from "../../../../term-grade-text";
 import { TermPicker, termIdFrom } from "../../../../term-picker";
 import { saveOverallRemarkAction } from "../../../remark-actions";
 import { RemarkForm } from "../../../remark-form";
+
+export const metadata: Metadata = { title: t("pageTitles.overallRemarks") };
 
 export default async function OverallRemarksPage({
   params,

@@ -1,6 +1,7 @@
 // One Leave Request as it reads on any page: dates, reason, attachment, status and decision.
 // Shared by the requester's own list and the deciders' lists. Server components only.
 import type { ReactNode } from "react";
+import { dateText } from "@/app/date-text";
 import type { LeaveRequestRow } from "@/core/leave/leave-requests";
 import { t } from "@/i18n";
 import { whenText } from "./when-text";
@@ -27,8 +28,8 @@ export function LeaveRequestItem({
         {requesterClass && <div className="muted">{requesterClass}</div>}
         <div>
           {startDate === endDate
-            ? t("leave.oneDay", { date: startDate })
-            : t("leave.dates", { start: startDate, end: endDate })}
+            ? t("leave.oneDay", { date: dateText(startDate) })
+            : t("leave.dates", { start: dateText(startDate), end: dateText(endDate) })}
         </div>
         <p className="remark">{request.reason}</p>
         {request.attachment && (
@@ -53,7 +54,7 @@ export function LeaveRequestItem({
 function leaveLabel(request: LeaveRequestRow, showRequester: boolean): string {
   const dates =
     request.startDate === request.endDate
-      ? request.startDate
-      : t("leave.dates", { start: request.startDate, end: request.endDate });
+      ? dateText(request.startDate)
+      : t("leave.dates", { start: dateText(request.startDate), end: dateText(request.endDate) });
   return showRequester ? `${request.requester}${t("common.labelSeparator")}${dates}` : dates;
 }

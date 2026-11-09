@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { t } from "@/i18n";
 import { SetupPage } from "../setup-shell";
 import { AcademicYearForm } from "./academic-year-form";
+
+export const metadata: Metadata = { title: t("pageTitles.academicYears") };
 
 export default function AcademicYearsPage() {
   return (
@@ -25,14 +29,14 @@ export default function AcademicYearsPage() {
                         </Link>
                       )}
                     </h2>
-                    <p>{t("setup.dateRange", { start: year.startDate, end: year.endDate })}</p>
+                    <p>{t("setup.dateRange", { start: dateText(year.startDate), end: dateText(year.endDate) })}</p>
                     <ul>
                       {year.terms.map((term) => (
                         <li key={term.id}>
                           {t("setup.academicYears.termLine", {
                             name: term.name,
-                            start: term.startDate,
-                            end: term.endDate,
+                            start: dateText(term.startDate),
+                            end: dateText(term.endDate),
                           })}
                         </li>
                       ))}

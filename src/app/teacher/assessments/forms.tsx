@@ -4,7 +4,7 @@
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
 import type { MarkValue } from "@/core/assessments/mark-values";
-import type { FormState } from "@/app/form-kit";
+import { type FormState, useResultFocus } from "@/app/form-kit";
 import { createAssessmentAction, saveMarksAction, updateAssessmentAction } from "./actions";
 
 type AssessmentType = "quiz" | "assignment" | "midterm" | "final";
@@ -13,14 +13,14 @@ type Status = "score" | "absent" | "exempt";
 function Feedback({ state, pending, savedKey }: { state: FormState; pending: boolean; savedKey: "assessments.saved" | "marks.saved" }) {
   if (state.error) {
     return (
-      <p className="error" role="alert">
+      <p className="error" role="alert" tabIndex={-1}>
         {t(state.error)}
       </p>
     );
   }
   if (state.saved > 0 && !pending) {
     return (
-      <p className="success" role="status">
+      <p className="success" role="status" tabIndex={-1}>
         {t(savedKey)}
       </p>
     );
@@ -38,13 +38,14 @@ export function CreateAssessmentForm({
   types: readonly AssessmentType[];
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(createAssessmentAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [type, setType] = useState<AssessmentType>(types[0]);
   const [date, setDate] = useState(today);
   const [maxMarks, setMaxMarks] = useState("");
   const [weight, setWeight] = useState("1");
 
   return (
-    <form action={action} className="assessment-form">
+    <form ref={formRef} action={action} className="assessment-form">
       <Feedback state={state} pending={pending} savedKey="assessments.saved" />
       <input type="hidden" name="classSubjectId" value={classSubjectId} />
       <label className="field">
@@ -102,11 +103,12 @@ export function EditAssessmentForm({
   weight: number;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateAssessmentAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [maxMarks, setMaxMarks] = useState(String(initialMax));
   const [weight, setWeight] = useState(String(initialWeight));
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Feedback state={state} pending={pending} savedKey="assessments.saved" />
       <p className="muted">{t("assessments.editHint")}</p>
       <input type="hidden" name="assessmentId" value={assessmentId} />
@@ -143,6 +145,7 @@ export type GridEntry = {
  */
 export function MarksGridForm({ assessmentId, maxMarks, rows }: { assessmentId: number; maxMarks: number; rows: GridEntry[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveMarksAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [values, setValues] = useState(() =>
     Object.fromEntries(
       rows.map((r) => [
@@ -158,7 +161,7 @@ export function MarksGridForm({ assessmentId, maxMarks, rows }: { assessmentId: 
     setValues((v) => ({ ...v, [id]: { ...v[id], ...change } }));
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Feedback state={state} pending={pending} savedKey="marks.saved" />
       <input type="hidden" name="assessmentId" value={assessmentId} />
       <ol className="marks-grid">

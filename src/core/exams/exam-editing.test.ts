@@ -7,7 +7,7 @@ import { assessmentSchool } from "../assessments/test-assessments";
 import { createRoom } from "../school/catalogue";
 import { listAcademicYears } from "../school/academic-year";
 import { myExamCalendar, myExamSchedule } from "./exam-schedule";
-import { addExam, deleteExam, examTimetable, getExam, rescheduleExam } from "./exams";
+import { addExam, deleteExam, examTimetable, getExam, rescheduleExam, rescheduleGradeWideExam } from "./exams";
 
 /** Today is 2026-10-20. Term 1 runs to 2026-12-31, Term 2 from 2027-01-01. Two Rooms. */
 async function examSchool() {
@@ -102,6 +102,24 @@ describe("the clash rules after a reschedule", () => {
       ["2026-11-10", "09:00", ["Hall"]],
       ["2026-11-11", "09:00", ["Hall"]],
     ]);
+  });
+
+  it("says which Exam is in the way, so the Admin can find it", async () => {
+    const s = await examSchool();
+    await addExam(s.asAdmin, final(s.science7B.id, s.lab.id, { startTime: "08:30" }));
+    await addExam(s.asAdmin, final(s.math7A.id, s.hall.id, { date: "2026-11-11", startTime: "10:00", durationMinutes: 60 }));
+    const exam = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id));
+
+    await expect(rescheduleExam(s.asAdmin, { examId: exam.id, ...sitting(s.lab.id) })).rejects.toMatchObject({
+      messageKey: "errors.examClashForRoom",
+      params: { subject: "Science", class: "7-B", room: "Lab", start: "08:30", end: "10:00" },
+    });
+    await expect(
+      rescheduleExam(s.asAdmin, { examId: exam.id, ...sitting(s.hall.id, { date: "2026-11-11" }) }),
+    ).rejects.toMatchObject({
+      messageKey: "errors.examClashForClass",
+      params: { subject: "Math", class: "7-A", room: "Hall", start: "10:00", end: "11:00" },
+    });
   });
 
   it("refuses moving an Exam into a Room another Class's Exam has at an overlapping time", async () => {
@@ -333,10 +351,22 @@ describe("one Exam, for its page", () => {
       termId: s.term1,
       academicYear: { id: s.year.id, startDate: "2026-09-01", endDate: "2027-06-30", closed: false },
       hasMarks: false,
+      gradeWide: [],
     });
 
     await saveMarks(s.asSara, { assessmentId: exam.assessmentId, marks: [{ studentId: s.aisha, mark: 87 }] });
     expect((await getExam(s.asAdmin, { examId: exam.id })).hasMarks).toBe(true);
+  });
+
+  it("lists the other Classes sitting the same grade-wide Exam, and nothing that only shares the time", async () => {
+    const s = await examSchool();
+    const gym = await createRoom(s.asAdmin, { name: "Gym" });
+    const a = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id));
+    const b = await addExam(s.asAdmin, final(s.math7B.id, s.lab.id));
+    await addExam(s.asAdmin, final(s.science7B.id, gym.id, { date: "2026-11-11" }));
+
+    expect((await getExam(s.asAdmin, { examId: a.id })).gradeWide).toEqual([{ id: b.id, class: "7-B", room: "Lab" }]);
+    expect((await getExam(s.asAdmin, { examId: b.id })).gradeWide).toEqual([{ id: a.id, class: "7-A", room: "Hall" }]);
   });
 
   it("is for the Admin only, and refuses an Exam that doesn't exist", async () => {
@@ -345,5 +375,81 @@ describe("one Exam, for its page", () => {
 
     await expect(getExam(s.asSara, { examId: exam.id })).rejects.toThrow(AccessDenied);
     await expect(getExam(s.asAdmin, { examId: 9999 })).rejects.toThrow(NotFound);
+  });
+});
+
+describe("moving a whole grade-wide Exam", () => {
+  /** Math final for 7-A in the Hall and 7-B in the Lab, at 09:00 on 2026-11-10. */
+  const gradeWideSchool = async () => {
+    const s = await examSchool();
+    const gym = await createRoom(s.asAdmin, { name: "Gym" });
+    const a = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id));
+    const b = await addExam(s.asAdmin, final(s.math7B.id, s.lab.id));
+    return { ...s, gym, a, b };
+  };
+  const lines = async (s: Awaited<ReturnType<typeof examSchool>>) =>
+    (await examTimetable(s.asAdmin, { termId: s.term1 }))?.groups.map((g) => [
+      g.date,
+      g.startTime,
+      g.endTime,
+      g.exams.map((e) => `${e.class} ${e.room}`),
+    ]);
+
+  it("moves every Class together, still one grade-wide Exam; only the chosen Class changes Room", async () => {
+    const s = await gradeWideSchool();
+
+    await rescheduleGradeWideExam(s.asAdmin, {
+      examId: s.a.id,
+      ...sitting(s.gym.id, { date: "2026-11-12", startTime: "10:00", durationMinutes: 60 }),
+    });
+
+    expect(await lines(s)).toEqual([["2026-11-12", "10:00", "11:00", ["7-A Gym", "7-B Lab"]]]);
+  });
+
+  it("is all or nothing: a clash for any Class leaves every Class where it was", async () => {
+    const s = await gradeWideSchool();
+    await addExam(s.asAdmin, final(s.science7B.id, s.gym.id, { date: "2026-11-12" }));
+
+    await expect(
+      rescheduleGradeWideExam(s.asAdmin, { examId: s.a.id, ...sitting(s.hall.id, { date: "2026-11-12" }) }),
+    ).rejects.toMatchObject({ messageKey: "errors.examClashForClass", params: { class: "7-B", subject: "Science" } });
+
+    expect(await lines(s)).toEqual([
+      ["2026-11-10", "09:00", "10:30", ["7-A Hall", "7-B Lab"]],
+      ["2026-11-12", "09:00", "10:30", ["7-B Gym"]],
+    ]);
+  });
+
+  it("refuses giving the chosen Class a Room another Class of the Exam is using", async () => {
+    const s = await gradeWideSchool();
+
+    await expect(
+      rescheduleGradeWideExam(s.asAdmin, { examId: s.a.id, ...sitting(s.lab.id, { startTime: "13:00" }) }),
+    ).rejects.toMatchObject({ messageKey: "errors.examClashForRoom", params: { class: "7-B", room: "Lab" } });
+  });
+
+  it("keeps the date when any Class has Marks, but still moves the time", async () => {
+    const s = await gradeWideSchool();
+    await saveMarks(s.asSara, { assessmentId: s.a.assessmentId, marks: [{ studentId: s.aisha, mark: 50 }] });
+
+    // Moving from 7-B, which has no Marks: 7-A's Marks still hold the date.
+    await expect(
+      rescheduleGradeWideExam(s.asAdmin, { examId: s.b.id, ...sitting(s.lab.id, { date: "2026-11-12" }) }),
+    ).rejects.toMatchObject({ messageKey: "errors.examHasMarksDateFixed" });
+    await rescheduleGradeWideExam(s.asAdmin, { examId: s.b.id, ...sitting(s.lab.id, { startTime: "11:00" }) });
+
+    expect(await lines(s)).toEqual([["2026-11-10", "11:00", "12:30", ["7-A Hall", "7-B Lab"]]]);
+  });
+
+  it("moves an Exam on its own like a reschedule, and refuses a Teacher", async () => {
+    const s = await examSchool();
+    const exam = await addExam(s.asAdmin, final(s.math7A.id, s.hall.id));
+
+    await expect(
+      rescheduleGradeWideExam(s.asSara, { examId: exam.id, ...sitting(s.hall.id, { startTime: "11:00" }) }),
+    ).rejects.toThrow(AccessDenied);
+    await rescheduleGradeWideExam(s.asAdmin, { examId: exam.id, ...sitting(s.lab.id, { startTime: "11:00" }) });
+
+    expect(await lines(s)).toEqual([["2026-11-10", "11:00", "12:30", ["7-A Lab"]]]);
   });
 });

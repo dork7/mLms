@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useActionState } from "react";
+import { useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import { login, type LoginState } from "../actions";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
+  const formRef = useResultFocus(state);
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}

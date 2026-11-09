@@ -1,12 +1,17 @@
-// One Exam for the Admin: reschedule it (date, time, duration, Room) or delete it. An
-// Exam with Marks keeps its date and can't be deleted; a Closed year offers no forms.
+// One Exam for the Admin: where and when it is now, the other Classes of a grade-wide
+// Exam, and the forms to reschedule it (alone or with those Classes) or delete it. An Exam
+// with Marks keeps its date and can't be deleted; a Closed year offers no forms.
+import type { Metadata } from "next";
 import Link from "next/link";
-import { getExam } from "@/core/exams/exams";
+import { dateText } from "@/app/date-text";
+import { clockTime, getExam, startMinute } from "@/core/exams/exams";
 import { listRooms } from "@/core/school/catalogue";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { DeleteExamForm, RescheduleExamForm } from "./forms";
+
+export const metadata: Metadata = { title: t("pageTitles.exam") };
 
 export default async function ExamPage({ params }: { params: Promise<{ id: string }> }) {
   const examId = Number((await params).id);
@@ -23,6 +28,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
   }
   const [exam, rooms] = data;
   const back = exam.termId === null ? "/admin/exams" : `/admin/exams?term=${exam.termId}`;
+  const room = rooms.find((r) => r.id === exam.roomId)?.name ?? "";
 
   return (
     <main className="page">
@@ -37,9 +43,37 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
         <Link href={back}>{t("exams.backToTimetable")}</Link>
       </header>
       <section className="card">
+        <p>
+          {t("exams.now", {
+            date: dateText(exam.date),
+            start: exam.startTime,
+            end: clockTime(startMinute(exam.startTime) + exam.durationMinutes),
+            room,
+          })}
+        </p>
         <p>{t("exams.worth", { maxMarks: exam.maxMarks, weight: exam.weight })}</p>
         {exam.academicYear.closed && <p className="muted">{t("yearEnd.closedNotice")}</p>}
       </section>
+      {exam.gradeWide.length > 0 && (
+        <section className="card" aria-labelledby="grade-wide-heading">
+          <h2 id="grade-wide-heading">{t("exams.gradeWideHeading")}</h2>
+          <p>{t("exams.gradeWideWith")}</p>
+          <ul className="list">
+            {exam.gradeWide.map((other) => (
+              <li key={other.id}>
+                {t("exams.gradeWideLine", { class: other.class, room: other.room })}{" "}
+                <Link
+                  className="row-action"
+                  href={`/admin/exams/${other.id}`}
+                  aria-label={t("exams.gradeWideOpen", { class: other.class })}
+                >
+                  {t("exams.change")}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {!exam.academicYear.closed && (
         <>
           <section className="card" aria-labelledby="reschedule-heading">

@@ -33,7 +33,7 @@ async function registerAndEnroll(page: Page, name: string, studentNumber: string
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "11-M (Grade 11, 2051-2052)" });
   await page.getByLabel("From").fill("2051-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2051-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2051 · Current")).toBeVisible();
   return password;
 }
 
@@ -99,7 +99,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
   await create.getByLabel("Maximum marks").fill("20");
   await create.getByLabel("Weight").fill("1");
   await create.getByRole("button", { name: "Create Assessment" }).click();
-  await expect(page.getByRole("heading", { name: "Quiz on 2051-10-10" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quiz on Oct 10, 2051" })).toBeVisible();
 
   const grid = page.getByRole("region", { name: "Marks", exact: true });
   await expect(grid.getByRole("listitem")).toHaveCount(2);
@@ -131,7 +131,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
   // The Class Subject page lists the Assessment with its statistics.
   await page.getByRole("link", { name: "Back to Chemistry for 11-M" }).click();
   const list = page.getByRole("region", { name: "Assessments" });
-  await expect(list.getByRole("link", { name: "Quiz, 2051-10-10" })).toBeVisible();
+  await expect(list.getByRole("link", { name: "Quiz, Oct 10, 2051" })).toBeVisible();
   await expect(list.getByText("Average 9, highest 18, lowest 0 (2 counted)")).toBeVisible();
 
   // The Student sees her own Mark, recalculated against the new maximum.
@@ -141,7 +141,7 @@ test("a Subject Teacher enters a whole Class's Marks from a phone, and the Stude
   await expect(page).toHaveURL(/\/student$/);
   await page.getByRole("link", { name: "My profile" }).click();
   const history = page.getByRole("region", { name: "Assessment history" });
-  await expect(history.getByText("Chemistry, 11-M: Quiz on 2051-10-10 (Whole year)")).toBeVisible();
+  await expect(history.getByText("Chemistry, 11-M: Quiz on Oct 10, 2051 (Whole year)")).toBeVisible();
   await expect(history.getByText("18 / 24 (75%)")).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

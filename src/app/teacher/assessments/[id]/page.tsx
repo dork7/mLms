@@ -1,13 +1,17 @@
 // One Assessment: its details, statistics and marks grid. The grid lists the Class's
 // roster on the Assessment's date (as the layer decides). Only the Subject Teacher
 // gets the editable grid and the maximum/weight form; the layer says who that is.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { marksGrid } from "@/core/assessments/marks";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { markText, statsText } from "../../../mark-text";
 import { EditAssessmentForm, MarksGridForm } from "../forms";
+
+export const metadata: Metadata = { title: t("pageTitles.assessment") };
 
 export default async function AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const assessmentId = Number((await params).id);
@@ -28,7 +32,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
   return (
     <main className="page">
       <header className="topbar">
-        <h1>{t("assessments.heading", { type, date: a.date })}</h1>
+        <h1>{t("assessments.heading", { type, date: dateText(a.date) })}</h1>
         <Link href={`/teacher/class-subjects/${a.classSubjectId}`}>
           {t("assessments.backToClassSubject", { subject: a.subject, class: a.class })}
         </Link>
@@ -48,7 +52,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
       </section>
       <section className="card" aria-labelledby="marks">
         <h2 id="marks">{t("marks.gridTitle")}</h2>
-        <p className="muted">{t("marks.gridHint", { class: a.class, date: a.date, max: a.maxMarks })}</p>
+        <p className="muted">{t("marks.gridHint", { class: a.class, date: dateText(a.date), max: a.maxMarks })}</p>
         {grid.rows.some((r) => r.published) && (
           <p className="muted">{t(grid.canEnterMarks ? "publish.gridRowsNotice" : "publish.gridNotice")}</p>
         )}

@@ -93,7 +93,7 @@ function expectHindsPaymentRecord(text: string) {
   expect(text).not.toMatch(/receipt/i);
   expect(text).toContain(`${HIND.name} (${HIND.number})`);
   expect(text).toContain("AED 750.25");
-  expect(text).toContain("2025-02-03");
+  expect(text).toContain("Feb 3, 2025");
   expect(text).toContain("Bank transfer");
   expect(text).toContain(REFERENCE);
   expect(text).toContain(FEE);

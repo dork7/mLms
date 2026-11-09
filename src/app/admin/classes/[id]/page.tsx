@@ -1,5 +1,6 @@
 // One Class for the Admin: its Class Subjects, each with a form to reassign the
 // Subject Teacher, plus a form to add a Class Subject.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listTeachers } from "@/core/accounts/list-teachers";
 import { listClassSubjects } from "@/core/classes/class-subjects";
@@ -11,6 +12,8 @@ import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { ClassRoster } from "../../../class-roster";
 import { AddClassSubjectForm, ReassignTeacherForm } from "../forms";
+
+export const metadata: Metadata = { title: t("pageTitles.class") };
 
 export default async function ClassPage({
   params,

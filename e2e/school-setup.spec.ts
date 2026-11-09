@@ -33,6 +33,6 @@ test("an Admin creates an Academic Year with two Terms and sees them listed", as
   await page.getByRole("button", { name: "Create Academic Year" }).click();
 
   await expect(page.getByRole("heading", { name: /2026-2027/ })).toBeVisible();
-  await expect(page.getByText("Term 1: 2026-09-01 to 2026-12-31")).toBeVisible();
-  await expect(page.getByText("Term 2: 2027-01-01 to 2027-06-30")).toBeVisible();
+  await expect(page.getByText("Term 1: Sep 1, 2026 to Dec 31, 2026")).toBeVisible();
+  await expect(page.getByText("Term 2: Jan 1, 2027 to Jun 30, 2027")).toBeVisible();
 });

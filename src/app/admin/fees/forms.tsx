@@ -2,7 +2,7 @@
 // The Admin's Fee forms. Inputs are controlled so values survive a refusal; a create
 // form clears itself after a save.
 import { useActionState, useState } from "react";
-import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
+import { type FormState, type Option, Refusal, Select, useOnSaved, useResultFocus } from "@/app/form-kit";
 import { t } from "@/i18n";
 import {
   type ApplyState,
@@ -16,6 +16,7 @@ import {
 
 export function DefineFeeForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(defineFee, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -26,7 +27,7 @@ export function DefineFeeForm() {
   });
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <label className="field">
         {t("fees.name")}
@@ -52,7 +53,7 @@ export function DefineFeeForm() {
 function Assigned({ state }: { state: ApplyState }) {
   if (state.assigned === undefined) return null;
   return (
-    <p className="success" role="status">
+    <p className="success" role="status" tabIndex={-1}>
       {t("fees.assigned", { count: state.assigned })}
     </p>
   );
@@ -60,10 +61,11 @@ function Assigned({ state }: { state: ApplyState }) {
 
 export function ApplyToGradeForm({ feeId, grades }: { feeId: number; grades: Option[] }) {
   const [state, action, pending] = useActionState<ApplyState, FormData>(applyFee, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [gradeId, setGradeId] = useState("");
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <Assigned state={state} />
       <input type="hidden" name="feeId" value={feeId} />
@@ -80,9 +82,10 @@ export function ApplyToGradeForm({ feeId, grades }: { feeId: number; grades: Opt
 
 export function ApplyToStudentsForm({ feeId, students }: { feeId: number; students: Option[] }) {
   const [state, action, pending] = useActionState<ApplyState, FormData>(applyFee, { saved: 0 });
+  const formRef = useResultFocus(state);
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <Assigned state={state} />
       <input type="hidden" name="feeId" value={feeId} />
@@ -113,6 +116,7 @@ export function ApplyToStudentsForm({ feeId, students }: { feeId: number; studen
 
 export function PaymentRecordForm({ feeAssignmentId, methods }: { feeAssignmentId: number; methods: Option[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(logPayment, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [method, setMethod] = useState("");
@@ -125,7 +129,7 @@ export function PaymentRecordForm({ feeAssignmentId, methods }: { feeAssignmentI
   });
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="feeAssignmentId" value={feeAssignmentId} />
       <div className="row">
@@ -160,14 +164,15 @@ export function PaymentRecordForm({ feeAssignmentId, methods }: { feeAssignmentI
 
 export function FeeReminderSettingsForm({ leadDays, intervalDays }: { leadDays: number; intervalDays: number }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveReminderSettings, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [lead, setLead] = useState(String(leadDays));
   const [interval, setIntervalDays] = useState(String(intervalDays));
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       {state.saved > 0 && !state.error && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("feeReminders.saved")}
         </p>
       )}
@@ -199,13 +204,14 @@ export function FeeReminderSettingsForm({ leadDays, intervalDays }: { leadDays: 
 
 export function SendRemindersNowForm({ feeId }: { feeId: number }) {
   const [state, action, pending] = useActionState<RemindState, FormData>(sendRemindersNow, { saved: 0 });
+  const formRef = useResultFocus(state);
   const result = state.result;
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       {result && !state.error && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("feeReminders.sendNowResult", {
             sent: result.sent,
             noEmail: result.noEmail,

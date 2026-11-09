@@ -109,7 +109,7 @@ test("each role lands on their own dashboard and can act on what it shows", asyn
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "15-D (Grade 15, 2015-2016)" });
   await page.getByLabel("From").fill("2015-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2015-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2015 · Current")).toBeVisible();
 
   await open(page, "/admin/exams");
   await page.getByRole("combobox", { name: "Term", exact: true }).selectOption({ label: "2015-2016: Whole of 2015" });
@@ -148,11 +148,11 @@ test("each role lands on their own dashboard and can act on what it shows", asyn
 
   await open(page, "/teacher");
   const lessons = page.getByRole("region", { name: "Recent Lessons" });
-  await expect(lessons.getByText("2015-10-15, Period 2: Paleontology, 15-D")).toBeVisible();
+  await expect(lessons.getByText("Oct 15, 2015, Period 2: Paleontology, 15-D")).toBeVisible();
   await expect(lessons.getByText("Trilobites")).toBeVisible();
 
   const needing = page.getByRole("region", { name: "Assessments that need Marks" });
-  const final = needing.getByRole("listitem").filter({ hasText: "Paleontology, 15-D: Final on 2015-11-10" });
+  const final = needing.getByRole("listitem").filter({ hasText: "Paleontology, 15-D: Final on Nov 10, 2015" });
   await expect(final.getByText("Marks to enter: 1")).toBeVisible();
   await final.getByRole("link").click();
   await expect(page).toHaveURL(/\/teacher\/assessments\/.+$/);
@@ -171,7 +171,7 @@ test("each role lands on their own dashboard and can act on what it shows", asyn
   await expect(page.getByRole("heading", { name: "My dashboard" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Next Exam" }).getByText("No Exam is coming up.")).toBeVisible();
   const marks = page.getByRole("region", { name: "Latest Marks" });
-  await expect(marks.getByText("Paleontology, 15-D: Final on 2015-11-10")).toBeVisible();
+  await expect(marks.getByText("Paleontology, 15-D: Final on Nov 10, 2015")).toBeVisible();
   await expect(marks.getByText("80 / 100 (80%)")).toBeVisible();
   await expectNoSidewaysScroll(page);
   await page.getByRole("link", { name: "My Exams" }).click();

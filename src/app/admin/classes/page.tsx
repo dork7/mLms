@@ -1,5 +1,6 @@
 // The Admin's Classes: every Class with its Grade, Academic Year and Class Teacher,
 // plus a form to add one. Each Class links to its Class Subjects.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listTeachers } from "@/core/accounts/list-teachers";
 import { listClasses } from "@/core/classes/classes";
@@ -9,6 +10,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { AddClassForm } from "./forms";
+
+export const metadata: Metadata = { title: t("pageTitles.classes") };
 
 export default async function ClassesPage() {
   let data;

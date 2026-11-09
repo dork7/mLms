@@ -1,6 +1,8 @@
 // The Admin's Fees: every Fee, soonest due first, the form to define one, and the Fee
 // Reminder timings with the link to the no-email report.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { formatAed } from "@/core/fees/money";
 import { getFeeReminderSettings } from "@/core/fees/fee-reminders";
 import { listFees } from "@/core/fees/fees";
@@ -8,6 +10,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { DefineFeeForm, FeeReminderSettingsForm } from "./forms";
+
+export const metadata: Metadata = { title: t("pageTitles.fees") };
 
 export default async function FeesPage() {
   let data;
@@ -40,7 +44,7 @@ export default async function FeesPage() {
                   <Link href={`/admin/fees/${fee.id}`}>
                     <strong>{fee.name}</strong>
                   </Link>
-                  <div className="muted">{t("fees.due", { date: fee.dueDate })}</div>
+                  <div className="muted">{t("fees.due", { date: dateText(fee.dueDate) })}</div>
                 </div>
                 <span>{formatAed(fee.amountFils)}</span>
               </li>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listTeachers } from "@/core/accounts/list-teachers";
 import { AccessDenied } from "@/core/errors";
@@ -5,6 +6,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { setLoginEnabled } from "./actions";
 import { AddTeacherForm } from "./add-teacher-form";
+
+export const metadata: Metadata = { title: t("pageTitles.teachers") };
 
 export default async function TeachersPage() {
   let teachers;

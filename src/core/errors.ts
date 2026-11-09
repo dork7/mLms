@@ -150,20 +150,23 @@ export class LessonExists extends Error {
 
 // ---- Exams ----
 
-/** The Exam overlaps another Exam for the same Class. */
+/** The Exam that a new or moved Exam would overlap, as the refusal shows it. */
+export type ClashingExam = { subject: string; class: string; room: string; start: string; end: string };
+
+/** The Exam overlaps another Exam for the same Class. `params` says which one. */
 export class ExamClashForClass extends Error {
   readonly messageKey = "errors.examClashForClass";
-  constructor(reason = "this Class already has an Exam at an overlapping time") {
-    super(reason);
+  constructor(readonly params: ClashingExam) {
+    super("this Class already has an Exam at an overlapping time");
     this.name = "ExamClashForClass";
   }
 }
 
-/** The Exam overlaps another Exam in the same Room. */
+/** The Exam overlaps another Exam in the same Room. `params` says which one. */
 export class ExamClashForRoom extends Error {
   readonly messageKey = "errors.examClashForRoom";
-  constructor(reason = "this Room already has an Exam at an overlapping time") {
-    super(reason);
+  constructor(readonly params: ClashingExam) {
+    super("this Room already has an Exam at an overlapping time");
     this.name = "ExamClashForRoom";
   }
 }

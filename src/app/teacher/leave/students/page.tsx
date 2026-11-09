@@ -1,5 +1,6 @@
 // A Class Teacher's Student Leave Requests: from the Students in their Classes today, to
 // approve or reject. Once the Admin has decided one, only the Admin can change it.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { classLeaveRequests } from "@/core/leave/leave-requests";
 import { t } from "@/i18n";
@@ -8,6 +9,8 @@ import { refusalKey } from "@/web/refusal";
 import { LeaveOutcome, type LeaveOutcomeQuery } from "../../../leave-outcome";
 import { LeaveQueue } from "../../../leave-queue";
 import { decideClassLeaveAction } from "./actions";
+
+export const metadata: Metadata = { title: t("pageTitles.studentLeave") };
 
 export default async function ClassLeavePage({ searchParams }: { searchParams: Promise<LeaveOutcomeQuery> }) {
   let queue;

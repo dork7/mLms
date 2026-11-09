@@ -2,6 +2,7 @@
 // Student on /student/fees and to the Admin on the Student's profile. Each Payment Record
 // links to its PDF.
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import type { FeeAssignmentView, PaymentRecordRow } from "@/core/fees/fee-assignments";
 import { t } from "@/i18n";
 import { paidText, paymentText } from "./fee-text";
@@ -27,7 +28,7 @@ export function FeeAssignments({
               <div className="list-item">
                 <div>
                   <strong>{a.fee.name}</strong>
-                  <div className="muted">{t("fees.due", { date: a.fee.dueDate })}</div>
+                  <div className="muted">{t("fees.due", { date: dateText(a.fee.dueDate) })}</div>
                   <div>{paidText(a)}</div>
                 </div>
                 <div>

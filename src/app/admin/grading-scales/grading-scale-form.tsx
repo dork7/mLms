@@ -4,7 +4,7 @@
 import { useActionState, useState } from "react";
 import type { GradingScale } from "@/core/grading/term-grade-rules";
 import { t } from "@/i18n";
-import type { FormState } from "@/app/form-kit";
+import { type FormState, useResultFocus } from "@/app/form-kit";
 import { saveGradingScaleAction } from "./actions";
 
 type BandRow = { start: string; label: string };
@@ -19,6 +19,7 @@ export function GradingScaleForm({
   scale: GradingScale | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveGradingScaleAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [passMark, setPassMark] = useState(scale ? String(scale.passMark) : "");
   const [bands, setBands] = useState<BandRow[]>(
     scale ? scale.bands.map((b) => ({ start: String(b.minPercent), label: b.label })) : [{ start: "0", label: "" }],
@@ -27,14 +28,14 @@ export function GradingScaleForm({
     setBands((rows) => rows.map((row, j) => (j === i ? { ...row, ...change } : row)));
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}
       {!state.error && state.saved > 0 && !pending && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("setup.saved")}
         </p>
       )}

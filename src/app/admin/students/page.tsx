@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AccessDenied } from "@/core/errors";
 import { listStudents } from "@/core/students/list-students";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { RegisterStudentForm } from "./register-student-form";
+
+export const metadata: Metadata = { title: t("pageTitles.students") };
 
 export default async function StudentsPage() {
   let students;

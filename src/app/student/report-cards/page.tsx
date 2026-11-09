@@ -1,4 +1,5 @@
 // A Student's own Published Report Cards. A Report Card that isn't Published isn't here.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { studentFeeAlert } from "@/core/fees/fee-alert";
 import { studentReportCards } from "@/core/report-cards/publish";
@@ -7,6 +8,8 @@ import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { FeeAlert } from "../../fee-alert";
 import { PublishedReportCards } from "../../published-report-cards";
+
+export const metadata: Metadata = { title: t("pageTitles.myReportCards") };
 
 export default async function MyReportCardsPage() {
   let data;

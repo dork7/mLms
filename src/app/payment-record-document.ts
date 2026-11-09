@@ -1,6 +1,7 @@
 // The document a Payment Record PDF is rendered from. It's a string because react-dom/server
 // isn't available to route handlers, and it reads Fees with the same text helpers as the
 // screens (`fee-text.ts`). Everything from the database goes through `escaped`.
+import { dateText } from "@/app/date-text";
 import type { PrintablePaymentRecord } from "@/core/fees/payment-record-export";
 import { formatAed } from "@/core/fees/money";
 import { dir, locale, t } from "@/i18n";
@@ -19,7 +20,7 @@ export function paymentRecordHtml(record: PrintablePaymentRecord): string {
   <h3>${escaped(t("paymentRecordPdf.paymentHeading"))}</h3>
   ${details([
     [t("paymentRecordPdf.amount"), formatAed(payment.amountFils)],
-    [t("paymentRecordPdf.date"), payment.paidOn],
+    [t("paymentRecordPdf.date"), dateText(payment.paidOn)],
     [t("paymentRecordPdf.method"), t(`fees.methods.${payment.method}`)],
     [t("paymentRecordPdf.reference"), payment.reference || t("paymentRecordPdf.noReference")],
   ])}
@@ -27,9 +28,9 @@ export function paymentRecordHtml(record: PrintablePaymentRecord): string {
   ${details([
     [t("fees.feeLabel"), fee.name],
     [t("paymentRecordPdf.feeAmount"), formatAed(fee.amountFils)],
-    [t("paymentRecordPdf.dueDate"), fee.dueDate],
+    [t("paymentRecordPdf.dueDate"), dateText(fee.dueDate)],
   ])}
-  <h3>${escaped(t("paymentRecordPdf.statusHeading", { date: record.asOf }))}</h3>
+  <h3>${escaped(t("paymentRecordPdf.statusHeading", { date: dateText(record.asOf) }))}</h3>
   ${details([
     [t("paymentRecordPdf.status"), t(`fees.status.${record.status}`)],
     [t("paymentRecordPdf.paidToDate"), paidText(record)],

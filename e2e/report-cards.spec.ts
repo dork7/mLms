@@ -44,7 +44,7 @@ async function registerStudent(page: Page, name: string, studentNumber: string) 
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "5-R (Grade 5, 2071-2072)" });
   await page.getByLabel("From").fill("2071-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2071-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2071 · Current")).toBeVisible();
 }
 
 test("Teachers write remarks, and the Admin previews a Class's Report Cards with rank and what's missing", async ({
@@ -116,7 +116,7 @@ test("Teachers write remarks, and the Admin previews a Class's Report Cards with
   await create.getByLabel("Maximum marks").fill("10");
   await create.getByLabel("Weight").fill("1");
   await create.getByRole("button", { name: "Create Assessment" }).click();
-  await expect(page.getByRole("heading", { name: "Quiz on 2071-10-10" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quiz on Oct 10, 2071" })).toBeVisible();
   await settled(page);
   const grid = page.getByRole("region", { name: "Marks", exact: true });
   await grid.getByLabel("Mark for Salma Cards").fill("9");

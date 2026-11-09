@@ -1,10 +1,13 @@
 // A Student's own Fee Assignments, with their Fee Status and Payment Records.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { studentFeeAssignments } from "@/core/fees/fee-assignments";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { FeeAssignments } from "../../fee-assignments";
+
+export const metadata: Metadata = { title: t("pageTitles.myFees") };
 
 export default async function MyFeesPage() {
   let assignments;

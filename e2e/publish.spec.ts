@@ -104,7 +104,7 @@ test("the Admin Publishes a Class's Report Cards, Marks freeze, and unpublishing
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "23-P (Grade 23, 2091-2092)" });
   await page.getByLabel("From").fill("2091-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2091-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2091 · Current")).toBeVisible();
 
   // Nour enters a Mark.
   await firstLogIn(page, TEACHER_LOGIN, teacherInitial, TEACHER_PASSWORD, /\/teacher$/);
@@ -118,7 +118,7 @@ test("the Admin Publishes a Class's Report Cards, Marks freeze, and unpublishing
   await create.getByLabel("Maximum marks").fill("10");
   await create.getByLabel("Weight").fill("1");
   await create.getByRole("button", { name: "Create Assessment" }).click();
-  await expect(page.getByRole("heading", { name: "Quiz on 2091-10-10" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quiz on Oct 10, 2091" })).toBeVisible();
   await page.waitForLoadState("networkidle");
   const assessmentUrl = page.url();
   const grid = page.getByRole("region", { name: "Marks", exact: true });

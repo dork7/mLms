@@ -65,7 +65,7 @@ test("an Admin enrolls a Student and moves them; rosters and the Enrollment hist
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "9-A (Grade 9, 2041-2042)" });
   await page.getByLabel("From").fill("2041-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(history.getByText("From 2041-09-01 · Current")).toBeVisible();
+  await expect(history.getByText("From Sep 1, 2041 · Current")).toBeVisible();
 
   await expect(page.getByRole("heading", { name: "Move to another Class" })).toBeVisible();
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "9-B (Grade 9, 2041-2042)" });
@@ -75,8 +75,8 @@ test("an Admin enrolls a Student and moves them; rosters and the Enrollment hist
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "9-B (Grade 9, 2041-2042)" });
   await page.getByLabel("From").fill("2041-10-06");
   await page.getByRole("button", { name: "Move" }).click();
-  await expect(history.getByText("2041-09-01 to 2041-10-05")).toBeVisible();
-  await expect(history.getByText("From 2041-10-06 · Current")).toBeVisible();
+  await expect(history.getByText("Sep 1, 2041 to Oct 5, 2041")).toBeVisible();
+  await expect(history.getByText("From Oct 6, 2041 · Current")).toBeVisible();
 
   // 9-A's roster has him up to the day before the move.
   await page.goto("/admin/classes");

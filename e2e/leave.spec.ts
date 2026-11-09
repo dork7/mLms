@@ -55,7 +55,7 @@ test("a Teacher requests leave with an attachment, the Admin approves it, and th
   await form.getByLabel(/^Attachment/).setInputFiles({ name: "wedding invitation.pdf", mimeType: "application/pdf", buffer: PDF });
   await form.getByRole("button", { name: "Submit request" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Your Leave Request was sent to the Admin." })).toBeVisible();
-  const mine = page.getByRole("region", { name: "Your requests" }).getByRole("listitem", { name: "2031-03-02 to 2031-03-04" });
+  const mine = page.getByRole("region", { name: "Your requests" }).getByRole("listitem", { name: "Mar 2, 2031 to Mar 4, 2031" });
   await expect(mine).toContainText("My sister's wedding in Al Ain");
   await expect(mine).toContainText("Pending");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -68,7 +68,7 @@ test("a Teacher requests leave with an attachment, the Admin approves it, and th
   const teachers = page.getByRole("region", { name: "Teachers", exact: true });
   const waiting = teachers
     .getByRole("region", { name: "Waiting for a decision" })
-    .getByRole("listitem", { name: "Hessa Leave: 2031-03-02 to 2031-03-04" });
+    .getByRole("listitem", { name: "Hessa Leave: Mar 2, 2031 to Mar 4, 2031" });
   await expect(waiting).toContainText("My sister's wedding in Al Ain");
   const downloading = page.waitForEvent("download");
   await waiting.getByRole("link", { name: "Download wedding invitation.pdf" }).click();
@@ -80,7 +80,7 @@ test("a Teacher requests leave with an attachment, the Admin approves it, and th
   await waiting.getByRole("button", { name: "Approve" }).click();
   const decided = teachers
     .getByRole("region", { name: "Decided" })
-    .getByRole("listitem", { name: "Hessa Leave: 2031-03-02 to 2031-03-04" });
+    .getByRole("listitem", { name: "Hessa Leave: Mar 2, 2031 to Mar 4, 2031" });
   await expect(decided).toContainText(/Approved by /);
   await expect(waiting).toHaveCount(0);
 

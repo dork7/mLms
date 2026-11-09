@@ -1,10 +1,13 @@
 // The no-email report: every Student Fee Reminders can't reach, and whether each still
 // owes a Fee, so the office can collect an address or contact the family another way.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { noEmailReport } from "@/core/fees/fee-reminders";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+
+export const metadata: Metadata = { title: t("pageTitles.noEmail") };
 
 export default async function NoEmailReportPage() {
   let rows;

@@ -110,7 +110,7 @@ test("a Subject Teacher logs a Lesson from a phone, and the Class Teacher and Ad
   await page.getByRole("region", { name: "My Classes" }).getByRole("link", { name: "4-L" }).click();
   await page.getByRole("link", { name: "Class summary of Lessons" }).click();
   await expect(page.getByRole("heading", { name: "Lessons in 4-L" })).toBeVisible();
-  const day = page.getByRole("region", { name: "2001-10-15" });
+  const day = page.getByRole("region", { name: "Oct 15, 2001" });
   await expect(day.getByText("Period 2: Geography, Layla Geography")).toBeVisible();
   await expect(day.getByText("Rivers and deltas")).toBeVisible();
   await expect(day.getByText("Homework: Draw the Nile delta")).toBeVisible();

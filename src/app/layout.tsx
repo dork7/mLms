@@ -5,7 +5,7 @@ import { applySavedTheme } from "./theme";
 import { ThemePicker } from "./theme-picker";
 import "./globals.css";
 
-export const metadata: Metadata = { title: t("app.name") };
+export const metadata: Metadata = { title: { template: `%s · ${t("app.name")}`, default: t("app.name") } };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

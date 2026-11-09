@@ -2,6 +2,7 @@
 // whose Exams these are. The page is also the printable view: `.no-print` drops what isn't
 // the schedule on paper (globals.css), including a Student's past Exams.
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { myExamSchedule, type ScheduledExam } from "@/core/exams/exam-schedule";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
@@ -74,7 +75,7 @@ function ExamLine({ exam }: { exam: ScheduledExam }) {
           class: exam.class,
         })}
       </strong>
-      <div>{t("examSchedule.when", { date: exam.date, start: exam.startTime, end: exam.endTime })}</div>
+      <div>{t("examSchedule.when", { date: dateText(exam.date), start: exam.startTime, end: exam.endTime })}</div>
       <div>{t("examSchedule.room", { room: exam.room })}</div>
     </li>
   );

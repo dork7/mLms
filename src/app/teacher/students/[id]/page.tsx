@@ -1,10 +1,13 @@
 // A Student's profile for one of their Teachers (the access policy decides who).
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getStudentProfile } from "@/core/students/student-profile";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { StudentProfileCard } from "../../../student-profile-card";
+
+export const metadata: Metadata = { title: t("pageTitles.studentProfile") };
 
 export default async function TeacherStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

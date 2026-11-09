@@ -3,13 +3,14 @@
 import { useActionState, useState } from "react";
 import type { Named } from "@/core/school/catalogue";
 import { type MessageKey, t } from "@/i18n";
-import type { FormState } from "@/app/form-kit";
+import { type FormState, useResultFocus } from "@/app/form-kit";
 import { type NamedKind, saveNamed } from "./setup-actions";
 
 export function NamedForm({ kind, item, label }: { kind: NamedKind; item?: Named; label: MessageKey }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveNamed.bind(null, kind), {
     saved: 0,
   });
+  const formRef = useResultFocus(state);
   const [name, setName] = useState(item?.name ?? "");
   const [seen, setSeen] = useState(0);
   if (state.saved !== seen) {
@@ -18,7 +19,7 @@ export function NamedForm({ kind, item, label }: { kind: NamedKind; item?: Named
   }
 
   return (
-    <form action={action} className="inline-form">
+    <form ref={formRef} action={action} className="inline-form">
       {item && <input type="hidden" name="id" value={item.id} />}
       <label className="field">
         {t(label)}
@@ -28,7 +29,7 @@ export function NamedForm({ kind, item, label }: { kind: NamedKind; item?: Named
         {t(item ? "setup.save" : "setup.add")}
       </button>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}

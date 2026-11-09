@@ -2,7 +2,7 @@
 // The year-end forms. Inputs are controlled so the choices survive a refusal.
 import { useActionState, useState } from "react";
 import { t } from "@/i18n";
-import { type FormState, type Option, Refusal, Select } from "@/app/form-kit";
+import { type FormState, type Option, Refusal, Select, useResultFocus } from "@/app/form-kit";
 import { closeYear, savePromotion } from "./actions";
 
 const OUTCOMES = ["promoted", "repeating", "leaving"] as const;
@@ -28,6 +28,7 @@ export function PromotionForm({
   lastDay: string;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(savePromotion, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [toClass, setToClass] = useState("");
   const [choices, setChoices] = useState<Record<string, Choice>>({});
   const choiceOf = (id: string): Choice => choices[id] ?? { outcome: "promoted", repeatClass: "", lastDay: "" };
@@ -36,7 +37,7 @@ export function PromotionForm({
   const anyPromoted = students.some((s) => choiceOf(s.studentId).outcome === "promoted");
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="classId" value={classId} />
       {anyPromoted &&
@@ -105,8 +106,9 @@ export function PromotionForm({
 
 export function CloseYearForm({ academicYearId, name }: { academicYearId: number; name: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(closeYear, { saved: 0 });
+  const formRef = useResultFocus(state);
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       <Refusal error={state.error} />
       <input type="hidden" name="academicYearId" value={academicYearId} />
       <p className="muted">{t("yearEnd.closeHint")}</p>

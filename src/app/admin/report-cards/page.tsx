@@ -1,4 +1,5 @@
 // The Admin's Report Cards: the school-wide rank switch, and every Class to preview.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listClasses } from "@/core/classes/classes";
 import { getRankEnabled } from "@/core/report-cards/rank-setting";
@@ -6,6 +7,8 @@ import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { RankForm } from "./rank-form";
+
+export const metadata: Metadata = { title: t("pageTitles.reportCards") };
 
 export default async function ReportCardsPage() {
   let data;

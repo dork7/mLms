@@ -1,6 +1,7 @@
 // The Admin's Leave Requests: Students' (which their Class Teachers decide and the Admin can
 // override) and Teachers' (which only the Admin decides). Each has those waiting for a
 // decision, then those decided, with buttons to approve, reject or change the decision.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { studentLeaveRequests, teacherLeaveRequests } from "@/core/leave/leave-requests";
 import { t } from "@/i18n";
@@ -9,6 +10,8 @@ import { refusalKey } from "@/web/refusal";
 import { LeaveOutcome, type LeaveOutcomeQuery } from "../../leave-outcome";
 import { LeaveQueue } from "../../leave-queue";
 import { decideLeaveAction } from "./actions";
+
+export const metadata: Metadata = { title: t("pageTitles.leaveRequests") };
 
 export default async function AdminLeavePage({ searchParams }: { searchParams: Promise<LeaveOutcomeQuery> }) {
   let queues;

@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { getAdminDashboard } from "@/core/dashboard/admin-dashboard";
 import { AccessDenied } from "@/core/errors";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { logout } from "../actions";
+
+export const metadata: Metadata = { title: t("pageTitles.adminDashboard") };
 
 export default async function AdminDashboardPage() {
   let dashboard;
@@ -33,7 +37,7 @@ export default async function AdminDashboardPage() {
       </header>
       <section className="card">
         <p>{t("adminDashboard.welcome", { name: dashboard.adminName })}</p>
-        <p>{t("adminDashboard.today", { date: dashboard.today })}</p>
+        <p>{t("adminDashboard.today", { date: dateText(dashboard.today) })}</p>
         <dl className="stats">
           <div>
             <dt>{t("adminDashboard.studentsEnrolled")}</dt>

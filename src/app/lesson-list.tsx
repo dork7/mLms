@@ -1,6 +1,7 @@
 // Lessons grouped by day (the rows arrive newest day first, then by Period), each
 // with its Period, Subject, Teacher, topic and homework. Used by the class summary
 // (Admin and Class Teacher) and by a Class Subject's page.
+import { dateText } from "@/app/date-text";
 import type { LessonRow } from "@/core/lessons/lessons";
 import { t } from "@/i18n";
 
@@ -15,8 +16,8 @@ export function LessonList({ lessons }: { lessons: LessonRow[] }) {
   }
 
   return days.map((day) => (
-    <section key={day.date} className="lesson-day" aria-label={day.date}>
-      <h3>{day.date}</h3>
+    <section key={day.date} className="lesson-day" aria-label={dateText(day.date)}>
+      <h3>{dateText(day.date)}</h3>
       <ul className="list">
         {day.lessons.map((lesson) => (
           <li key={lesson.id}>

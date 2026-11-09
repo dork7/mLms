@@ -1,5 +1,6 @@
 // A Teacher's "My Students": today's Students of the Classes they teach, filtered by
 // Class and Class Subject through a plain GET form.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listMyClassSubjects } from "@/core/classes/class-subjects";
 import { listMyClasses } from "@/core/classes/classes";
@@ -7,6 +8,8 @@ import { listMyStudents } from "@/core/enrollment/my-students";
 import { t } from "@/i18n";
 import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
+
+export const metadata: Metadata = { title: t("pageTitles.myStudents") };
 
 export default async function MyStudentsPage({
   searchParams,

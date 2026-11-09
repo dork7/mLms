@@ -1,6 +1,8 @@
 // One Fee: its Fee Assignments with each Fee Status, and the forms to apply it to a
 // Grade or to specific Students.
+import type { Metadata } from "next";
 import Link from "next/link";
+import { dateText } from "@/app/date-text";
 import { feeApplyChoices, getFee } from "@/core/fees/fee-assignments";
 import { formatAed } from "@/core/fees/money";
 import { t } from "@/i18n";
@@ -8,6 +10,8 @@ import { asCurrentActor } from "@/web/as-current-actor";
 import { refusalKey } from "@/web/refusal";
 import { FeeStatusLabel, paidText } from "../../../fee-assignments";
 import { ApplyToGradeForm, ApplyToStudentsForm, SendRemindersNowForm } from "../forms";
+
+export const metadata: Metadata = { title: t("pageTitles.fee") };
 
 export default async function FeePage({ params }: { params: Promise<{ id: string }> }) {
   const feeId = Number((await params).id);
@@ -37,7 +41,7 @@ export default async function FeePage({ params }: { params: Promise<{ id: string
           </div>
           <div>
             <dt>{t("fees.dueDate")}</dt>
-            <dd>{fee.dueDate}</dd>
+            <dd>{dateText(fee.dueDate)}</dd>
           </div>
         </dl>
       </section>

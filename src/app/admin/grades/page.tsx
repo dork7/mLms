@@ -1,8 +1,11 @@
 // The Grades page: name each Grade and set the order Promotion follows.
+import type { Metadata } from "next";
 import { t } from "@/i18n";
 import { NamedForm } from "../named-list";
 import { SetupPage } from "../setup-shell";
 import { GradeOrderForm } from "./grade-order-form";
+
+export const metadata: Metadata = { title: t("pageTitles.grades") };
 
 export default function GradesPage() {
   return (

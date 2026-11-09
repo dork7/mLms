@@ -4,7 +4,7 @@
 import { useActionState, useState } from "react";
 import type { AcademicYear } from "@/core/school/academic-year";
 import { t } from "@/i18n";
-import type { FormState } from "@/app/form-kit";
+import { type FormState, useResultFocus } from "@/app/form-kit";
 import { saveAcademicYear } from "../setup-actions";
 
 type TermRow = { name: string; startDate: string; endDate: string };
@@ -14,6 +14,7 @@ const blankTerms = (): TermRow[] => [{ name: "", startDate: "", endDate: "" }];
 
 export function AcademicYearForm({ year }: { year?: AcademicYear }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveAcademicYear, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [fields, setFields] = useState(
     year ? { name: year.name, startDate: year.startDate, endDate: year.endDate } : blankYear,
   );
@@ -33,9 +34,9 @@ export function AcademicYearForm({ year }: { year?: AcademicYear }) {
     setTerms((rows) => rows.map((row, j) => (j === i ? { ...row, [key]: value } : row)));
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}

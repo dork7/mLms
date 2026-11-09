@@ -63,6 +63,8 @@ async function addClassWithSubject(page: Page, className: string, teacher: strin
 
 async function addExam(page: Page, className: string, room: string) {
   const add = page.getByRole("region", { name: "Add an Exam" });
+  // The form is folded once the Term has an Exam.
+  if (await add.locator("details:not([open])").count()) await add.getByText("Show the form").click();
   await add.getByRole("combobox", { name: "Class Subject" }).selectOption({ label: `Geology for ${className}` });
   await add.getByRole("combobox", { name: "Room" }).selectOption({ label: room });
   await add.getByRole("combobox", { name: "Type" }).selectOption({ label: "Final" });
@@ -129,7 +131,7 @@ test("Students and Teachers see, print and export only their own Exams", async (
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "Sched-1 (Grade Schedule, 2005-2006)" });
   await page.getByLabel("From").fill("2005-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2005-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2005 · Current")).toBeVisible();
 
   await open(page, "/admin/exams");
   await page.getByRole("combobox", { name: "Term", exact: true }).selectOption({ label: "2005-2006: Schedule year" });
@@ -147,7 +149,7 @@ test("Students and Teachers see, print and export only their own Exams", async (
   const monaSchedule = page.getByRole("region", { name: "Mona Schedule" });
   await expect(monaSchedule.getByRole("listitem")).toHaveCount(1);
   await expect(monaSchedule.getByText("Geology, Final, Sched-1")).toBeVisible();
-  await expect(monaSchedule.getByText("2005-11-10, 09:00 to 10:30")).toBeVisible();
+  await expect(monaSchedule.getByText("Nov 10, 2005, 09:00 to 10:30")).toBeVisible();
   await expect(monaSchedule.getByText("Room: Schedule Hall")).toBeVisible();
   await expectNoSidewaysScroll(page);
 
@@ -193,7 +195,7 @@ test("Students and Teachers see, print and export only their own Exams", async (
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "Sched-2 (Grade Schedule, 2005-2006)" });
   await page.getByLabel("From").fill("2006-01-01");
   await page.getByRole("button", { name: "Move" }).click();
-  await expect(page.getByText("From 2006-01-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Jan 1, 2006 · Current")).toBeVisible();
 
   await page.context().clearCookies();
   await logIn(page, "E2E-1401", PASSWORD);

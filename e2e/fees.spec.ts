@@ -60,7 +60,7 @@ async function registerAndEnroll(page: Page, name: string, studentNumber: string
   await page.getByRole("combobox", { name: "Class" }).selectOption({ label: "41-F (Grade 41, 2121-2122)" });
   await page.getByLabel("From").fill("2121-09-01");
   await page.getByRole("button", { name: "Enroll" }).click();
-  await expect(page.getByText("From 2121-09-01 · Current")).toBeVisible();
+  await expect(page.getByText("From Sep 1, 2121 · Current")).toBeVisible();
   return initial;
 }
 
@@ -175,8 +175,8 @@ test("the Admin defines and applies Fees and logs Payment Records, and the Stude
   const tuition = page.getByRole("listitem").filter({ hasText: "Fees Spec Tuition" });
   await expect(tuition.getByText("Paid", { exact: true })).toBeVisible();
   await expect(tuition.getByText("AED 4,500.50 paid of AED 4,500.50")).toBeVisible();
-  await expect(tuition.getByText("AED 1,000.00 on 2025-01-15 · Cash · R-1801")).toBeVisible();
-  await expect(tuition.getByText("AED 3,500.50 on 2025-01-15 · Bank transfer · TRX-1801")).toBeVisible();
+  await expect(tuition.getByText("AED 1,000.00 on Jan 15, 2025 · Cash · R-1801")).toBeVisible();
+  await expect(tuition.getByText("AED 3,500.50 on Jan 15, 2025 · Bank transfer · TRX-1801")).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Fees Spec Bus" }).getByText("Unpaid")).toBeVisible();
   await expectNoSidewaysScroll(page);
 

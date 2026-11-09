@@ -1,5 +1,6 @@
 "use client";
 import { useActionState } from "react";
+import { useResultFocus } from "@/app/form-kit";
 import { t, type MessageKey } from "@/i18n";
 import { addStudent, type Entered, type RegisterStudentState } from "./actions";
 
@@ -15,16 +16,17 @@ const FIELDS: { name: keyof Entered; label: MessageKey; type: string; required: 
 
 export function RegisterStudentForm() {
   const [state, action, pending] = useActionState<RegisterStudentState, FormData>(addStudent, {});
+  const formRef = useResultFocus(state);
   const entered = state.entered;
   return (
-    <form action={action} key={state.registered ? state.registered.initialPassword : "form"}>
+    <form ref={formRef} action={action} key={state.registered ? state.registered.initialPassword : "form"}>
       {state.error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" tabIndex={-1}>
           {t(state.error)}
         </p>
       )}
       {state.registered && (
-        <p role="status">
+        <p role="status" tabIndex={-1}>
           {t("students.registered", {
             name: state.registered.name,
             studentNumber: state.registered.studentNumber,

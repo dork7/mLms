@@ -1,4 +1,5 @@
 // A Student's own profile, Term Grades and whole Assessment history, linked from their dashboard.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { studentAssessmentHistory } from "@/core/assessments/marks";
 import { studentFeeAlert } from "@/core/fees/fee-alert";
@@ -11,6 +12,8 @@ import { AssessmentHistory } from "../../assessment-history";
 import { FeeAlert } from "../../fee-alert";
 import { StudentProfileCard } from "../../student-profile-card";
 import { TermGrades } from "../../term-grades";
+
+export const metadata: Metadata = { title: t("pageTitles.myProfile") };
 
 export default async function MyProfilePage() {
   let data;

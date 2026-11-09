@@ -3,7 +3,7 @@
 // for each Class. Choosing the Grade and Subject shows which Classes sit it. A save clears
 // the choice and Rooms and keeps the time and marks.
 import { Fragment, useActionState, useState } from "react";
-import { type FormState, type Option, Refusal, Select, useOnSaved } from "@/app/form-kit";
+import { type FormState, type Option, Refusal, Select, useOnSaved, useResultFocus } from "@/app/form-kit";
 import type { GradeWideExamChoice } from "@/core/exams/exams";
 import { t } from "@/i18n";
 import { addGradeWideExamAction } from "./actions";
@@ -26,6 +26,7 @@ export function AddGradeWideExamForm({
   lastDay: string;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addGradeWideExamAction, { saved: 0 });
+  const formRef = useResultFocus(state);
   const [chosen, setChosen] = useState("");
   const [roomOf, setRoomOf] = useState<Record<number, string>>({});
   useOnSaved(state, () => {
@@ -36,10 +37,10 @@ export function AddGradeWideExamForm({
   const choice = choices.find((c) => keyOf(c) === chosen);
 
   return (
-    <form action={action}>
-      <Refusal error={state.error} />
+    <form ref={formRef} action={action}>
+      <Refusal error={state.error} params={state.errorParams} />
       {state.saved > 0 && !state.error && (
-        <p className="success" role="status">
+        <p className="success" role="status" tabIndex={-1}>
           {t("exams.gradeWideAdded")}
         </p>
       )}
