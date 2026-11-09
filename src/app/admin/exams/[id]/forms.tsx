@@ -34,7 +34,7 @@ export function RescheduleExamForm({ exam, rooms }: { exam: ExamDetail; rooms: O
           {t("exams.rescheduled")}
         </p>
       )}
-      <div className="row">
+      <div className="row row-top">
         <div className="field">
           <label htmlFor="exam-date">{t("exams.date")}</label>
           <input

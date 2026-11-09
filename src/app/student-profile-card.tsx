@@ -7,11 +7,11 @@ import { t, type MessageKey } from "@/i18n";
 export function StudentProfileCard({ profile }: { profile: StudentProfile }) {
   const rows: [MessageKey, string][] = [
     ["students.studentNumber", profile.studentNumber],
-    ["students.dateOfBirth", profile.dateOfBirth],
+    ["students.dateOfBirth", dateText(profile.dateOfBirth)],
     ["students.nationalId", profile.nationalId],
     ["students.guardianContact", profile.guardianContact],
     ["students.email", profile.email ?? t("studentProfile.noEmail")],
-    ["students.admissionDate", profile.admissionDate],
+    ["students.admissionDate", dateText(profile.admissionDate)],
   ];
   return (
     <section className="card profile">

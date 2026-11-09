@@ -236,6 +236,11 @@ code {
   flex: 1 1 10rem;
 }
 
+/* A row of fields with no button, where one field has a hint under it: keep the labels level. */
+.row-top {
+  align-items: flex-start;
+}
+
 .choice-row {
   display: flex;
   flex-wrap: wrap;
