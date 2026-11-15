@@ -171,6 +171,15 @@ export class ExamClashForRoom extends Error {
   }
 }
 
+/** A grade-wide Exam gives two of its Classes the same Room. `params` names them and the Room. */
+export class GradeExamRoomShared extends Error {
+  readonly messageKey = "errors.gradeExamRoomShared";
+  constructor(readonly params: { first: string; second: string; room: string }) {
+    super("two Classes of a grade-wide Exam share a Room");
+    this.name = "GradeExamRoomShared";
+  }
+}
+
 // ---- Year end ----
 
 /** The Academic Year is Closed, so its records are read-only. */

@@ -21,7 +21,14 @@ import { requireAdmin, requireId } from "../access";
 import { type AssessmentType, insertAssessment, requireAssessmentDate } from "../assessments/assessments";
 import type { Ctx } from "../context";
 import type { Tx } from "../enrollment/enrollment";
-import { type ClashingExam, ExamClashForClass, ExamClashForRoom, InvalidInput, NotFound } from "../errors";
+import {
+  type ClashingExam,
+  ExamClashForClass,
+  ExamClashForRoom,
+  GradeExamRoomShared,
+  InvalidInput,
+  NotFound,
+} from "../errors";
 import type { Term } from "../school/academic-year";
 import { requireOpenYear } from "../school/closed-year";
 
@@ -80,7 +87,7 @@ export async function addGradeWideExam(ctx: Ctx, input: AddGradeWideExamInput): 
   return ctx.db.transaction(async (tx) => {
     await lockTimetable(tx);
     const classSubjects = await tx
-      .select({ id: classSubject.id })
+      .select({ id: classSubject.id, class: schoolClass.name })
       .from(classSubject)
       .innerJoin(schoolClass, eq(schoolClass.id, classSubject.classId))
       .where(
@@ -96,6 +103,19 @@ export async function addGradeWideExam(ctx: Ctx, input: AddGradeWideExamInput): 
     const roomOf = new Map(rooms.map((r) => [r.classSubjectId, r.roomId]));
     if (rooms.length !== classSubjects.length || classSubjects.some((cs) => !roomOf.has(cs.id))) {
       throw new InvalidInput("errors.gradeExamRoomsMismatch");
+    }
+    // Two Classes in one Room would clash with each other. Say so by name: the clash check
+    // would name the first Class's Exam as if it were already on the timetable.
+    const classInRoom = new Map<number, string>();
+    for (const cs of classSubjects) {
+      const roomId = roomOf.get(cs.id)!;
+      const first = classInRoom.get(roomId);
+      if (first !== undefined) {
+        const [shared] = await tx.select({ name: room.name }).from(room).where(eq(room.id, roomId));
+        if (!shared) throw new NotFound();
+        throw new GradeExamRoomShared({ first, second: cs.class, room: shared.name });
+      }
+      classInRoom.set(roomId, cs.class);
     }
 
     const exams: ExamIds[] = [];

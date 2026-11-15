@@ -796,6 +796,7 @@ export const en = {
       "This Room already has an Exam at an overlapping time: {subject} for {class}, {start} to {end}. Choose another Room or time.",
     gradeExamNoClassSubjects: "No Class of this Grade has this Subject in this Academic Year.",
     gradeExamRoomsMismatch: "Choose one Room for each Class sitting this Exam.",
+    gradeExamRoomShared: "{first} and {second} are both in {room}, at the same time. Give each Class its own Room.",
     examStartTimeInvalid: "Enter a valid start time.",
     examDurationInvalid: "Duration must be a whole number of minutes, and the Exam must end by midnight.",
     examHasMarksDateFixed: "This Exam has Marks, so its date can't change. Its time, duration and Room can.",

@@ -163,6 +163,12 @@ body {
   margin-block: 0 1rem;
 }
 
+/* A short name or time inside a message: never split across lines ("10-" then "A"). Not
+   inline-block, which lets a following comma start the next line. */
+.keep-together {
+  white-space: nowrap;
+}
+
 .card + .card {
   margin-block-start: 1rem;
 }

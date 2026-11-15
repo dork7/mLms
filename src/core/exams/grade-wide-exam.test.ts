@@ -211,7 +211,7 @@ describe("a grade-wide Exam is all or nothing", () => {
     expect(await listAssessments(s.asSara, { classSubjectId: s.math7B.id })).toEqual([]);
   });
 
-  it("two Classes given the same Room clash with each other, so the whole add is refused", async () => {
+  it("two Classes given the same Room are refused by name, not as a clash with an Exam that doesn't exist", async () => {
     const s = await examSchool();
 
     await expect(
@@ -224,7 +224,10 @@ describe("a grade-wide Exam is all or nothing", () => {
           ],
         }),
       ),
-    ).rejects.toThrow(ExamClashForRoom);
+    ).rejects.toMatchObject({
+      messageKey: "errors.gradeExamRoomShared",
+      params: { first: "7-A", second: "7-B", room: "Hall" },
+    });
 
     await s.expectNothingAdded();
   });

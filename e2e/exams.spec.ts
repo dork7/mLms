@@ -165,7 +165,11 @@ test("the Admin builds a Term's exam timetable, the Subject Teacher enters Exam 
   await gradeWide.getByLabel("Maximum marks").fill("50");
   await gradeWide.getByLabel("Weight").fill("2");
   await gradeWide.getByRole("button", { name: "Add grade-wide Exam" }).click();
-  await expect(gradeWide.getByRole("alert").filter({ hasText: "This Room already has an Exam" })).toBeVisible();
+  // The refusal names the two Classes, not an Exam that isn't on the timetable.
+  await expect(gradeWide.getByRole("alert")).toHaveText(
+    "12-X and 12-Y are both in Exam Hall, at the same time. Give each Class its own Room.",
+  );
+  await expect(gradeWide.getByRole("alert")).toBeFocused();
   await expect(timetable.getByRole("region", { name: /Midterm/ })).toHaveCount(0);
 
   await gradeWide.getByRole("combobox", { name: "Room for 12-Y" }).selectOption({ label: "Exam Lab" });

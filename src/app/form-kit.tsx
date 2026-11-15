@@ -55,9 +55,34 @@ export function Refusal({ error, params }: { error?: MessageKey; params?: Record
   if (!error) return null;
   return (
     <p className="error" role="alert" tabIndex={-1}>
-      {t(error, params)}
+      {params ? withDetailsKeptTogether(error, params) : t(error)}
     </p>
   );
+}
+
+const MARK = "\u0000";
+/** Longer than this, a detail could be wider than a phone's line, so it may wrap. */
+const KEEP_TOGETHER_MAX = 20;
+
+/**
+ * The message with each short detail (a Class, Room or time) in a `.keep-together` span,
+ * so a line never breaks inside one ("10-" then "A"). The text is the same as `t` gives.
+ */
+function withDetailsKeptTogether(key: MessageKey, params: Record<string, string | number>): ReactNode[] {
+  const marked = Object.fromEntries(Object.keys(params).map((name) => [name, `${MARK}${name}${MARK}`]));
+  return t(key, marked)
+    .split(MARK)
+    .map((part, i) => {
+      if (i % 2 === 0) return part;
+      const detail = String(params[part]);
+      return detail.length > KEEP_TOGETHER_MAX ? (
+        detail
+      ) : (
+        <span key={i} className="keep-together">
+          {detail}
+        </span>
+      );
+    });
 }
 
 /**
